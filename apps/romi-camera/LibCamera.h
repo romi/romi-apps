@@ -57,7 +57,7 @@ namespace romi {
                 
         public:
                 
-                explicit LibCamera();
+                explicit LibCamera(size_t width, size_t height);
                 ~LibCamera() override;
         
                 bool grab(Image &image) override;

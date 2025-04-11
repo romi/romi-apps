@@ -24,6 +24,7 @@
 
 #include <sys/mman.h>
 #include <string.h>
+#include <stdexcept>
 #include <sys/types.h>
 #include <unistd.h>
 #include <util/FileUtils.h>
@@ -34,7 +35,7 @@ namespace romi {
 
         using SynchonizedCodeBlock = std::lock_guard<std::mutex>;
 
-        LibCamera::LibCamera()
+        LibCamera::LibCamera(size_t width, size_t height)
                 : manager_(),
                   camera_(),
                   allocator_(nullptr),
@@ -68,8 +69,8 @@ namespace romi {
                 std::cout << "Default stream configuration is: "
                           << streamConfig.toString() << std::endl;
         
-                // streamConfig.size.width = 640;
-                // streamConfig.size.height = 480;
+                streamConfig.size.width = (unsigned int) width;
+                streamConfig.size.height = (unsigned int) height;
                 streamConfig.pixelFormat = pixel_format_;
         
                 libcamera::CameraConfiguration::Status status = config->validate();
@@ -91,6 +92,11 @@ namespace romi {
                                   << streamConfig.toString() << std::endl;
                 }
 
+                if (streamConfig.size.width != width
+                    || streamConfig.size.height != height) {
+                        throw std::runtime_error("LibCamera: Invalid width or height.");
+                }
+                
                 width_ = streamConfig.size.width;
                 height_ = streamConfig.size.height;
                 

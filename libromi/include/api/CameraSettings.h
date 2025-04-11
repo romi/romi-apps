@@ -42,6 +42,7 @@ namespace romi {
                 const std::string& type() const override;
                 nlohmann::json get_all() override;
 
+                bool has_value(const std::string& name) override;
                 double get_value(const std::string& name) override;
                 bool set_value(const std::string& name, double value) override;
                 void get_value_names(std::vector<std::string>& list) override;

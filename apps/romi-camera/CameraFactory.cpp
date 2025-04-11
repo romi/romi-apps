@@ -140,12 +140,15 @@ namespace romi {
                 return camera;
         }
 
-        std::unique_ptr<ICamera> CameraFactory::make_libcamera(ICameraSettings&)
+        std::unique_ptr<ICamera> CameraFactory::make_libcamera(ICameraSettings& settings)
         {
                 r_debug("CameraFactory::make_libcamera");
+
+                size_t width = (size_t) settings.get_value(ICameraSettings::kWidth);
+                size_t height = (size_t) settings.get_value(ICameraSettings::kHeight);
                 
                 std::unique_ptr<ICamera> camera
-                        = std::make_unique<LibCamera>();
+                        = std::make_unique<LibCamera>(width, height);
                 return camera;
         }
 }

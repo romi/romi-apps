@@ -40,6 +40,11 @@ namespace romi {
         {
                 return settings_;
         }
+
+        bool CameraSettings::has_value(const std::string& name)
+        {
+                return settings_.contains(name);
+        }
         
         double CameraSettings::get_value(const std::string& name)
         {

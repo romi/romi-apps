@@ -102,15 +102,6 @@ namespace romi {
                 static constexpr const char* kCameraMode = "mode"; 
                 static constexpr const char* kStillMode = "still"; 
                 static constexpr const char* kVideoMode = "video"; 
-                // static constexpr const char* kResolution = "resolution"; 
-                // static constexpr const char* kResolution4056x3040 = "4056x3040"; 
-                // static constexpr const char* kResolution2028x1520 = "2028x1520"; 
-                // static constexpr const char* kResolution1014x760 = "1014x760";
-                // static constexpr const char* kResolution3280x2464 = "3280x2464";
-                // static constexpr const char* kResolution1640x1232 = "1640x1232";
-                // static constexpr const char* kResolution820x616 = "820x616";
-                // static constexpr const char* kResolution1920x1080 = "1920x1080"; 
-                // static constexpr const char* kResolution640x480 = "640x480"; 
                 static constexpr const char* kWidth = "width"; 
                 static constexpr const char* kHeight = "height"; 
                 static constexpr const char* kFramerate = "framerate"; 
@@ -134,6 +125,7 @@ namespace romi {
 
                 virtual nlohmann::json get_all() = 0;
                 
+                virtual bool has_value(const std::string& name) = 0;
                 virtual double get_value(const std::string& name) = 0;
                 virtual bool set_value(const std::string& name, double value) = 0;
                 virtual void get_value_names(std::vector<std::string>& list) = 0;
