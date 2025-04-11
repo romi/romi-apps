@@ -32,7 +32,7 @@ namespace romi {
         class CNCOptions : public RomiOptions
         {
         public:
-                static constexpr const char* kCncDevice = "cnc-device";
+                static constexpr const char* kDevice = "device";
 
                 CNCOptions();
                 ~CNCOptions() override = default;

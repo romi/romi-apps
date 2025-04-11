@@ -32,47 +32,26 @@
 #include <rpc/RcomLog.h>
 
 #include <api/ICameraSettings.h>
-#include <api/DeviceData.h>
-#include <api/DummyLocationProvider.h>
 #include <configuration/GetOpt.h>
 #include <configuration/LocalConfig.h>
+#include <configuration/RomiOptions.h>
 #include <util/ClockAccessor.h>
 #include <util/Logger.h>
 #include <rpc/RemoteConfig.h>
-#include <api/Session.h>
-//#include <data_provider/DummyLocationProvider.h>
+#include <romi_config.h>
+
+// Session
+// #include <api/DeviceData.h>
+// #include <api/DummyLocationProvider.h>
+// #include <api/Session.h>
 
 #include "CameraInfoIO.h"
 #include "CameraFactory.h"
 #include "CameraAdaptor.h"
 
-
 static bool quit = false;
 static void set_quit(int sig, siginfo_t *info, void *ucontext);
 static void quit_on_control_c();
-
-static const char *kRegistry = "registry";
-static const char *kConfig = "config";
-static const char *kDirectory = "directory";
-static const char *kTopic = "topic";
-
-static std::vector<romi::Option> option_list = {
-        { "help", false, nullptr,
-          "Print help message" },
-                
-        { kRegistry, true, nullptr,
-          "The IP address of the registry."},
-                
-        { kTopic, false, "camera",
-          "The topic of the rcom node"},
-                
-        { kConfig, true, "config.json",
-          "The config file (config.json)"},
-                
-        { kDirectory, true, ".",
-          "The directory to store the images and log files (current directory)"}                
-};
-
 
 int main(int argc, char **argv)
 {
@@ -85,24 +64,33 @@ int main(int argc, char **argv)
                 std::shared_ptr<rcom::ILog> rcomlog = std::make_shared<romi::RcomLog>();
                 
                 // Options
-                romi::GetOpt options(option_list);
+                romi::RomiOptions options;
                 options.parse(argc, argv);
                 if (options.is_help_requested()) {
                         options.print_usage();
                         exit(0);
                 }
                 
-                if (options.is_set(kRegistry)) {
-                        std::string ip = options.get_value(kRegistry);
+                if (options.is_set(romi::RomiOptions::kRegistry)) {
+                        std::string ip = options.get_value(romi::RomiOptions::kRegistry);
                         r_info("Registry IP set to %s", ip.c_str());
                         rcom::RegistryServer::set_address(ip.c_str());
                 }
+
+                // Topic
+                std::string topic = "camera";
+                if (options.is_set(romi::RomiOptions::kTopic)) {
+                        topic = options.get_value(romi::RomiOptions::kTopic);
+                }
+                
+                log_set_application(topic);
                 
                 // Config
                 std::shared_ptr<romi::IConfigManager> config;
                 
-                if (options.is_set(kConfig)) {
-                        std::string config_value = options.get_value(kConfig);
+                if (options.is_set(romi::RomiOptions::kConfig)) {
+                        std::string config_value =
+                                options.get_value(romi::RomiOptions::kConfig);
                         
                         r_info("romi-camera: Using local configuration file: '%s'",
                                config_value.c_str());
@@ -111,14 +99,14 @@ int main(int argc, char **argv)
                         config = std::make_shared<romi::LocalConfig>(config_path);
                 } else {
                         r_info("romi-camera: Using remote configuration");
-                        auto client = rcom::RcomClient::create(kConfig, 10.0, rcomlog);
+                        auto client = rcom::RcomClient::create("config", 10.0, rcomlog);
                         config = std::make_shared<romi::RemoteConfig>(client);
                 }
                 
                 // Camera settings
                 std::shared_ptr<romi::ICameraInfoIO> info_io;
                 try {
-                        info_io = std::make_shared<romi::CameraInfoIO>(config, "camera");
+                        info_io = std::make_shared<romi::CameraInfoIO>(config, topic);
                         
                 } catch (std::exception& e) {
                         r_debug("romi-camera: Failed to load the camera configuration");
@@ -137,23 +125,22 @@ int main(int argc, char **argv)
                 }
                 
                 // Session
-                nlohmann::json device_config = config->get_section("device");
-                std::string device_type = device_config["type"];
-                std::string device_id = device_config["hardware-id"];
-                std::string software_version = "TO DO";
-                std::unique_ptr<romi::IDeviceData> device
-                        = std::make_unique<romi::DeviceData>(device_type, device_id,
-                                                             software_version);
-                std::unique_ptr<romi::ILocationProvider> location
-                        = std::make_unique<romi::DummyLocationProvider>();
-                std::string directory = options.get_value(kDirectory);
-                romi::Session session(linux, directory,
-                                      std::move(device),
-                                      std::move(location));
+                // nlohmann::json device_config = config->get_section("device");
+                // std::string device_type = device_config["type"];
+                // std::string device_id = device_config["hardware-id"];
+                // std::string software_version = PROJECT_VERSION;
+                // std::unique_ptr<romi::IDeviceData> device
+                //         = std::make_unique<romi::DeviceData>(device_type, device_id,
+                //                                              software_version);
+                // std::unique_ptr<romi::ILocationProvider> location
+                //         = std::make_unique<romi::DummyLocationProvider>();
+                // std::string directory = options.get_value(romi::RomiOptions::kDirectory);
+                // romi::Session session(linux, directory,
+                //                       std::move(device),
+                //                       std::move(location));
 
 
                 //
-                std::string topic = options.get_value(kTopic);
                 romi::CameraAdaptor adaptor(*camera);
                 auto camera_server = rcom::RcomServer::create(topic, adaptor);
                 

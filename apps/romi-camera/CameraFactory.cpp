@@ -28,7 +28,7 @@
 #include "FakeCamera.h"
 #include "FileCamera.h"
 #include "ExternalCamera.h"
-#include "CameraWithConfig.h"
+#include "CameraConfigManager.h"
 #include "USBCamera.h"
 #include "LibCamera.h"
 #include "CameraFactory.h"
@@ -42,12 +42,10 @@ namespace romi {
                 r_debug("CameraFactory::create");
                 
                 auto info = io->load();
-                
-                // Camera
-                std::unique_ptr<ICamera> real_camera = make_camera(info->get_settings());
-                std::unique_ptr<ICamera> camera = std::make_unique<CameraWithConfig>(io, real_camera);
+                auto camera = make_camera(info->get_settings());
+                auto manager = std::make_unique<CameraConfigManager>(io, camera);
 
-                return camera;
+                return manager;
         }
 
         std::unique_ptr<ICamera> CameraFactory::make_camera(ICameraSettings& settings)

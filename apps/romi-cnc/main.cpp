@@ -21,6 +21,7 @@
 
 #include <util/Clock.h>
 #include <util/ClockAccessor.h>
+#include <romi_config.h>
 
 #include "oquam/Oquam.h"
 #include "oquam/StepperSettings.h"
@@ -63,6 +64,11 @@ int main(int argc, char** argv)
         std::signal(SIGINT, SignalHandler);
 
         try {
+                // Linux
+                rcom::Linux linux;
+                std::shared_ptr<rcom::ILog> rcomlog = std::make_shared<romi::RcomLog>();
+
+                // Options
                 romi::CNCOptions options;
                 options.parse(argc, argv);
                 if (options.is_help_requested()) {
@@ -70,19 +76,21 @@ int main(int argc, char** argv)
                         return 0;
                 }
                 
-                // Linux
-                rcom::Linux linux;
-                std::shared_ptr<rcom::ILog> rcomlog = std::make_shared<romi::RcomLog>();
-
-                log_init();
-                log_set_application("cnc");
-                
                 if (options.is_set(romi::RomiOptions::kRegistry)) {
                         std::string ip = options.get_value(romi::RomiOptions::kRegistry);
                         r_info("Registry IP set to %s", ip.c_str());
                         rcom::RegistryServer::set_address(ip.c_str());
                 }
+
+                // Topic
+                std::string topic = "cnc";
+                if (options.is_set(romi::RomiOptions::kTopic)) {
+                        topic = options.get_value(romi::RomiOptions::kTopic);
+                }
+
+                log_set_application(topic);
 		
+                // Config
                 std::shared_ptr<romi::IConfigManager> config;
                 
                 if (options.is_set(romi::RomiOptions::kConfig)) {
@@ -98,30 +106,28 @@ int main(int argc, char** argv)
                         auto client = rcom::RcomClient::create("config", 10.0, rcomlog);
                         config = std::make_shared<romi::RemoteConfig>(client);
                 }
-
-                // std::string config_file = options.get_config_file();
-                // r_info("Oquam: Using configuration file: '%s'", config_file.c_str());
-                // // TBD: USE FileUtils
-                // std::ifstream ifs(config_file);
-                // nlohmann::json config = nlohmann::json::parse(ifs);
                 
-                nlohmann::json cnc_config = config->get_section("cnc");
+                nlohmann::json cnc_config = config->get_section(topic);
                 
                 // Session
-                // FIXME: get device data from config
+                nlohmann::json device_config = config->get_section("device");
+                std::string device_type = device_config["type"];
+                std::string device_id = device_config["hardware-id"];
+                std::string software_version = PROJECT_VERSION;
                 std::unique_ptr<romi::IDeviceData> device
-                        = std::make_unique<romi::DeviceData>("CNC", "001", "0.1.0"); 
+                        = std::make_unique<romi::DeviceData>(device_type, device_id,
+                                                             software_version); 
                 romi::Gps gps;
                 std::unique_ptr<romi::ILocationProvider> location
                         = std::make_unique<romi::GpsLocationProvider>(gps);
-                std::string session_directory
-                        = options.get_value(romi::RomiOptions::kSessionDirectory);
-                r_info("Session directory: %s", session_directory.c_str());
-                romi::Session session(linux, session_directory,
-                                      std::move(device), std::move(location));
+                std::string directory
+                        = options.get_value(romi::RomiOptions::kDirectory);
+                r_info("Session directory: %s", directory.c_str());
+                romi::Session session(linux, directory, std::move(device),
+                                      std::move(location));
                 session.start("oquam_observation_id");
                 
-                // Oquam cnc
+                // CNC
                 romi::CNCFactory factory;
                 
                 nlohmann::json range_data = cnc_config["cnc-range"];
@@ -163,7 +169,7 @@ int main(int argc, char** argv)
 
                 // RPC access
                 romi::CNCAdaptor adaptor(oquam);
-                auto server = rcom::RcomServer::create("cnc", adaptor);
+                auto server = rcom::RcomServer::create(topic, adaptor);
                 
                 while (!quit) {
                         server->handle_events();

@@ -32,8 +32,6 @@ namespace romi {
     static std::vector<Option> options = {
                 { RomiOptions::kHelp, false, nullptr,
                   "Print help message" },
-
-                // File paths
                 
                 { RomiOptions::kConfig, true, "config.json",
                   "Path of the config file" },
@@ -41,9 +39,12 @@ namespace romi {
                 { RomiOptions::kRegistry, true, nullptr,
                   "The IP address of the registry"},
                 
-                { RomiOptions::kSessionDirectory, true, ".",
+                { RomiOptions::kDirectory, true, ".",
                   "The session directory where the output "
                   "files are stored (logs, images...)"},
+                
+                { RomiOptions::kTopic, true, nullptr,
+                  "The topic/name of the node"},
         };
 
         RomiOptions::RomiOptions()

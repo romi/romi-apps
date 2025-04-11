@@ -104,7 +104,7 @@ namespace romi {
         std::string CNCFactory::get_stepper_controller_device(IOptions &options,
                                                                 nlohmann::json &ports_config)
         {
-                std::string device_name = options.get_value(CNCOptions::kCncDevice);
+                std::string device_name = options.get_value(CNCOptions::kDevice);
                 if (device_name.empty()) {
                         device_name = get_stepper_controller_device_in_config(ports_config);
                 }

@@ -35,7 +35,8 @@ namespace romi {
                 static constexpr const char* kHelp = "help";
                 static constexpr const char* kConfig = "config";
                 static constexpr const char* kRegistry = "registry";
-                static constexpr const char* kSessionDirectory = "session-directory";
+                static constexpr const char* kDirectory = "directory";
+                static constexpr const char* kTopic = "topic";
 
                 RomiOptions();
                 ~RomiOptions() override = default;

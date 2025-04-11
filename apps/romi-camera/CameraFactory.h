@@ -56,7 +56,6 @@ namespace romi {
                 static std::unique_ptr<ICamera> create(
                         rcom::ILinux& linux,
                         std::shared_ptr<ICameraInfoIO>& io);
-                
         };
 }
 

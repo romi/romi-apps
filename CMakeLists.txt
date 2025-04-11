@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(romi-apps)
+project(romi-apps VERSION "0.1.0")
 
 ############################################################
 
@@ -104,6 +104,8 @@ else()
 endif()
 
 ######################################
+
+configure_file(${CMAKE_SOURCE_DIR}/romi_config.h.cmake ${CMAKE_SOURCE_DIR}/libromi/include/romi_config.h)
 
 include(${CMAKE_MODULES_DIRECTORY}/RomiProjectBuildOptions.cmake)
 add_subdirectory(librcom)

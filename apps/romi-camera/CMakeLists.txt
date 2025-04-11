@@ -17,8 +17,8 @@ set(SOURCES
   CameraInfoIO.cpp
   CameraIntrinsics.h
   CameraIntrinsics.cpp
-  CameraWithConfig.h
-  CameraWithConfig.cpp
+  CameraConfigManager.h
+  CameraConfigManager.cpp
   ExternalCamera.h
   ExternalCamera.cpp
   FakeCamera.h

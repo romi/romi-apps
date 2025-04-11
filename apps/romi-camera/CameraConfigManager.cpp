@@ -22,12 +22,12 @@
 
  */
 
-#include "CameraWithConfig.h"
+#include "CameraConfigManager.h"
 #include "util/Logger.h"
 
 namespace romi {
 
-        CameraWithConfig::CameraWithConfig(std::shared_ptr<ICameraInfoIO>& io,
+        CameraConfigManager::CameraConfigManager(std::shared_ptr<ICameraInfoIO>& io,
                                            std::unique_ptr<ICamera>& camera)
                 : io_(io),
                   info_(),
@@ -37,26 +37,26 @@ namespace romi {
                 apply_settings();
         }
 
-        void CameraWithConfig::apply_settings()
+        void CameraConfigManager::apply_settings()
         {
                 apply_values();
                 apply_options();
         }
 
-        void CameraWithConfig::apply_values()
+        void CameraConfigManager::apply_values()
         {
                 ICameraSettings& settings = info_->get_settings();
                 std::vector<std::string> names;
                 settings.get_value_names(names);
                 for (size_t i = 0; i < names.size(); i++) {
                         double value = settings.get_value(names[i]);
-                        r_debug("CameraWithConfig: set_value('%s', %f)",
+                        r_debug("CameraConfigManager: set_value('%s', %f)",
                                 names[i].c_str(), value);
                         camera_->set_value(names[i], value);
                 }
         }
 
-        void CameraWithConfig::apply_options()
+        void CameraConfigManager::apply_options()
         {
                 std::string value;
                 ICameraSettings& settings = info_->get_settings();
@@ -64,13 +64,13 @@ namespace romi {
                 settings.get_option_names(names);
                 for (size_t i = 0; i < names.size(); i++) {
                         settings.get_option(names[i], value);
-                        r_debug("CameraWithConfig: set_option('%s', '%s')",
+                        r_debug("CameraConfigManager: set_option('%s', '%s')",
                                 names[i].c_str(), value.c_str());
                         camera_->select_option(names[i], value);
                 }                
         }
 
-        bool CameraWithConfig::set_value(const std::string& name, double value)
+        bool CameraConfigManager::set_value(const std::string& name, double value)
         {
                 bool success = camera_->set_value(name, value);
                 if (success) {
@@ -83,7 +83,7 @@ namespace romi {
                 return success;
         }
 
-        bool CameraWithConfig::select_option(const std::string& name,
+        bool CameraConfigManager::select_option(const std::string& name,
                                              const std::string& value)
         {
                 bool success = camera_->select_option(name, value);
@@ -97,37 +97,37 @@ namespace romi {
                 return success;
         }
         
-        bool CameraWithConfig::grab(Image &image)
+        bool CameraConfigManager::grab(Image &image)
         {
                 return camera_->grab(image);
         }
 
-        rcom::MemBuffer& CameraWithConfig::grab_jpeg()
+        rcom::MemBuffer& CameraConfigManager::grab_jpeg()
         {
                 return camera_->grab_jpeg();
         }
 
-        bool CameraWithConfig::power_up()
+        bool CameraConfigManager::power_up()
         {
                 return camera_->power_up();
         }
         
-        bool CameraWithConfig::power_down()
+        bool CameraConfigManager::power_down()
         {
                 return camera_->power_down();
         }
         
-        bool CameraWithConfig::stand_by()
+        bool CameraConfigManager::stand_by()
         {
                 return camera_->stand_by();
         }
         
-        bool CameraWithConfig::wake_up()
+        bool CameraConfigManager::wake_up()
         {
                 return camera_->wake_up();
         }
 
-        const ICameraSettings& CameraWithConfig::get_settings()
+        const ICameraSettings& CameraConfigManager::get_settings()
         {
                 return info_->get_settings();
         }

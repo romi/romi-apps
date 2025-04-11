@@ -33,7 +33,7 @@ namespace romi {
             : RomiOptions()
         {
                 Option device = {
-                        CNCOptions::kCncDevice, true, nullptr,
+                        CNCOptions::kDevice, true, nullptr,
                         "The stepper controller's serial device" };
                 add_option(device);
         }
