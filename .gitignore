@@ -32,3 +32,6 @@
 *.app
 
 *~
+
+romi_config.h
+build/
