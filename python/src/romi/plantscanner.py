@@ -35,6 +35,9 @@ class PlantScanner():
             self.cnc.helix(xc, yc, delta_alpha, delta_alpha, 1.0)
 
         print(f"duration: {time.time()-start_time}")
+        self.cnc.moveto(0.01, 0.01, 0.0, 0.5)
+        self.cnc.homing()
+        self.cnc.power_down()
 
     def grab(self, index, angle):
         filename = f"cablebot-{index:05d}-{int(10*angle):05d}.jpg"
