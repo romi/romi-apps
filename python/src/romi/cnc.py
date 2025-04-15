@@ -23,7 +23,7 @@ class CNC(RcomClient):
     def get_range(self):
         return self.execute('cnc-get-range')
        
-    def moveto(self, x, y, z, speed):
+    def moveto(self, x, y, z, speed, sync=True):
         params = {}
         if x != None:
             params["x"] = x
@@ -43,7 +43,7 @@ class CNC(RcomClient):
     def get_absolute_theta(self, theta):
         return theta + self.current_theta()
        
-    def helix(self, xc, yc, alpha, z, speed):
+    def helix(self, xc, yc, alpha, z, speed, sync=True):
         params = { "xc": xc, "yc": yc, "z": z, "alpha": alpha, "speed": speed }
         self.execute('cnc-helix', params)
        
