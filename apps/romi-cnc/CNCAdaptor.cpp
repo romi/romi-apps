@@ -199,10 +199,11 @@ namespace romi {
                         double y = params.value(MethodsCNC::kMoveYParam, ICNC::UNCHANGED);
                         double z = params.value(MethodsCNC::kMoveZParam, ICNC::UNCHANGED);
                         double v = params.value(MethodsCNC::kSpeedParam, 0.2);
+                        bool sync = params.value(MethodsCNC::kSyncParam, true);
                         
                         r_debug("CNCAdaptor::execute_moveto: %f, %f, %f", x, y, z);
                                 
-                        if (!cnc_.moveto(x, y, z, v)) {
+                        if (!cnc_.moveto(x, y, z, v, sync)) {
                                 error.code = 1;
                                 error.message = "moveto failed";
                         }
@@ -235,12 +236,13 @@ namespace romi {
                 try {
                         Path path;
                         double speed = params.value(MethodsCNC::kSpeedParam, 0.1);
+                        bool sync = params.value(MethodsCNC::kSyncParam, true);
                         nlohmann::json p = params.at(MethodsCNC::kTravelPathParam);
                         for (auto & i : p) {
                                 path.emplace_back(i.at(0), i.at(1), i.at(2));
                         }
 
-                        if (!cnc_.travel(path, speed)) {
+                        if (!cnc_.travel(path, speed, sync)) {
                                 error.code = 1;
                                 error.message = "travel failed";
                         }
@@ -262,8 +264,9 @@ namespace romi {
                         double alpha = params[MethodsCNC::kHelixAlphaParam];
                         double z = params[MethodsCNC::kHelixZParam];
                         double speed = params.value(MethodsCNC::kSpeedParam, 0.1);
+                        bool sync = params.value(MethodsCNC::kSyncParam, true);
                         
-                        if (!cnc_.helix(xc, yc, alpha, z, speed)) {
+                        if (!cnc_.helix(xc, yc, alpha, z, speed, sync)) {
                                 error.code = 1;
                                 error.message = "helix failed";
                         }

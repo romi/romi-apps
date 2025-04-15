@@ -75,7 +75,7 @@ namespace romi {
                 return success;
         }
 
-        bool RemoteCNC::moveto(double x, double y, double z, double v)
+        bool RemoteCNC::moveto(double x, double y, double z, double v, bool sync)
         {
                 r_debug("RemoteCNC::moveto");
                 nlohmann::json params;
@@ -90,6 +90,7 @@ namespace romi {
                     params[MethodsCNC::kMoveZParam] = z;
 
                 params[MethodsCNC::kSpeedParam] = v;
+                params[MethodsCNC::kSyncParam] = sync;
 
                 return execute_with_params(MethodsCNC::kMoveTo, params);
         }
@@ -124,7 +125,7 @@ namespace romi {
                 return execute_with_params(MethodsCNC::kSetRelay, params);
         }
         
-        bool RemoteCNC::travel(Path &path, double relative_speed)
+        bool RemoteCNC::travel(Path &path, double relative_speed, bool sync)
         {
                 r_debug("RemoteCNC::travel");
 
@@ -136,11 +137,13 @@ namespace romi {
 
                 parameters[MethodsCNC::kTravelPathParam] = points;
                 parameters[MethodsCNC::kSpeedParam] = relative_speed;
+                parameters[MethodsCNC::kSyncParam] = sync;
 
                 return execute_with_params(MethodsCNC::kTravel, parameters);
         }
 
-        bool RemoteCNC::helix(double xc, double yc, double alpha, double z, double speed)
+        bool RemoteCNC::helix(double xc, double yc, double alpha, double z,
+                              double speed, bool sync)
         {
                 r_debug("RemoteCNC::helix");
                 nlohmann::json params {
@@ -148,7 +151,8 @@ namespace romi {
                         {MethodsCNC::kHelixYcParam, yc},
                         {MethodsCNC::kHelixAlphaParam, alpha},
                         {MethodsCNC::kHelixZParam, z},
-                        {MethodsCNC::kSpeedParam, speed}
+                        {MethodsCNC::kSpeedParam, speed},
+                        {MethodsCNC::kSyncParam, sync}
                 };
 //
 //                        JsonCpp::construct("{\"%s\": %.6f, "

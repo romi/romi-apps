@@ -52,6 +52,7 @@ namespace romi {
                 static constexpr const char *kHelixAlphaParam = "alpha";
                 static constexpr const char *kHelixZParam = "z";
                 static constexpr const char *kTimeoutParam = "timeout";
+                static constexpr const char *kSyncParam = "sync";
                 static constexpr const char *kIndex = "index";
                 static constexpr const char *kValue = "value";
         };

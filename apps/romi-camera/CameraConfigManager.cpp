@@ -28,7 +28,7 @@
 namespace romi {
 
         CameraConfigManager::CameraConfigManager(std::shared_ptr<ICameraInfoIO>& io,
-                                           std::unique_ptr<ICamera>& camera)
+                                                 std::unique_ptr<ICamera>& camera)
                 : io_(io),
                   info_(),
                   camera_(std::move(camera))

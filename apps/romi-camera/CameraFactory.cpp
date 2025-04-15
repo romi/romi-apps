@@ -55,9 +55,6 @@ namespace romi {
                 if (settings.type() == "external-camera")
                         return make_external_camera(settings);
                         
-                // else if (settings.type() == "remote-camera")
-                //         return make_remote_camera(rcomlog, settings);
-                        
                 else if (settings.type() == "fake-camera")
                         return make_fake_camera(settings);
                 
@@ -110,21 +107,6 @@ namespace romi {
                         = std::make_unique<ExternalCamera>(executable);
                 return camera;
         }
-
-        // std::unique_ptr<ICamera> CameraFactory::make_remote_camera(
-        //         std::shared_ptr<rcom::ILog>& rcomlog,
-        //         ICameraSettings& settings)
-        // {
-        //         r_debug("CameraFactory::make_remote_camera");
-                
-        //         std::string topic;
-        //         settings.get_option(ICameraSettings::kTopic, topic);
-                
-        //         auto client = rcom::RcomClient::create(topic, 10.0, rcomlog);
-        //         std::unique_ptr<ICamera> camera
-        //                 = std::make_unique<RemoteCamera>(client);
-        //         return camera;
-        // }
 
         std::unique_ptr<ICamera> CameraFactory::make_usb_camera(ICameraSettings& settings)
         {

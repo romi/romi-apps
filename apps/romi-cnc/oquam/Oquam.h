@@ -59,11 +59,12 @@ namespace romi {
                 ~Oquam() override = default;
                 
                 // ICNC interface, See ICNC.h for more info
-                bool moveto(double x, double y, double z, double relative_speed) override;
+                bool moveto(double x, double y, double z,
+                            double relative_speed, bool sync) override;
                 // bool moveat(int16_t speed_x, int16_t speed_y, int16_t speed_z) override;
-                bool travel(Path &path, double relative_speed) override;
+                bool travel(Path &path, double relative_speed, bool sync) override;
                 bool helix(double xc, double yc, double alpha, double z,
-                           double relative_speed) override;
+                           double relative_speed, bool sync) override;
                 bool spindle(double speed) override;
                 uint8_t count_relays() override;
                 bool set_relay(uint8_t index, bool value) override;
@@ -85,11 +86,13 @@ namespace romi {
 
         protected:
                 
-                bool moveto_synchronized(double x, double y, double z, double rel_speed);
-                bool do_moveto(double x, double y, double z, double rel_speed);
+                bool moveto_synchronized(double x, double y, double z,
+                                         double rel_speed, bool sync);
+                bool do_moveto(double x, double y, double z,
+                               double rel_speed, bool sync);
                 v3 moveto_determine_xyz(double x, double y, double z);
-                bool travel_synchronized(Path &path, double relative_speed);
-                void do_travel(Path &path, double relative_speed);
+                bool travel_synchronized(Path &path, double relative_speed, bool sync);
+                void do_travel(Path &path, double relative_speed, bool sync);
                 void convert_path_to_script(Path &path, double speed, SmoothPath& script); 
                 void convert_script(SmoothPath& script, v3& vmax);
                 void store_script(SmoothPath& script);
@@ -112,9 +115,9 @@ namespace romi {
                 bool enable_driver();
                 bool disable_driver();
                 bool helix_synchronized(double xc, double yc, double alpha, double z,
-                                        double relative_speed);
+                                        double relative_speed, bool sync);
                 void do_helix(double xc, double yc, double alpha, double z,
-                              double relative_speed);
+                              double relative_speed, bool sync);
 
         private:
             bool position_changed_;

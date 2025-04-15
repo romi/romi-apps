@@ -136,31 +136,32 @@ namespace romi {
         //     return controller_.moveat(speed_x, speed_y, speed_z);
         // }
 
-        bool Oquam::moveto(double x, double y, double z, double relative_speed)
+        bool Oquam::moveto(double x, double y, double z, double relative_speed, bool sync)
         {
                 SynchronizedCodeBlock synchronize(mutex_);
                 position_changed_ = true;
                 store_script_ = false;
-                return moveto_synchronized(x, y, z, relative_speed);
+                return moveto_synchronized(x, y, z, relative_speed, sync);
         }
 
-        bool Oquam::moveto_synchronized(double x, double y, double z, double rel_speed)
+        bool Oquam::moveto_synchronized(double x, double y, double z,
+                                        double rel_speed, bool sync)
         {
                 bool success = false;
                 try {
-                        success = do_moveto(x, y, z, rel_speed);
+                        success = do_moveto(x, y, z, rel_speed, sync);
                 } catch (std::runtime_error& re) {
                         r_err("Oquam::moveto_synchronized: %s", re.what());
                 }
                 return success;
         }
 
-        bool Oquam::do_moveto(double x, double y, double z, double rel_speed)
+        bool Oquam::do_moveto(double x, double y, double z, double rel_speed, bool sync)
         {
                 Path path;
                 v3 p = moveto_determine_xyz(x, y, z);
                 path.push_back(p);
-                return travel_synchronized(path, rel_speed);
+                return travel_synchronized(path, rel_speed, sync);
         }
         
         v3 Oquam::moveto_determine_xyz(double x, double y, double z)
@@ -221,20 +222,20 @@ namespace romi {
                 return homing_result;
         }
 
-        bool Oquam::travel(Path &path, double relative_speed)
+        bool Oquam::travel(Path &path, double relative_speed, bool sync)
         {
                 SynchronizedCodeBlock synchronize(mutex_);
                 position_changed_ = true;
                 store_script_ = true;
-                return travel_synchronized(path, relative_speed);
+                return travel_synchronized(path, relative_speed, sync);
         }
         
-        bool Oquam::travel_synchronized(Path &path, double relative_speed) 
+        bool Oquam::travel_synchronized(Path &path, double relative_speed, bool sync) 
         {
                 bool success = false;
                 
                 try {
-                        do_travel(path, relative_speed); 
+                        do_travel(path, relative_speed, sync); 
                         success = true;
                         
                 } catch (std::runtime_error& e) {
@@ -271,7 +272,7 @@ namespace romi {
                 }
         }
         
-        void Oquam::do_travel(Path &path, double relative_speed) 
+        void Oquam::do_travel(Path &path, double relative_speed, bool sync) 
         {
                 assert_relative_speed(relative_speed); 
                 
@@ -288,7 +289,10 @@ namespace romi {
                 store_script(script);
                 check_script(script, vmax); 
                 execute_script(script);
-                wait_end_of_script(script); 
+                
+                if (sync) {
+                        wait_end_of_script(script);
+                }
         }
 
         void Oquam::convert_path_to_script(Path &path, double speed, SmoothPath& script) 
@@ -463,21 +467,21 @@ namespace romi {
         }
 
         bool Oquam::helix(double xc, double yc, double alpha, double z,
-                          double relative_speed)
+                          double relative_speed, bool sync)
         {
                 SynchronizedCodeBlock synchronize(mutex_);
                 position_changed_ = true;
                 store_script_ = true;
-                return helix_synchronized(xc, yc, alpha, z, relative_speed);
+                return helix_synchronized(xc, yc, alpha, z, relative_speed, sync);
         }
 
         bool Oquam::helix_synchronized(double xc, double yc, double alpha, double z,
-                                       double relative_speed)
+                                       double relative_speed, bool sync)
         {
                 bool success = false;
                 
                 try {
-                        do_helix(xc, yc, alpha, z, relative_speed); 
+                        do_helix(xc, yc, alpha, z, relative_speed, sync); 
                         success = true;
                         
                 } catch (std::runtime_error& e) {
@@ -488,7 +492,7 @@ namespace romi {
         }
         
         void Oquam::do_helix(double xc, double yc, double alpha, double z,
-                             double relative_speed)
+                             double relative_speed, bool sync)
         {
                 assert_relative_speed(relative_speed);
                 
@@ -517,8 +521,10 @@ namespace romi {
                         execute_move(slices[i], pos_steps);
                 }
 
-                double duration = helix.get_duration();
-                double timeout = 10.0 + 1.5 * duration;
-                assert_synchronize(timeout);
+                if (sync) {
+                        double duration = helix.get_duration();
+                        double timeout = 10.0 + 1.5 * duration;
+                        assert_synchronize(timeout);
+                }
         }
 }

@@ -111,7 +111,8 @@ namespace romi {
                         std::runtime_error("LibCamera: Can't allocate buffers");
                 }
                 
-                const std::vector<std::unique_ptr<libcamera::FrameBuffer>> &buffers = allocator_->buffers(stream_);
+                const std::vector<std::unique_ptr<libcamera::FrameBuffer>>& buffers
+                        = allocator_->buffers(stream_);
                 
                 request_ = camera_->createRequest();
                 if (!request_) {
@@ -153,16 +154,16 @@ namespace romi {
 
         bool LibCamera::set_value(const std::string& name, double value)
         {
-                (void) name;
-                (void) value;
+                r_debug("LibCamera: set_value('%s', %f): NOT IMPLEMENTED",
+                        name.c_str(), value);
                 return true;
         }
         
         bool LibCamera::select_option(const std::string& name,
                                        const std::string& value)
         {
-                (void) name;
-                (void) value;
+                r_debug("CameraConfigManager: set_option('%s', '%s'): NOT IMPLEMENTED",
+                        name.c_str(), value.c_str());
                 return true;
         }
 

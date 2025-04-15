@@ -3,7 +3,7 @@ requires = ["setuptools >= 77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "romi"
+name = "romi-apps"
 version = "0.1.0"
 authors = [
   { name="Peter Hanappe, Doug Boari", email="peter.hanappe@sony.com" },

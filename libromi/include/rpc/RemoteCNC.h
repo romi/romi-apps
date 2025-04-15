@@ -42,15 +42,15 @@ namespace romi {
                 bool get_range(CNCRange &range) override;
                 bool get_position(v3& position) override;
                 bool moveto(double x, double y, double z,
-                            double relative_speed) override;
+                            double relative_speed, bool sync) override;
                 // bool moveat(int16_t speed_x, int16_t speed_y, int16_t speed_z) override;
                 bool spindle(double speed) override;
-                bool travel(Path &path, double relative_speed) override;
+                bool travel(Path &path, double relative_speed, bool sync) override;
                 bool homing() override;
                 uint8_t count_relays() override;
                 bool set_relay(uint8_t index, bool value) override;
                 bool helix(double xc, double yc, double alpha, double z,
-                           double relative_speed) override;
+                           double relative_speed, bool sync) override;
                 bool synchronize(double timeout_seconds) override; 
 
                 bool pause_activity() override;
