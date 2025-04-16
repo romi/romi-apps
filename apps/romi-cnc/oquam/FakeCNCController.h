@@ -35,9 +35,10 @@ namespace romi {
                 
         protected:
                 int32_t _pos[3];
+                bool enabled_;
                 
         public:
-                FakeCNCController() {
+                FakeCNCController(): enabled_(false) {
                         homing();
                 }
                         
@@ -113,11 +114,17 @@ namespace romi {
                 }
 
                 bool enable() override {
+                        enabled_ = true;
                         return true;
                 }
                 
                 bool disable() override {
+                        enabled_ = false;
                         return true;
+                }
+
+                bool is_enabled() override {
+                        return enabled_;
                 }
 
                 bool stop() override {

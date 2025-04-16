@@ -33,6 +33,7 @@ class CNC(RcomClient):
             params["z"] = z
         if speed != None:
             params["speed"] = speed
+        params["sync"] = sync
         cmd = { "method": "cnc-moveto", "params": params }
         self.execute('cnc-moveto', params)
 

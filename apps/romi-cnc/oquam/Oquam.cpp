@@ -56,6 +56,9 @@ namespace romi {
                         speeds[i] = (settings_.vmax_[i]
                                     * settings_.scale_meters_to_steps_[i]
                                     / 20.0);
+                        r_debug("Oquam:: vmax[%d]=%f", i, settings_.vmax_[i]);
+                        r_debug("Oquam:: scale[%d]=%f", i, settings_.scale_meters_to_steps_[i]);
+                        r_debug("Oquam:: homing speed[%d]=%f", i, speeds[i]);
                 }
                 
                 int16_t homing_speeds[3] = {0, 0, 0};

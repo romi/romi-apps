@@ -108,8 +108,10 @@ namespace romi {
                                                        * microsteps[i]
                                                        * steps_per_revolution[i])
                                                       / displacement_per_revolution[i]);
-                        } else {
+                        } else if (displacement_per_revolution[i] == 0.0) {
                                 steps_per_meter[i] = 0;
+                        } else {
+                                throw std::runtime_error("StepperSettings: negative displacement");
                         }
                 }
         }

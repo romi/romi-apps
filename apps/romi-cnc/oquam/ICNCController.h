@@ -75,6 +75,7 @@ namespace romi {
                 
                 virtual bool enable() = 0;
                 virtual bool disable() = 0;
+                virtual bool is_enabled() = 0;
                 virtual bool stop() = 0;
         };
 }

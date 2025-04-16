@@ -77,6 +77,7 @@ namespace romi {
                 
                 bool enable() override;
                 bool disable() override;
+                bool is_enabled() override;
 
                 bool stop() override;
 

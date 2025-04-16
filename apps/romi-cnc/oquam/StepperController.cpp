@@ -92,6 +92,10 @@ namespace romi {
         bool StepperController::homing()
         {
                 r_info("StepperController: homing");
+                if (!is_enabled()) {
+                        r_err("StepperController: homing: not enabled");
+                        throw std::runtime_error("StepperController::homing");
+                }
                 return (send_command("H") == 0 && synchronize(120.0));
         }
 
@@ -104,6 +108,10 @@ namespace romi {
         bool StepperController::move(int16_t dt, int16_t dx, int16_t dy, int16_t dz)
         {
                 char buffer[64];
+                if (!is_enabled()) {
+                        r_err("StepperController: move: not enabled");
+                        throw std::runtime_error("StepperController::move");
+                }
                 StringUtils::rprintf(buffer, 64, "M[%d,%d,%d,%d]", dt, dx, dy, dz);
                 return (send_command(buffer) == 0);
         }
@@ -111,6 +119,10 @@ namespace romi {
         bool StepperController::moveat(int16_t speed_x, int16_t speed_y, int16_t speed_z)
         {
                 char buffer[64];
+                if (!is_enabled()) {
+                        r_err("StepperController: moveat: not enabled");
+                        throw std::runtime_error("StepperController::moveat");
+                }
                 StringUtils::rprintf(buffer, 64, "V[%hd,%hd,%hd]", speed_x, speed_y, speed_z);
                 return (send_command(buffer) == 0);
         }
@@ -118,6 +130,10 @@ namespace romi {
         bool StepperController::moveto(int16_t dt, int16_t x, int16_t y, int16_t z)
         {
                 char buffer[64];
+                if (!is_enabled()) {
+                        r_err("StepperController: moveto: not enabled");
+                        throw std::runtime_error("StepperController::moveto");
+                }
                 StringUtils::rprintf(buffer, 64, "m[%d,%d,%d,%d]", dt, x, y, z);
                 return (send_command(buffer) == 0);                
         }
@@ -272,6 +288,26 @@ namespace romi {
         {
                 r_info("StepperController: disabling");
                 return send_command_without_interruption("E[0]");
+        }
+
+        bool StepperController::is_enabled()
+        {
+                r_info("StepperController: is_enabled");
+                bool is_enabled = false;
+                
+                nlohmann::json response;
+                _romi_serial->send("e", response);
+
+                int r = response[0];
+                if (r == 0) {
+                        is_enabled = (response[1] == 0)? false : true;
+                } else {
+                        r_err("StepperController::is_enabled: error: %s",
+                              response[1].dump().c_str());
+                        throw std::runtime_error("StepperController::is_enabled");
+                }
+                
+                return is_enabled;
         }
         
         bool StepperController::set_homing_axes(AxisIndex axis1,

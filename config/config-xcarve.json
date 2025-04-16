@@ -1,0 +1,30 @@
+{
+    "device": {
+        "hardware-id": "xcarve",
+        "type": "cnc"
+    },
+    "cnc": {
+        "cnc-range": [[0, 0.760000], [0, 0.800000], [0, 0.350000]],
+        "homing": {
+            "axes": [0, 1, 2],
+            "mode": 0
+        },
+        "controller-classname": "stepper-controller",
+        "path-maximum-deviation": 0.0,
+        "path-slice-duration": 0.020000,
+        "stepper-settings": {
+            "displacement-per-revolution": [0.040000, 0.040000, 0.008000],
+            "gears-ratio": [1, 1, 1],
+            "maximum-acceleration": [0.300000, 0.300000, 0.030000],
+            "maximum-rpm": [300, 300, 300],
+            "microsteps": [16, 16, 16],
+            "steps-per-revolution": [200, 200, 200]
+        }
+    },
+    "ports": {
+        "cnc": {
+            "port": "/dev/ttyUSB0",
+            "type": "serial"
+        }
+    }
+}
