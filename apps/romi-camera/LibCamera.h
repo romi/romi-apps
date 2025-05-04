@@ -81,13 +81,13 @@ namespace romi {
                 void signal_request_completed();
                 void request_complete(libcamera::Request *request);
                 void process_request_buffer(libcamera::Request *request);
-                void import_data(const uint8_t *data, size_t length);
-                void import_jpeg(const uint8_t *data, size_t length);
-                void import_rgb(const uint8_t *data, size_t length);
-                void convert_jpeg_to_rgb_perhaps();
-                void convert_jpeg_to_rgb();
-                void convert_rgb_to_jpeg_perhaps();
-                void convert_rgb_to_jpeg();
+                // void import_data(const uint8_t *data, size_t length);
+                // void import_jpeg(const uint8_t *data, size_t length);
+                // void import_rgb(const uint8_t *data, size_t length);
+                // void convert_jpeg_to_rgb_perhaps();
+                // void convert_jpeg_to_rgb();
+                // void convert_rgb_to_jpeg_perhaps();
+                // void convert_rgb_to_jpeg();
         };
 }
 

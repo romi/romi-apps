@@ -41,7 +41,9 @@ namespace romi {
                   allocator_(nullptr),
                   stream_(nullptr),
                   request_(),
-                  pixel_format_(libcamera::formats::RGB888),
+                  //pixel_format_(libcamera::formats::RGB888),
+                  pixel_format_(libcamera::formats::BGR888),
+                  //pixel_format_(libcamera::formats::MJPEG),
                   mutex_(),
                   cv_(),
                   request_completed_(false),
@@ -195,6 +197,13 @@ namespace romi {
                 signal_request_completed();
         }
 
+        void jpeg_callback(void *context, void *data, int size)
+        {
+                uint8_t *bytes = (uint8_t *) data;
+                rcom::MemBuffer *buffer = (rcom::MemBuffer *) context;
+                buffer->append(bytes, size);
+        }
+
         void LibCamera::process_request_buffer(libcamera::Request *request)
         {
                 r_debug("LibCamera::process_request_buffer");
@@ -233,8 +242,12 @@ namespace romi {
                                 }
 
                                 const uint8_t *data = (const uint8_t *) map_address;
-                                import_data(data + plane.offset, plane.length);
+                                //import_data(data + plane.offset, plane.length);
 
+                                jpeg_.clear();
+                                ImageIO::store_jpg_to_buffer(data, (int) width_, (int) height_, 3,
+                                                             jpeg_callback, &jpeg_);
+                                
                                 munmap(map_address, mapLength);
                         }
 
@@ -244,28 +257,29 @@ namespace romi {
                 request->reuse(libcamera::Request::ReuseBuffers);
         }
 
-        void LibCamera::import_data(const uint8_t *data, size_t length)
-        {
-                if (pixel_format_ == libcamera::formats::RGB888) {
-                        import_rgb(data, length);
-                } else if (pixel_format_ == libcamera::formats::MJPEG) {
-                        import_jpeg(data, length);
-                }
-        }
+        // void LibCamera::import_data(const uint8_t *data, size_t length)
+        // {
+        //         if (pixel_format_ == libcamera::formats::RGB888) {
+        //                 import_rgb(data, length);
+        //         } else if (pixel_format_ == libcamera::formats::MJPEG) {
+        //                 import_jpeg(data, length);
+        //         }
+        // }
 
-        void LibCamera::import_jpeg(const uint8_t *data, size_t length)
-        {
-                r_debug("LibCamera::import_jpeg");
-                jpeg_.clear();
-                jpeg_.append(data, length);
-        }
+        // void LibCamera::import_jpeg(const uint8_t *data, size_t length)
+        // {
+        //         r_debug("LibCamera::import_jpeg");
+        //         jpeg_.clear();
+        //         jpeg_.append(data, length);
+        // }
 
-        void LibCamera::import_rgb(const uint8_t *data, size_t)
-        {
-                r_debug("LibCamera::import_rgb");
-                image_.import(Image::RGB, data, width_, height_);
-        }
-        
+        // void LibCamera::import_rgb(const uint8_t *data, size_t)
+        // {
+        //         r_debug("LibCamera::import_rgb");
+        //         image_.import(Image::RGB, data, width_, height_);
+        //         r_debug("LibCamera::import_rgb: Done");
+        // }
+
         bool LibCamera::grab(Image &image)
         {
                 r_debug("LibCamera::grab");
@@ -273,7 +287,7 @@ namespace romi {
                 send_request();
                 // wait_request_completed();
                 cv_.wait(lk, [this]{ return request_completed_; });
-                convert_jpeg_to_rgb_perhaps();
+                // convert_jpeg_to_rgb_perhaps();
                 image = image_;
                 return true;
         }
@@ -285,35 +299,38 @@ namespace romi {
                 send_request();
                 //wait_request_completed();
                 cv_.wait(lk, [this]{ return request_completed_; });
-                convert_rgb_to_jpeg_perhaps();
+                r_debug("LibCamera::grab_jpeg: request completed");
+                // convert_rgb_to_jpeg_perhaps();
                 return jpeg_;
         }
 
-        void LibCamera::convert_jpeg_to_rgb_perhaps()
-        {
-                if (pixel_format_ == libcamera::formats::RGB888) {
-                        return;
-                } else if (pixel_format_ == libcamera::formats::MJPEG) {
-                        convert_jpeg_to_rgb();
-                }
-        }
+        // void LibCamera::convert_jpeg_to_rgb_perhaps()
+        // {
+        //         if (pixel_format_ == libcamera::formats::RGB888) {
+        //                 return;
+        //         } else if (pixel_format_ == libcamera::formats::MJPEG) {
+        //                 convert_jpeg_to_rgb();
+        //         }
+        // }
 
-        void LibCamera::convert_jpeg_to_rgb()
-        {
-        }
+        // void LibCamera::convert_jpeg_to_rgb()
+        // {
+        // }
 
-        void LibCamera::convert_rgb_to_jpeg_perhaps()
-        {
-                if (pixel_format_ == libcamera::formats::RGB888) {
-                        convert_rgb_to_jpeg();
-                } else if (pixel_format_ == libcamera::formats::MJPEG) {
-                        return;
-                }
-        }
+        // void LibCamera::convert_rgb_to_jpeg_perhaps()
+        // {
+        //         r_debug("LibCamera::convert_rgb_to_jpeg_perhaps");
+        //         if (pixel_format_ == libcamera::formats::RGB888) {
+        //                 convert_rgb_to_jpeg();
+        //         } else if (pixel_format_ == libcamera::formats::MJPEG) {
+        //                 return;
+        //         }
+        // }
 
-        void LibCamera::convert_rgb_to_jpeg()
-        {
-        }
+        // void LibCamera::convert_rgb_to_jpeg()
+        // {
+        //         r_debug("LibCamera::convert_rgb_to_jpeg");
+        // }
         
         bool LibCamera::power_up()
         {

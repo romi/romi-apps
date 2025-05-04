@@ -53,19 +53,19 @@ namespace romi {
                 std::cout << json << std::endl;
                 
                 std::string camera_type = json[kCameraType];
-
-                r_debug("CameraInfoIO::load: type: %s", camera_type.c_str());
                 
                 std::unique_ptr<ICameraIntrinsics> intrinsics
                         = load_intrinsics(json[kIntrinsics]);
                         
                 std::unique_ptr<ICameraSettings> settings
                         = load_settings(camera_type, json[camera_type]);
-                
+                        
                 std::unique_ptr<ICameraDistortion> distortion
                         = load_distortion(json[kDistortion]);
-
-                return load_info(json, intrinsics, settings, distortion);
+                        
+                auto result = load_info(json, intrinsics, settings, distortion);
+                        
+                return result;
         }
         
         std::unique_ptr<ICameraIntrinsics>
@@ -120,12 +120,11 @@ namespace romi {
                                 std::unique_ptr<ICameraSettings>& settings,
                                 std::unique_ptr<ICameraDistortion>& distortion)
         {
-                std::string id = json[kCameraID];
+                std::string id = json.value(kCameraID, "unspecified");
                 std::string type = json[kCameraType];
                 std::unique_ptr<ICameraInfo> result
                         = std::make_unique<CameraInfo>(id, type, intrinsics,
                                                        settings, distortion);
-
                 std::string name = json.value(kCameraName, "unspecified");
                 std::string lens = json.value(kCameraLens, "unspecified");
                 result->set_name(name);

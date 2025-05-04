@@ -16,6 +16,7 @@
                 -0.4928269684314728
             ]
         },
+        "id": "0",
         "intrinsics": {
             "cx": 1014.0,
             "cy": 760.0,
@@ -36,8 +37,8 @@
         },
         "type": "libcamera",
         "libcamera": {
-            "width": 4608,
-            "height": 2592
+            "width": 2304,
+            "height": 1296
         }
     }
 }
