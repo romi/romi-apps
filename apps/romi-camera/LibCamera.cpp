@@ -35,6 +35,9 @@
 
 namespace romi {
 
+        static uint32_t count_ = 0;
+        static double start_time_ = 0.0;
+        
         using SynchonizedCodeBlock = std::lock_guard<std::mutex>;
 
         LibCamera::LibCamera(size_t width, size_t height)
@@ -43,10 +46,8 @@ namespace romi {
                   allocator_(nullptr),
                   stream_(nullptr),
                   requests_(),
-                  //request_(),
                   //pixel_format_(libcamera::formats::RGB888),
                   pixel_format_(libcamera::formats::BGR888),
-                  //pixel_format_(libcamera::formats::MJPEG),
                   mutex_(),
                   cv_(),
                   image_requested_(false),
@@ -230,6 +231,21 @@ namespace romi {
                 
                 request->reuse(libcamera::Request::ReuseBuffers);
                 camera_->queueRequest(request);
+
+
+                if (0) {
+                        count_++;
+                        if (start_time_ == 0.0) {
+                                struct timespec ts;
+                                timespec_get(&ts, TIME_UTC);
+                                start_time_ = (double) ts.tv_sec + (double) ts.tv_nsec * 1.0e-9;
+                        } else if ((count_ % 50) == 0) {
+                                struct timespec ts;
+                                timespec_get(&ts, TIME_UTC);
+                                double now = (double) ts.tv_sec + (double) ts.tv_nsec * 1.0e-9;
+                                r_debug("FPS: %f", (double) count_ / (now - start_time_));
+                        }
+                }
         }
 
 #define BLOCKSIZE 65536
