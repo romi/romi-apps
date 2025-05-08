@@ -27,6 +27,8 @@
 #include <stdexcept>
 #include <sys/types.h>
 #include <unistd.h>
+#include <time.h>                                
+#include <jpeglib.h>
 #include <util/FileUtils.h>
 #include <util/Logger.h>
 #include "LibCamera.h"
@@ -40,14 +42,17 @@ namespace romi {
                   camera_(),
                   allocator_(nullptr),
                   stream_(nullptr),
-                  request_(),
+                  requests_(),
+                  //request_(),
                   //pixel_format_(libcamera::formats::RGB888),
                   pixel_format_(libcamera::formats::BGR888),
                   //pixel_format_(libcamera::formats::MJPEG),
                   mutex_(),
                   cv_(),
+                  image_requested_(false),
                   request_completed_(false),
                   image_(),
+                  buffer_(),
                   jpeg_()
         {
                 manager_ = std::make_unique<libcamera::CameraManager>();
@@ -101,7 +106,7 @@ namespace romi {
                 
                 width_ = streamConfig.size.width;
                 height_ = streamConfig.size.height;
-                
+
                 camera_->configure(config.get());
                 
                 stream_ = streamConfig.stream();
@@ -115,22 +120,43 @@ namespace romi {
                 
                 const std::vector<std::unique_ptr<libcamera::FrameBuffer>>& buffers
                         = allocator_->buffers(stream_);
-                
-                request_ = camera_->createRequest();
-                if (!request_) {
-                        manager_->stop();
-                        std::runtime_error("LibCamera: Can't create request");
-                }
 
-                const std::unique_ptr<libcamera::FrameBuffer> &buffer = buffers[0];
-                ret = request_->addBuffer(stream_, buffer.get());
-                if (ret < 0) {
-                        manager_->stop();
-                        std::runtime_error("LibCamera: Can't set buffer for request");
+                r_info("buffers.size = %d", (int) buffers.size());
+
+                for (unsigned int i = 0; i < buffers.size(); i++) {
+                        std::unique_ptr<libcamera::Request> request = camera_->createRequest();
+                        if (!request) {
+                                manager_->stop();
+                                std::runtime_error("LibCamera: Can't create request");
+                        }
+
+                        const std::unique_ptr<libcamera::FrameBuffer> &buffer = buffers[i];
+                        int ret = request->addBuffer(stream_, buffer.get());
+                        if (ret < 0) {
+                                if (ret < 0) {
+                                        manager_->stop();
+                                        std::runtime_error("LibCamera: Can't set buffer for request");
+                                }
+                        }
+
+                        /*
+                         * Controls can be added to a request on a per frame basis.
+                         */
+                        // ControlList &controls = request->controls();
+                        // controls.set(controls::Brightness, 0.5);
+                        
+                        requests_.push_back(std::move(request));
                 }
 
                 camera_->requestCompleted.connect(this, &LibCamera::request_complete);
+
+                r_info("camera_->start()");
                 camera_->start();
+                
+                for (std::unique_ptr<libcamera::Request> &request : requests_) {
+                        r_info("camera_->queueRequest");
+                        camera_->queueRequest(request.get());
+                }
         }
 
         LibCamera::~LibCamera()
@@ -171,9 +197,10 @@ namespace romi {
 
         void LibCamera::send_request()
         {
-                r_debug("LibCamera::send_request");
+                //r_debug("LibCamera::send_request");
                 request_completed_ = false;
-                camera_->queueRequest(request_.get());
+                image_requested_ = true;
+                // camera_->queueRequest(request_.get());
         }
 
         void LibCamera::wait_request_completed()
@@ -185,43 +212,147 @@ namespace romi {
 
         void LibCamera::signal_request_completed()
         {
-                r_debug("LibCamera::signal_request_completed");
+                //r_debug("LibCamera::signal_request_completed");
                 request_completed_ = true;
+                image_requested_ = false;
                 cv_.notify_one();
         }
 
         void LibCamera::request_complete(libcamera::Request *request)
         {
-                r_debug("LibCamera::request_complete");
-                process_request_buffer(request);
-                signal_request_completed();
+                if (request->status() == libcamera::Request::RequestCancelled)
+                        return;
+
+                if (image_requested_) {
+                        process_request_buffer(request);
+                        signal_request_completed();
+                }
+                
+                request->reuse(libcamera::Request::ReuseBuffers);
+                camera_->queueRequest(request);
         }
 
-        void jpeg_callback(void *context, void *data, int size)
+#define BLOCKSIZE 65536
+
+        typedef struct _jpeg_my_dest_mgr_t {
+                struct jpeg_destination_mgr mgr;
+                std::vector<uint8_t> *buffer;
+        } jpeg_my_dest_mgr_t;
+
+        static void jpeg_bufferinit(j_compress_ptr cinfo)
         {
-                uint8_t *bytes = (uint8_t *) data;
-                rcom::MemBuffer *buffer = (rcom::MemBuffer *) context;
-                buffer->append(bytes, size);
+                jpeg_my_dest_mgr_t* my_mgr = (jpeg_my_dest_mgr_t*) cinfo->dest;
+                std::vector<uint8_t> *buffer = my_mgr->buffer;
+
+                if (buffer->size() == 0)
+                        buffer->resize(BLOCKSIZE);
+                cinfo->dest->next_output_byte = buffer->data();
+                cinfo->dest->free_in_buffer = buffer->size();
+        }
+
+        static boolean jpeg_bufferemptyoutput(j_compress_ptr cinfo)
+        {
+                jpeg_my_dest_mgr_t* my_mgr = (jpeg_my_dest_mgr_t*) cinfo->dest;
+                std::vector<uint8_t> *buffer = my_mgr->buffer;
+        
+                size_t oldsize = buffer->size();
+                buffer->resize(oldsize + BLOCKSIZE);
+                cinfo->dest->next_output_byte = buffer->data() + oldsize;
+                cinfo->dest->free_in_buffer = buffer->size() - oldsize;
+                return 1;
+        }
+
+        static void jpeg_bufferterminate(j_compress_ptr cinfo)
+        {
+                jpeg_my_dest_mgr_t* my_mgr = (jpeg_my_dest_mgr_t*) cinfo->dest;
+                std::vector<uint8_t> *buffer = my_mgr->buffer;
+                
+                size_t size = buffer->size() - cinfo->dest->free_in_buffer;
+                buffer->resize(size);
+        }
+
+        static int convert_to_jpeg(const uint8_t *data, size_t width, size_t height,
+                                   std::vector<uint8_t> *buffer)
+        {
+                struct jpeg_compress_struct cinfo;
+                struct jpeg_error_mgr jerr;
+                jpeg_my_dest_mgr_t* my_mgr;
+
+                JSAMPROW row_pointer[1];
+
+                cinfo.err = jpeg_std_error(&jerr);
+                jpeg_create_compress(&cinfo);
+
+                cinfo.dest = (struct jpeg_destination_mgr *) 
+                        (*cinfo.mem->alloc_small) ((j_common_ptr) &cinfo, JPOOL_PERMANENT,
+                                                   sizeof(jpeg_my_dest_mgr_t));       
+                cinfo.dest->init_destination = &jpeg_bufferinit;
+                cinfo.dest->empty_output_buffer = &jpeg_bufferemptyoutput;
+                cinfo.dest->term_destination = &jpeg_bufferterminate;
+
+                my_mgr = (jpeg_my_dest_mgr_t*) cinfo.dest;
+                my_mgr->buffer = buffer;
+
+                cinfo.image_width = (JDIMENSION) width;	
+                cinfo.image_height = (JDIMENSION) height;
+                cinfo.input_components = 3;
+                cinfo.in_color_space = JCS_RGB;
+
+                jpeg_set_defaults(&cinfo);
+                jpeg_set_quality(&cinfo, 90, TRUE);
+
+                jpeg_start_compress(&cinfo, TRUE);
+
+                // feed data
+                while (cinfo.next_scanline < cinfo.image_height) {
+                        row_pointer[0] = (JSAMPROW) &data[cinfo.next_scanline * cinfo.image_width
+                                                          * cinfo.input_components];
+                        jpeg_write_scanlines(&cinfo, row_pointer, 1);
+                }
+
+                jpeg_finish_compress(&cinfo);
+                jpeg_destroy_compress(&cinfo);
+                return 0;
         }
 
         void LibCamera::process_request_buffer(libcamera::Request *request)
         {
                 r_debug("LibCamera::process_request_buffer");
-        
-                if (request->status() == libcamera::Request::RequestCancelled)
-                        return;
+                
+                // const libcamera::ControlList &requestMetadata = request->metadata();
+                // for (const auto &ctrl : requestMetadata) {
+                //         const libcamera::ControlId *id = libcamera::controls::controls.at(ctrl.first);
+                //         const libcamera::ControlValue &value = ctrl.second;
+                
+                //         std::cout << "\t" << id->name() << " = " << value.toString()
+                //                   << std::endl;
+                // }
                 
                 const std::map<const libcamera::Stream *, libcamera::FrameBuffer *> &buffers = request->buffers();
                 
                 for (auto bufferPair : buffers) {
                         libcamera::FrameBuffer *buffer = bufferPair.second;
-                        //const FrameMetadata &metadata = buffer->metadata();
+                        const libcamera::FrameMetadata &metadata = buffer->metadata();
+                        std::cout << " seq: " << std::setw(6) << std::setfill('0') << metadata.sequence
+                                  << " timestamp: " << metadata.timestamp
+                                  << " bytesused: ";
+                        unsigned int nplane = 0;
+                        for (const libcamera::FrameMetadata::Plane &plane : metadata.planes())
+                        {
+                                std::cout << plane.bytesused;
+                                if (++nplane < metadata.planes().size())
+                                        std::cout << "/";
+                        }
+                        std::cout << std::endl;
+                
                         for (const libcamera::FrameBuffer::Plane &plane : buffer->planes()) {
 
                                 int mmapFlags = PROT_READ;
                                 size_t mapLength = 0;
                                 size_t dmabufLength = 0;
+                                
                                 const int fd = plane.fd.get();
+                                
                                 dmabufLength = lseek(fd, 0, SEEK_END);
                                 if (plane.offset > dmabufLength ||
                                     plane.offset + plane.length > dmabufLength) {
@@ -233,6 +364,14 @@ namespace romi {
                                 }
 
                                 mapLength = (size_t) (plane.offset + plane.length);
+
+                                std::cout << "mapping <fd:" << fd << ",len:" << mapLength << ">" << std::endl;
+
+                                struct timespec ts;
+                                timespec_get(&ts, TIME_UTC);
+                                double t_start = (double) ts.tv_sec + (double) ts.tv_nsec * 1.0e-9;
+                                
+                                
                                 void *map_address = mmap(nullptr, mapLength, mmapFlags,
                                                          MAP_SHARED, fd, 0);
                                 if (map_address == MAP_FAILED) {
@@ -241,44 +380,37 @@ namespace romi {
                                         return;
                                 }
 
+                                timespec_get(&ts, TIME_UTC);
+                                double t_map = (double) ts.tv_sec + (double) ts.tv_nsec * 1.0e-9;
+
                                 const uint8_t *data = (const uint8_t *) map_address;
-                                //import_data(data + plane.offset, plane.length);
+
+                                std::cout << "mapping <fd:" << fd << ",len:" << mapLength << ">" << std::endl;
+
+                                convert_to_jpeg(data, width_, height_, &buffer_);
+
+                                std::cout << "jpeg size " << buffer_.size() << std::endl;
 
                                 jpeg_.clear();
-                                ImageIO::store_jpg_to_buffer(data, (int) width_, (int) height_, 3,
-                                                             jpeg_callback, &jpeg_);
+                                jpeg_.append(buffer_.data(), buffer_.size());
+                                                                
+                                timespec_get(&ts, TIME_UTC);
+                                double t_jpg = (double) ts.tv_sec + (double) ts.tv_nsec * 1.0e-9;
                                 
                                 munmap(map_address, mapLength);
+                                
+                                timespec_get(&ts, TIME_UTC);
+                                double t_unmap = (double) ts.tv_sec + (double) ts.tv_nsec * 1.0e-9;
+
+                                std::cout << "map " << (t_map - t_start)
+                                          << ", jpg " << (t_jpg - t_map)
+                                          << ", unmap " << (t_unmap - t_jpg) << std::endl;
+                                
                         }
 
                         std::cout << std::endl;
                 }
-                
-                request->reuse(libcamera::Request::ReuseBuffers);
         }
-
-        // void LibCamera::import_data(const uint8_t *data, size_t length)
-        // {
-        //         if (pixel_format_ == libcamera::formats::RGB888) {
-        //                 import_rgb(data, length);
-        //         } else if (pixel_format_ == libcamera::formats::MJPEG) {
-        //                 import_jpeg(data, length);
-        //         }
-        // }
-
-        // void LibCamera::import_jpeg(const uint8_t *data, size_t length)
-        // {
-        //         r_debug("LibCamera::import_jpeg");
-        //         jpeg_.clear();
-        //         jpeg_.append(data, length);
-        // }
-
-        // void LibCamera::import_rgb(const uint8_t *data, size_t)
-        // {
-        //         r_debug("LibCamera::import_rgb");
-        //         image_.import(Image::RGB, data, width_, height_);
-        //         r_debug("LibCamera::import_rgb: Done");
-        // }
 
         bool LibCamera::grab(Image &image)
         {
@@ -287,7 +419,6 @@ namespace romi {
                 send_request();
                 // wait_request_completed();
                 cv_.wait(lk, [this]{ return request_completed_; });
-                // convert_jpeg_to_rgb_perhaps();
                 image = image_;
                 return true;
         }
@@ -299,38 +430,9 @@ namespace romi {
                 send_request();
                 //wait_request_completed();
                 cv_.wait(lk, [this]{ return request_completed_; });
-                r_debug("LibCamera::grab_jpeg: request completed");
-                // convert_rgb_to_jpeg_perhaps();
+                //r_debug("LibCamera::grab_jpeg: request completed: jpeg size: %d", (int) jpeg_.size());
                 return jpeg_;
         }
-
-        // void LibCamera::convert_jpeg_to_rgb_perhaps()
-        // {
-        //         if (pixel_format_ == libcamera::formats::RGB888) {
-        //                 return;
-        //         } else if (pixel_format_ == libcamera::formats::MJPEG) {
-        //                 convert_jpeg_to_rgb();
-        //         }
-        // }
-
-        // void LibCamera::convert_jpeg_to_rgb()
-        // {
-        // }
-
-        // void LibCamera::convert_rgb_to_jpeg_perhaps()
-        // {
-        //         r_debug("LibCamera::convert_rgb_to_jpeg_perhaps");
-        //         if (pixel_format_ == libcamera::formats::RGB888) {
-        //                 convert_rgb_to_jpeg();
-        //         } else if (pixel_format_ == libcamera::formats::MJPEG) {
-        //                 return;
-        //         }
-        // }
-
-        // void LibCamera::convert_rgb_to_jpeg()
-        // {
-        //         r_debug("LibCamera::convert_rgb_to_jpeg");
-        // }
         
         bool LibCamera::power_up()
         {

@@ -45,14 +45,16 @@ namespace romi {
                 std::shared_ptr<libcamera::Camera> camera_;
                 libcamera::FrameBufferAllocator *allocator_;
                 libcamera::Stream *stream_;
-                std::unique_ptr<libcamera::Request> request_;
+                std::vector<std::unique_ptr<libcamera::Request>> requests_;
                 libcamera::PixelFormat pixel_format_;
                 size_t width_;
                 size_t height_;
                 std::mutex mutex_;
                 std::condition_variable cv_;
+                bool image_requested_;
                 bool request_completed_;
                 Image image_;
+                std::vector<uint8_t> buffer_;
                 rcom::MemBuffer jpeg_;
                 
         public:
