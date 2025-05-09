@@ -21,8 +21,8 @@
   <http://www.gnu.org/licenses/>.
 
  */
-#ifndef __ROMI_METHODS_POWER_DEVICE_H
-#define __ROMI_METHODS_POWER_DEVICE_H
+#ifndef __ROMI_METHODSPOWERDEVICE_H
+#define __ROMI_METHODSPOWERDEVICE_H
 
 namespace romi {
         
@@ -36,4 +36,4 @@ namespace romi {
         };
 }
 
-#endif // __ROMI_METHODS_POWER_DEVICE_H
+#endif // __ROMI_METHODSPOWERDEVICE_H

@@ -1,4 +1,4 @@
-//#include "ILinux.h"
+//#include "ISystem.h"
 #include "util/FileUtils.h"
 
 namespace romi {
@@ -67,7 +67,7 @@ namespace romi {
                 }
         }
 
-// fs::path FileUtils::TryGetHomeDirectory(rpp::ILinux& linux)
+// fs::path FileUtils::TryGetHomeDirectory(rpp::ISystem& linux)
 // {
 //         try {
 //                 char* homedir = nullptr;

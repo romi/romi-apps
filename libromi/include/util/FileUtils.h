@@ -9,7 +9,7 @@
 #include <cstring>
 #include <filesystem>
 
-//#include "ILinux.h"
+//#include "ISystem.h"
 namespace fs = std::filesystem;
 
 #define FILE_UTILS_EXCEPTION_LOG(...) \
@@ -27,7 +27,7 @@ namespace romi {
                 static std::string TryReadFileAsString(const std::string& filePath);
                 static void TryWriteStringAsFile(const std::string& filename,
                                                  const std::string& output);
-                //static fs::path TryGetHomeDirectory(rpp::ILinux& linux);
+                //static fs::path TryGetHomeDirectory(rpp::ISystem& linux);
         };
 }
 

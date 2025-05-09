@@ -26,12 +26,15 @@
 #include <thread>
 #include <fstream>
 #include <filesystem>
+#include <csignal>
+#include <rcom/Linux.h>
 #include <rcom/RcomServer.h>
-#include <rcom/RemoteObjectsAdaptor.h>
+#include <rcom/RcomMessageHandler.h>
+
+#include <rpc/RcomLog.h>
 #include <configuration/RomiOptions.h>
 #include <configuration/LocalConfig.h>
 #include <configuration/GetOpt.h>
-#include <util/ClockAccessor.h>
 #include <util/Logger.h>
 
 #include "ConfigAdaptor.h"
@@ -42,10 +45,10 @@ static void quit_on_control_c();
 
 int main(int argc, char **argv)
 {
-        std::shared_ptr<romi::IClock> clock = std::make_shared<romi::Clock>();
-        romi::ClockAccessor::SetInstance(clock);
-        
         try {
+                romi::RcomLog log;
+                rcom::Linux system(log);
+                
                 // Options
                 romi::RomiOptions options;
                 options.parse(argc, argv);
@@ -64,15 +67,16 @@ int main(int argc, char **argv)
                 romi::LocalConfig config(config_path);
                 
                 // Server                
-                romi::ConfigAdaptor config_adaptor(config);
-                auto server = rcom::RcomServer::create("config", config_adaptor);
-
+                romi::ConfigAdaptor adaptor(config);
+                rcom::RcomMessageHandler listener(adaptor);
+                auto server = rcom::RcomServer::create("config", "config", listener,
+                                                       log, system);
                 
                 quit_on_control_c();
 		
                 while (!quit) {
                         server->handle_events();
-                        romi::ClockAccessor::GetInstance()->sleep(0.002);
+                        system.sleep(0.010);
                 }
 
         } catch (std::exception& e) {

@@ -1,26 +1,48 @@
+/*
+  romi-config
+
+  Copyright (C) 2019-2020 Sony Computer Science Laboratories
+  Author(s) Peter Hanappe
+
+  romi-config provide a single config file to distributed Romi apps.
+
+  romi-config is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see
+  <http://www.gnu.org/licenses/>.
+
+*/
 #include <exception>
 #include <stdexcept>
 #include <string>
 #include <atomic>
 #include <syslog.h>
+#include <csignal>
 
 #include <rcom/Linux.h>
 #include <rcom/RcomServer.h>
 #include <rcom/RegistryServer.h>
 #include <rcom/RcomClient.h>
-
-#include <configuration/LocalConfig.h>
-
-#include <rpc/RcomLog.h>
-#include <rpc/RemoteConfig.h>
+#include <rcom/RcomMessageHandler.h>
 
 #include <api/DeviceData.h>
 #include <api/Gps.h>
 #include <api/GpsLocationProvider.h>
 #include <api/Session.h>
-
-#include <util/Clock.h>
+#include <configuration/LocalConfig.h>
+#include <rpc/RcomLog.h>
+#include <rpc/RemoteConfig.h>
 #include <util/ClockAccessor.h>
+
 #include <romi_config.h>
 
 #include "oquam/Oquam.h"
@@ -59,14 +81,12 @@ int main(int argc, char** argv)
 
         int retval = 1;
 
-
         std::signal(SIGSEGV, SignalHandler);
         std::signal(SIGINT, SignalHandler);
 
         try {
-                // Linux
-                rcom::Linux linux;
-                std::shared_ptr<rcom::ILog> rcomlog = std::make_shared<romi::RcomLog>();
+                romi::RcomLog log;
+                rcom::Linux system(log);
 
                 // Options
                 romi::CNCOptions options;
@@ -84,6 +104,7 @@ int main(int argc, char** argv)
 
                 // Topic
                 std::string topic = "cnc";
+                std::string type = "cnc";
                 if (options.is_set(romi::RomiOptions::kTopic)) {
                         topic = options.get_value(romi::RomiOptions::kTopic);
                 }
@@ -103,7 +124,7 @@ int main(int argc, char** argv)
                         config = std::make_shared<romi::LocalConfig>(config_path);
                 } else {
                         r_info("romi-camera: Using remote configuration");
-                        auto client = rcom::RcomClient::create("config", 10.0, rcomlog);
+                        auto client = rcom::RcomClient::create("config", 10.0, log, system);
                         config = std::make_shared<romi::RemoteConfig>(client);
                 }
                 
@@ -123,7 +144,7 @@ int main(int argc, char** argv)
                 std::string directory
                         = options.get_value(romi::RomiOptions::kDirectory);
                 r_info("Session directory: %s", directory.c_str());
-                romi::Session session(linux, directory, std::move(device),
+                romi::Session session(system, directory, std::move(device),
                                       std::move(location));
                 session.start("oquam_observation_id");
                 
@@ -169,11 +190,12 @@ int main(int argc, char** argv)
 
                 // RPC access
                 romi::CNCAdaptor adaptor(oquam);
-                auto server = rcom::RcomServer::create(topic, adaptor);
+                rcom::RcomMessageHandler listener(adaptor);
+                auto server = rcom::RcomServer::create(topic, type, listener, log, system);
                 
                 while (!quit) {
                         server->handle_events();
-                        clock->sleep(0.1);
+                        system.sleep(0.010);
                 }
                 
                 retval = 0;

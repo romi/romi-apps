@@ -1,0 +1,25 @@
+
+
+CNC
+setting homing axes to [0,1,2]
+setting homing speeds to [400,400,0]  ←  0 for z-speed?
+
+
+CNC config:
+"homing": {
+"axes": [0, 1, 2]   →  "axes": ['x', 'y', 'z']
+"mode": 1           →  "mode": "default", "touching", ...
+}
+
+
+
+
+
+WebSocket → Socket → BaseSocket → Linux
+
+WebSocket → LinuxSocket → BaseSocket → Linux
+WebSocket → ArduinoSocket → WifiClient
+
+
+unique_ptr<ISocket> ServerSocket::accept(double timeout_in_seconds) = 0;
+

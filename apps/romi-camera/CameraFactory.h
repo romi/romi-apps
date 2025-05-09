@@ -26,7 +26,7 @@
 #define ROMI_CAMERAFACTORY_H
 
 #include <memory>
-#include <rcom/ILinux.h>
+#include <rcom/ISystem.h>
 #include <rcom/ILog.h>
 #include <api/ICamera.h>
 #include "ICameraInfo.h"
@@ -54,7 +54,7 @@ namespace romi {
                 virtual ~CameraFactory() = default;
 
                 static std::unique_ptr<ICamera> create(
-                        rcom::ILinux& linux,
+                        rcom::ISystem& linux,
                         std::shared_ptr<ICameraInfoIO>& io);
         };
 }

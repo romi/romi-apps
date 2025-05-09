@@ -23,11 +23,13 @@
 */
 #include <stdexcept>
 #include <memory>
+#include <csignal>
 
 #include <rcom/Linux.h>
 #include <rcom/RegistryServer.h>
 #include <rcom/RcomServer.h>
 #include <rcom/RcomClient.h>
+#include <rcom/RcomMessageHandler.h>
 
 #include <rpc/RcomLog.h>
 
@@ -59,9 +61,8 @@ int main(int argc, char **argv)
         romi::ClockAccessor::SetInstance(clock);
         
         try {
-                // Linux
-                rcom::Linux linux;
-                std::shared_ptr<rcom::ILog> rcomlog = std::make_shared<romi::RcomLog>();
+                romi::RcomLog log;
+                rcom::Linux system(log);
                 
                 // Options
                 romi::RomiOptions options;
@@ -79,6 +80,7 @@ int main(int argc, char **argv)
 
                 // Topic
                 std::string topic = "camera";
+                std::string type = "camera";
                 if (options.is_set(romi::RomiOptions::kTopic)) {
                         topic = options.get_value(romi::RomiOptions::kTopic);
                 }
@@ -99,7 +101,7 @@ int main(int argc, char **argv)
                         config = std::make_shared<romi::LocalConfig>(config_path);
                 } else {
                         r_info("romi-camera: Using remote configuration");
-                        auto client = rcom::RcomClient::create("config", 10.0, rcomlog);
+                        auto client = rcom::RcomClient::create("config", 10.0, log, system);
                         config = std::make_shared<romi::RemoteConfig>(client);
                 }
                 
@@ -117,7 +119,7 @@ int main(int argc, char **argv)
                 r_debug("romi-camera: Initializing camera");
                 std::unique_ptr<romi::ICamera> camera;
                 try {
-                        camera = romi::CameraFactory::create(linux, info_io);
+                        camera = romi::CameraFactory::create(system, info_io);
                         
                 } catch (std::exception& e) {
                         r_debug("romi-camera: Failed to create the camera");
@@ -135,14 +137,16 @@ int main(int argc, char **argv)
                 // std::unique_ptr<romi::ILocationProvider> location
                 //         = std::make_unique<romi::DummyLocationProvider>();
                 // std::string directory = options.get_value(romi::RomiOptions::kDirectory);
-                // romi::Session session(linux, directory,
+                // romi::Session session(system, directory,
                 //                       std::move(device),
                 //                       std::move(location));
 
 
                 //
                 romi::CameraAdaptor adaptor(*camera);
-                auto camera_server = rcom::RcomServer::create(topic, adaptor);
+                rcom::RcomMessageHandler listener(adaptor);
+                auto camera_server = rcom::RcomServer::create(topic, type, listener,
+                                                              log, system);
                 
                 quit_on_control_c();
                 

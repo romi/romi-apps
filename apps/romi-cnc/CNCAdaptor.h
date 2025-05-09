@@ -21,8 +21,8 @@
   <http://www.gnu.org/licenses/>.
 
  */
-#ifndef ROMI_CNCADAPTER_H
-#define ROMI_CNCADAPTER_H
+#ifndef __ROMI_CNCADAPTER_H
+#define __ROMI_CNCADAPTER_H
 
 #include <rcom/IRPCHandler.h>
 #include "api/ICNC.h"
@@ -69,4 +69,4 @@ namespace romi {
         };
 }
 
-#endif // ROMI_CNCADAPTER_H
+#endif // __ROMI_CNCADAPTER_H

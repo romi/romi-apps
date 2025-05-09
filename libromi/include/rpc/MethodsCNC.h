@@ -21,8 +21,8 @@
   <http://www.gnu.org/licenses/>.
 
  */
-#ifndef __ROMI_METHODS_CNC_H
-#define __ROMI_METHODS_CNC_H
+#ifndef __ROMI_METHODSCNC_H
+#define __ROMI_METHODSCNC_H
 
 namespace romi {
         
@@ -58,4 +58,4 @@ namespace romi {
         };
 }
 
-#endif // __ROMI_METHODS_CNC_H
+#endif // __ROMI_METHODSCNC_H

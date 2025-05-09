@@ -36,7 +36,7 @@
 namespace romi {
 
         std::unique_ptr<ICamera> CameraFactory::create(
-                rcom::ILinux&,
+                rcom::ISystem&,
                 std::shared_ptr<ICameraInfoIO>& io)
         {
                 r_debug("CameraFactory::create");

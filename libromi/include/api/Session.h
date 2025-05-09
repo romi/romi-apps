@@ -25,7 +25,7 @@
 #define ROMI_SESSION_H
 
 #include <filesystem>
-#include <rcom/ILinux.h>
+#include <rcom/ISystem.h>
 
 #include "api/IDeviceData.h"
 #include "api/ILocationProvider.h"
@@ -37,7 +37,7 @@ namespace romi {
         class Session : public ISession {
         public:
                 Session() = delete;
-                explicit Session(const rcom::ILinux &linux,
+                explicit Session(const rcom::ISystem &linux,
                                  const std::string &base_directory,
                                  std::shared_ptr<IDeviceData> device_data,
                                  std::shared_ptr<ILocationProvider> location);
@@ -58,7 +58,7 @@ namespace romi {
                 std::filesystem::path create_session_file(const std::string& name) override;
 
         private:
-                const rcom::ILinux& linux_;
+                const rcom::ISystem& linux_;
                 std::filesystem::path base_directory_;
                 std::shared_ptr<IDeviceData> device_;
                 std::shared_ptr<ILocationProvider> location_;

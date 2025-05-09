@@ -21,8 +21,8 @@
   <http://www.gnu.org/licenses/>.
 
  */
-#ifndef __ROMI_METHODS_CAMERA_H
-#define __ROMI_METHODS_CAMERA_H
+#ifndef __ROMI_METHODSCAMERA_H
+#define __ROMI_METHODSCAMERA_H
 
 namespace romi {
         
@@ -40,4 +40,4 @@ namespace romi {
         };
 }
 
-#endif // __ROMI_METHODS_CAMERA_H
+#endif // __ROMI_METHODSCAMERA_H

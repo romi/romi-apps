@@ -32,7 +32,7 @@
 
 namespace romi {
 
-        Session::Session(const rcom::ILinux& linux,
+        Session::Session(const rcom::ISystem& linux,
                          const std::string& base_directory,
                          std::shared_ptr<IDeviceData> device, 
                          std::shared_ptr<ILocationProvider> location)

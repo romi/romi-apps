@@ -21,8 +21,8 @@
   <http://www.gnu.org/licenses/>.
 
  */
-#ifndef __ROMI_METHODS_ACTIVITY_H
-#define __ROMI_METHODS_ACTIVITY_H
+#ifndef __ROMI_METHODSACTIVITY_H
+#define __ROMI_METHODSACTIVITY_H
 
 namespace romi {
         
@@ -36,4 +36,4 @@ namespace romi {
         };
 }
 
-#endif // __ROMI_METHODS_ACTIVITY_H
+#endif // __ROMI_METHODSACTIVITY_H
