@@ -32,8 +32,12 @@
 
 namespace romi {
 
+        typedef void (*ImageIOAppendCallback)(void *context, void *data, int size);
+
+        
         using bytevector = std::vector<uint8_t>;
         const int JPEG_QUALITY_90 = 90;
+        
         class ImageIO
         {
 
@@ -46,7 +50,8 @@ namespace romi {
                 static bool load(Image& image, const char *filename);
                 static bool load_from_buffer(Image& image,
                                              const std::vector<uint8_t>& image_data);
-
+                static bool store_jpg_to_buffer(const uint8_t* data, int width, int height, int channels,
+                                                ImageIOAppendCallback callback, void *context);
         };
 }
 

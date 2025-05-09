@@ -92,10 +92,10 @@ namespace romi {
 
         void Image::import_data(const uint8_t *data)
         {
-                _data.clear();
                 size_t len = length();
+                float *p = _data.data();
                 for (size_t i = 0; i < len; i++)
-                        _data.emplace_back((float) *data++ / 255.0f);
+                        *p++ = (float) *data++ / 255.0f;
         }
         
         void Image::fill(size_t channel, float color)

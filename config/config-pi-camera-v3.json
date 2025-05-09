@@ -37,8 +37,8 @@
         },
         "type": "libcamera",
         "libcamera": {
-            "width": 4608,
-            "height": 2592
+            "width": 2304,
+            "height": 1296
         }
     }
 }

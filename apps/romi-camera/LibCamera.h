@@ -45,14 +45,16 @@ namespace romi {
                 std::shared_ptr<libcamera::Camera> camera_;
                 libcamera::FrameBufferAllocator *allocator_;
                 libcamera::Stream *stream_;
-                std::unique_ptr<libcamera::Request> request_;
+                std::vector<std::unique_ptr<libcamera::Request>> requests_;
                 libcamera::PixelFormat pixel_format_;
                 size_t width_;
                 size_t height_;
                 std::mutex mutex_;
                 std::condition_variable cv_;
+                bool image_requested_;
                 bool request_completed_;
                 Image image_;
+                std::vector<uint8_t> buffer_;
                 rcom::MemBuffer jpeg_;
                 
         public:
@@ -81,13 +83,13 @@ namespace romi {
                 void signal_request_completed();
                 void request_complete(libcamera::Request *request);
                 void process_request_buffer(libcamera::Request *request);
-                void import_data(const uint8_t *data, size_t length);
-                void import_jpeg(const uint8_t *data, size_t length);
-                void import_rgb(const uint8_t *data, size_t length);
-                void convert_jpeg_to_rgb_perhaps();
-                void convert_jpeg_to_rgb();
-                void convert_rgb_to_jpeg_perhaps();
-                void convert_rgb_to_jpeg();
+                // void import_data(const uint8_t *data, size_t length);
+                // void import_jpeg(const uint8_t *data, size_t length);
+                // void import_rgb(const uint8_t *data, size_t length);
+                // void convert_jpeg_to_rgb_perhaps();
+                // void convert_jpeg_to_rgb();
+                // void convert_rgb_to_jpeg_perhaps();
+                // void convert_rgb_to_jpeg();
         };
 }
 

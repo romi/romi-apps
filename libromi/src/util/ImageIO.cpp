@@ -73,6 +73,16 @@ namespace romi {
                 return retval;
         }
 
+        bool ImageIO::store_jpg_to_buffer(const uint8_t* data, int width, int height, int channels,
+                                          ImageIOAppendCallback callback, void *context)
+        {
+                int error = stbi_write_jpg_to_func(callback, context,
+                                                   width, height, channels, data,
+                                                   JPEG_QUALITY_90);
+                bool retval = (error != 0);
+                return retval;
+        }
+
         // Loads an image. Converts to BW or RGB if alpha channel is included in original.
         bool ImageIO::load(Image& image, const char *filename)
         {
