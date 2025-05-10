@@ -1,9 +1,9 @@
 
 class RemoteController
 {
-    constructor(name, registryIP, remoteAddress) {
+    constructor(name, registry, remoteAddress) {
         this.name = name;
-        this.registryIP = registryIP;
+        this.registry = registry;
         this.remoteAddress = remoteAddress;
         this.socket = null;
         this.connected = false;
@@ -68,24 +68,15 @@ class RemoteController
     }
 
     findRemoteAddress() {
-        console.log("registry " + this.registryIP);
-        var registrySocket = new WebSocket('ws://' + this.registryIP + ':10101');
-
-        registrySocket.onopen = (event) => {
-            var request = { 'request': 'get', 'topic': this.name };
-            console.log(request);
-            registrySocket.send(JSON.stringify(request));
-        };
-        
-        registrySocket.onmessage = (event) => {
-            console.log(event.data);
-            var reply = JSON.parse(event.data);
-            if (reply.success) {
-                registrySocket.close();
-                this.remoteAddress = reply.address;
-                this.connectToDevice();
-            }
-        }
+        var self = this;
+        this.registry.get(this.name,
+                          (data) => {
+                              self.remoteAddress = data.address;
+                              self.connectToDevice();
+                          },
+                          () => {
+                              console.log("Failed to get the address of " + self.name);
+                          });
     }
 
     connectToDevice() {

@@ -3,17 +3,34 @@ var remoteCamera = null;
 
 class ImageViewer
 {
-    constructor(id) {
-        this.element = document.getElementById(id);
+    constructor(id, classname) {
+        if (id) { 
+            this.element = document.getElementById(id);
+            if (classname) {
+                this.element.className = classname;
+            }
+        } else {
+            this.element = undefined;
+        }
+        this.classname = classname;
         this.active = true;
         this.reader = new FileReader();
         this.reader.onload = (e) => {
-            this.element.src = this.reader.result;
+            if (this.element) {
+                this.element.src = this.reader.result;
+            }
         };
     }
 
     displayImage(data) {
         this.reader.readAsDataURL(data);
+    }
+
+    attach(root) {
+        var img = document.createElement('img');
+        img.className = this.classname;
+        root.appendChild(img);
+        this.element = img;
     }
 }
 
@@ -25,6 +42,7 @@ class RemoteCamera
         this.viewer = viewer;
         this.continuousUpdate = true;
         this.encoder = new TextEncoder();
+        this.controller.callWhenConnected(this);
     }
 
     getId() {
@@ -222,7 +240,7 @@ function initCamera(name, remoteController, createControlPanel)
 {
     let imageViewer = new ImageViewer('camera');
     remoteCamera = new RemoteCamera(name, remoteController, imageViewer);
-    remoteController.callWhenConnected(remoteCamera);
-    if (createControlPanel)
+    if (createControlPanel) {
         settingsPanel = new CameraSettingsPanel(remoteCamera);
+    }
 }

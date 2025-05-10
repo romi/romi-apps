@@ -140,6 +140,29 @@ div.control-info {
     padding-left: 20px;
 }
 
+
+
+/**************************/
+/* Index               */
+
+.index-app {
+    border: solid 2px black;
+    padding: 6px;
+    margin-top: 6px;
+    border-radius: 5px;    
+}
+
+.index-header {
+    padding: 3px;
+}
+
+/**************************/
+/* Camera               */
+
+img.camera-preview {
+    width: 500px;
+}
+
 /**************************/
 /* Programs               */
 

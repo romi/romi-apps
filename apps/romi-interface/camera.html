@@ -30,9 +30,9 @@
             <li class="nav-item">
               <a class="nav-link" href="index.html">Home</a>
             </li>
-            <li class="nav-item">
+            <!-- <li class="nav-item">
               <a class="nav-link  active" href="camera.html">Camera</a>
-            </li>
+            </li> -->
         </div>
       </div>
     </nav>
@@ -246,13 +246,14 @@
     <script src="js/jquery.min.js"></script>
     <script src="js/remotecontroller.js"></script>
     <script src="js/camera.js"></script>
+    <script src="js/registry.js"></script>
 
     <script type="text/javascript">
       window.onload = function() {
-          let registryAddress = window.location.hostname;
-          var remoteController = new RemoteController('camera', registryAddress,
-                                                      null);
-          initCamera('camera', remoteController, true);
+          let address = window.location.hostname;
+          let registry = new Registry(address);
+          var controller = new RemoteController('camera', registry, null);
+          initCamera('camera', controller, true);
       };
     </script>
     

@@ -30,24 +30,35 @@
             <li class="nav-item">
               <a class="nav-link" href="index.html">Home</a>
             </li>
-            <li class="nav-item">
+            <!-- <li class="nav-item">
               <a class="nav-link" href="camera.html">Camera</a>
-            </li>
+            </li> -->
         </div>
       </div>
     </nav>
-
+    
     <!---------------------------------------------->
     
-    <div class="container">
-      <div class="row">
-        <img src="assets/cablebot_wall.jpg" />
-      </div>
+    <div id="index">
+    </div>
     
     <!---------------------------------------------->
     
     <script src="js/bootstrap.min.js"></script>
     <script src="js/jquery.min.js"></script>
+    <script src="js/index.js"></script>
+    <script src="js/components.js"></script>
+    <script src="js/registry.js"></script>
+    <script src="js/remotecontroller.js"></script>
+    <script src="js/camera.js"></script>
+    
+    <script type="text/javascript">
+      window.onload = function() {
+          let address = window.location.hostname;
+          var registry = new Registry(address);
+          var index = new Index(registry);
+      };
+    </script>
     
   </body>
 </html>
