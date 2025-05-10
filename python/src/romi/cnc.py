@@ -3,7 +3,12 @@ import time
 from rcom.rcom_client import RcomWSClient
 
 class CNC():
-   
+
+    @staticmethod
+    def create(topic, id = None, registry_ip = None):
+        client = RcomWSClient(topic, id, registry_ip)
+        return CNC(client)
+        
     def __init__(self, client):
         self.client = client
        
@@ -61,8 +66,8 @@ if __name__ == '__main__':
                     help='The regsitry topic')
     args = parser.parse_args()
 
-    client = RcomWSClient(args.topic)
-    cnc = CNC(client)
+    cnc = CNC.create(args.topic)
+    
     # Turn off battery charger
     cnc.set_relay(0, True)
     cnc.power_up()

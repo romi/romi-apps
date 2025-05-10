@@ -6,13 +6,17 @@ from rcom.rcom_client import RcomWSClient
 import argparse
 
 class Camera():
+
+    @staticmethod
+    def create(topic, registry_ip = None):
+        client = RcomWSClient(topic, topic, registry_ip)
+        return Camera(client)
    
-    def __init__(self, client, id="camera"):
+    def __init__(self, client):
         self.client = client
-        self.id = id
        
     def grab(self):
-        cmd = f'{{"method": "camera:grab-jpeg-binary", "id": "{self.id}"}}'
+        cmd = f'{{"method": "camera:grab-jpeg-binary", "id": "{self.client.id}"}}'
         data = self.client.binary(cmd)
         print(f'data length {len(data)}')
         with open("tmp.jpg", "wb") as f:
@@ -33,13 +37,11 @@ class Camera():
     def power_down(self):
         self.client.execute('power-down')
 
-        
 
 class FakeCamera():
-
     
-    def __init__(self, topic = 'camera', id = 'camera', file = 'test.jpg'):
-        self.image = Image.open(file)
+    def __init__(self, filepath):
+        self.image = Image.open(filepath)
        
     def grab(self):
         return self.image
@@ -75,9 +77,7 @@ if __name__ == '__main__':
                         help='The delay between images')
     args = parser.parse_args()
     
-    client = RcomWSClient(args.topic, args.topic, args.registry)
-    camera = Camera(client)
-    #camera = FakeCamera(args.topic, args.topic, args.file)
+    camera = Camera.create(args.topic, args.registry)
     for i in range(args.count):
         image = camera.grab()
         if image != None:
