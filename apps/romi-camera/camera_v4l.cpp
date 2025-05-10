@@ -322,9 +322,13 @@ void convert_yuv422_to_rgb888(size_t width, size_t height, unsigned char *src, u
                         g = y + 1.772f * (u - 128.0f);
                         b = y + 1.402f * (v - 128.0f);
                         
-                        *tmp++ = (uint8_t)clamp(r, 0, 255);
-                        *tmp++ = (uint8_t)clamp(g, 0, 255);
-                        *tmp++ = (uint8_t)clamp(b, 0, 255);
+                        // *tmp++ = (uint8_t) clamp(r, 0, 255);
+                        // *tmp++ = (uint8_t) clamp(g, 0, 255);
+                        // *tmp++ = (uint8_t) clamp(b, 0, 255);
+                        
+                        *tmp++ = (uint8_t) clamp(b, 0, 255);
+                        *tmp++ = (uint8_t) clamp(g, 0, 255);
+                        *tmp++ = (uint8_t) clamp(r, 0, 255);
 
                         py += 2;
 
