@@ -7,7 +7,7 @@
         "axes": [
             {
                 "type": "linear",
-                "range": [0, 0.760000],
+                "range": [0, 0.76],
                 "homing": {
                     "order": 0,
                     "mode": "contact-and-backup",
@@ -16,7 +16,7 @@
             },
             {
                 "type": "linear",
-                "range": [0, 0.800000],
+                "range": [0, 0.72],
                 "homing": {
                     "order": 1,
                     "mode": "contact-and-backup",
@@ -24,9 +24,8 @@
                 }
             },
             {
-                "name": "pan",
-                "type": "angular",
-                "range": [-90, 90],
+                "type": "linear",
+                "range": [0, 0.35],
                 "homing": {
                     "order": 2,
                     "mode": "contact-and-backup",
@@ -34,11 +33,6 @@
                 }
             }
         ],
-        "cnc-range": [[0, 0.760000], [0, 0.800000], [0, 0.350000]],
-        "homing": {
-            "axes": [0, 1, 2],
-            "mode": 0
-        },
         "controller-classname-xxx": "stepper-controller",
         "controller-classname": "fake-cnc-controller",
         "path-maximum-deviation": 0.0,
