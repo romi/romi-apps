@@ -28,6 +28,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <time.h>                                
+#include <stdlib.h>
 #include <jpeglib.h>
 #include <util/FileUtils.h>
 #include <util/Logger.h>
@@ -53,8 +54,10 @@ namespace romi {
                   image_requested_(false),
                   request_completed_(false),
                   image_(),
-                  buffer_(),
-                  jpeg_()
+                  jpeg_(),
+                  buffer_(nullptr),
+                  buffer_size_(0),
+                  image_size_(0)
         {
                 manager_ = std::make_unique<libcamera::CameraManager>();
                 manager_->start();
@@ -108,6 +111,13 @@ namespace romi {
                 width_ = streamConfig.size.width;
                 height_ = streamConfig.size.height;
 
+                buffer_size_ = width_ * height_ * 3;
+                buffer_ = (uint8_t *) malloc(buffer_size_);
+                if (buffer_ == nullptr) {
+                        r_err("LibCamera: malloc failed. size: %d", (int) buffer_size_);
+                        std::runtime_error("LibCamera: malloc failed");
+                }
+                
                 camera_->configure(config.get());
                 
                 stream_ = streamConfig.stream();
@@ -168,6 +178,9 @@ namespace romi {
                 camera_->release();
                 camera_.reset();
                 manager_->stop();
+                if (buffer_) {
+                        free(buffer_);
+                }
         }
 
         void LibCamera::assert_format()
@@ -248,47 +261,40 @@ namespace romi {
                 }
         }
 
-#define BLOCKSIZE 65536
-
         typedef struct _jpeg_my_dest_mgr_t {
                 struct jpeg_destination_mgr mgr;
-                std::vector<uint8_t> *buffer;
+                LibCamera *camera;
         } jpeg_my_dest_mgr_t;
 
         static void jpeg_bufferinit(j_compress_ptr cinfo)
         {
                 jpeg_my_dest_mgr_t* my_mgr = (jpeg_my_dest_mgr_t*) cinfo->dest;
-                std::vector<uint8_t> *buffer = my_mgr->buffer;
+                LibCamera *camera = my_mgr->camera;
 
-                if (buffer->size() == 0)
-                        buffer->resize(BLOCKSIZE);
-                cinfo->dest->next_output_byte = buffer->data();
-                cinfo->dest->free_in_buffer = buffer->size();
+                cinfo->dest->next_output_byte = camera->buffer_;
+                cinfo->dest->free_in_buffer = camera->buffer_size_;
         }
 
-        static boolean jpeg_bufferemptyoutput(j_compress_ptr cinfo)
+        static boolean jpeg_bufferemptyoutput(j_compress_ptr /* cinfo */ )
         {
-                jpeg_my_dest_mgr_t* my_mgr = (jpeg_my_dest_mgr_t*) cinfo->dest;
-                std::vector<uint8_t> *buffer = my_mgr->buffer;
+                // jpeg_my_dest_mgr_t* my_mgr = (jpeg_my_dest_mgr_t*) cinfo->dest;
+                // LibCamera *camera = my_mgr->camera;
         
-                size_t oldsize = buffer->size();
-                buffer->resize(oldsize + BLOCKSIZE);
-                cinfo->dest->next_output_byte = buffer->data() + oldsize;
-                cinfo->dest->free_in_buffer = buffer->size() - oldsize;
-                return 1;
+                // size_t oldsize = buffer->size();
+                // buffer->resize(oldsize + BLOCKSIZE);
+                // cinfo->dest->next_output_byte = buffer->data() + oldsize;
+                // cinfo->dest->free_in_buffer = buffer->size() - oldsize;
+                return 0;
         }
 
         static void jpeg_bufferterminate(j_compress_ptr cinfo)
         {
                 jpeg_my_dest_mgr_t* my_mgr = (jpeg_my_dest_mgr_t*) cinfo->dest;
-                std::vector<uint8_t> *buffer = my_mgr->buffer;
-                
-                size_t size = buffer->size() - cinfo->dest->free_in_buffer;
-                buffer->resize(size);
+                LibCamera *camera = my_mgr->camera;
+                camera->image_size_ = camera->buffer_size_ - cinfo->dest->free_in_buffer;
         }
 
-        static int convert_to_jpeg(const uint8_t *data, size_t width, size_t height,
-                                   std::vector<uint8_t> *buffer)
+        void LibCamera::convert_to_jpeg(const uint8_t *data)
         {
                 struct jpeg_compress_struct cinfo;
                 struct jpeg_error_mgr jerr;
@@ -307,10 +313,10 @@ namespace romi {
                 cinfo.dest->term_destination = &jpeg_bufferterminate;
 
                 my_mgr = (jpeg_my_dest_mgr_t*) cinfo.dest;
-                my_mgr->buffer = buffer;
+                my_mgr->camera = this;
 
-                cinfo.image_width = (JDIMENSION) width;	
-                cinfo.image_height = (JDIMENSION) height;
+                cinfo.image_width = (JDIMENSION) width_;	
+                cinfo.image_height = (JDIMENSION) height_;
                 cinfo.input_components = 3;
                 cinfo.in_color_space = JCS_RGB;
 
@@ -328,7 +334,6 @@ namespace romi {
 
                 jpeg_finish_compress(&cinfo);
                 jpeg_destroy_compress(&cinfo);
-                return 0;
         }
 
         void LibCamera::process_request_buffer(libcamera::Request *request)
@@ -403,12 +408,12 @@ namespace romi {
 
                                 std::cout << "mapping <fd:" << fd << ",len:" << mapLength << ">" << std::endl;
 
-                                convert_to_jpeg(data, width_, height_, &buffer_);
+                                convert_to_jpeg(data);
 
-                                std::cout << "jpeg size " << buffer_.size() << std::endl;
+                                std::cout << "jpeg size " << image_size_ << std::endl;
 
                                 jpeg_.clear();
-                                jpeg_.append(buffer_.data(), buffer_.size());
+                                jpeg_.append(buffer_, image_size_);
                                                                 
                                 timespec_get(&ts, TIME_UTC);
                                 double t_jpg = (double) ts.tv_sec + (double) ts.tv_nsec * 1.0e-9;

@@ -54,10 +54,12 @@ namespace romi {
                 bool image_requested_;
                 bool request_completed_;
                 Image image_;
-                std::vector<uint8_t> buffer_;
                 rcom::MemBuffer jpeg_;
                 
         public:
+                uint8_t *buffer_;
+                size_t buffer_size_;
+                size_t image_size_;
                 
                 explicit LibCamera(size_t width, size_t height);
                 ~LibCamera() override;
@@ -82,13 +84,7 @@ namespace romi {
                 void signal_request_completed();
                 void request_complete(libcamera::Request *request);
                 void process_request_buffer(libcamera::Request *request);
-                // void import_data(const uint8_t *data, size_t length);
-                // void import_jpeg(const uint8_t *data, size_t length);
-                // void import_rgb(const uint8_t *data, size_t length);
-                // void convert_jpeg_to_rgb_perhaps();
-                // void convert_jpeg_to_rgb();
-                // void convert_rgb_to_jpeg_perhaps();
-                // void convert_rgb_to_jpeg();
+                void convert_to_jpeg(const uint8_t *data);
         };
 }
 
