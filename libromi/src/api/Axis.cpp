@@ -57,7 +57,6 @@ namespace romi {
         void Axis::init(size_t index, nlohmann::json data)
         {
                 assert_field(data, "type");
-                assert_field(data, "homing");
 
                 if (data.contains("name")) {
                         std::string s = data["name"];
