@@ -38,11 +38,9 @@ namespace romi {
                 // Do the power-down sequence before shutting down.
                 virtual bool power_down() = 0;
 
-                // Go into a lower-power state due to inactivity.
-                virtual bool stand_by() = 0;
-
-                // Exit the lower-power state and prepare for action.
-                virtual bool wake_up() = 0;
+                // Do the initial power-up sequence once the power has
+                // been supplied after a fresh reboot.
+                virtual bool is_powered_up() = 0;
         };
 }
 

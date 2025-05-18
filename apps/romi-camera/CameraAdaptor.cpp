@@ -77,17 +77,14 @@ namespace romi {
                 r_debug("CameraAdaptor::execute (text)");
                                 
                 try {
-                        if (method == MethodsPowerDevice::power_up) {
+                        if (method == MethodsPowerDevice::kPowerUp) {
                                 execute_power_up(error);
                                 
-                        } else if (method == MethodsPowerDevice::power_down) {
+                        } else if (method == MethodsPowerDevice::kPowerDown) {
                                 execute_power_down(error);
                                 
-                        } else if (method == MethodsPowerDevice::stand_by) {
-                                execute_stand_by(error);
-                                
-                        } else if (method == MethodsPowerDevice::wake_up) {
-                                execute_wake_up(error);
+                        } else if (method == MethodsPowerDevice::kIsPoweredUp) {
+                                execute_is_powered_up(result, error);
                                 
                         } else if (method == MethodsCamera::kSetValue) {
                                 execute_set_value(params, result, error);
@@ -123,23 +120,12 @@ namespace romi {
                         error.message = "power down failed";
                 }
         }
-        
-        void CameraAdaptor::execute_stand_by(rcom::RPCError& error)
+
+        void CameraAdaptor::execute_is_powered_up(nlohmann::json& result,
+                                                  rcom::RPCError& error)
         {
-                r_debug("CameraAdaptor::stand_by");
-                if (!camera_.stand_by()) {
-                        error.code = 1;
-                        error.message = "stand_by failed";
-                }
-        }
-        
-        void CameraAdaptor::execute_wake_up(rcom::RPCError& error)
-        {
-                r_debug("CameraAdaptor::wake_up");
-                if (!camera_.wake_up()) {
-                        error.code = 1;
-                        error.message = "wake_up failed";
-                }
+                r_debug("CameraAdaptor::is_powered_up");
+                result = {{MethodsPowerDevice::kPoweredUp, camera_.is_powered_up()}};
         }
 
         void CameraAdaptor::execute_set_value(nlohmann::json& params,

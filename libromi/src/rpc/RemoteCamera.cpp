@@ -82,25 +82,33 @@ namespace romi {
         bool RemoteCamera::power_up()
         {
                 r_debug("RemoteCamera::power_up");
-                return execute_simple_request(MethodsPowerDevice::power_up);
+                return execute_simple_request(MethodsPowerDevice::kPowerUp);
         }
         
         bool RemoteCamera::power_down()
         {
                 r_debug("RemoteCamera::power_down");
-                return execute_simple_request(MethodsPowerDevice::power_down);
+                return execute_simple_request(MethodsPowerDevice::kPowerDown);
         }
-        
-        bool RemoteCamera::stand_by()
+
+        bool RemoteCamera::is_powered_up()
         {
-                r_debug("RemoteCamera::stand_by");
-                return execute_simple_request(MethodsPowerDevice::stand_by);
-        }
-        
-        bool RemoteCamera::wake_up()
-        {
-                r_debug("RemoteCamera::wake_up");
-                return execute_simple_request(MethodsPowerDevice::wake_up);
+                r_debug("RemoteCamera::is_powered_up");
+                bool r = false;
+                try {
+                        nlohmann::json result;
+                        if (execute_with_result(MethodsPowerDevice::kIsPoweredUp,
+                                                result)) {
+                                r = result[MethodsPowerDevice::kPoweredUp];
+                        } else {
+                                throw std::runtime_error("RemoteCamera::is_powered_up: "
+                                                         "execute_with_result failed");
+                        }
+                }  catch (nlohmann::json::exception& je) {
+                        r_err("RemoteCamera::is_powered_up failed: %s", je.what());
+                        throw;
+                }
+                return r;
         }
 
         const ICameraSettings& RemoteCamera::get_settings()

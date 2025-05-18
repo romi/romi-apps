@@ -83,17 +83,20 @@ img.scroll-image {
     object-fit: contain;
 }
 
+/*
 .btn {
     width: 25px;
     height: 25px;
-    background-color: white; /* Blue background */
-    border: none; /* Remove borders */
-    color: black; /* White text */
-    padding: 0px 0px; /* Some padding */
-    cursor: pointer; /* Mouse pointer on hover */
+    background-color: white; 
+    border: none; 
+    color: black; 
+    padding: 0px 0px; 
+    cursor: pointer; 
 }
-
+ */
+ 
 /* Darker background on mouse-over */
+/*
 .btn:hover {
     background-color: Yellow;
 }
@@ -106,7 +109,7 @@ img.scroll-image {
 .btn.selected {
     background-color: Yellow;
 }
-
+*/
 
 div.button-panel {
     margin: 3px;
@@ -219,9 +222,7 @@ div.position {
     border-radius: 5px;
 }
 
-.position-xyz-section { padding: 10px; }
-.position-x-label { font-weight: bold; display: inline-block; width: 240px; }
-.position-x { margin: 4px; }
+.position-xyz-section { padding: 2px; }
+.position-label { font-weight: bold; display: inline-block; }
+.position-value { margin: 4px; }
 .position-angles-section { padding: 10px; }
-.position-ax-label { font-weight: bold; display: inline-block; width: 240px; }
-.position-ax { margin: 4px; }

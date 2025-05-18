@@ -117,14 +117,9 @@ namespace romi {
                 return camera_->power_down();
         }
         
-        bool CameraConfigManager::stand_by()
+        bool CameraConfigManager::is_powered_up()
         {
-                return camera_->stand_by();
-        }
-        
-        bool CameraConfigManager::wake_up()
-        {
-                return camera_->wake_up();
+                return camera_->is_powered_up();
         }
 
         const ICameraSettings& CameraConfigManager::get_settings()

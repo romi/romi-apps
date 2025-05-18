@@ -40,6 +40,7 @@ namespace romi {
                 ~RemoteCNC() override = default;
 
                 bool get_range(CNCRange &range) override;
+                bool get_axes(std::vector<std::unique_ptr<IAxis>>& axes) override;
                 bool get_position(v3& position) override;
                 bool moveto(double x, double y, double z,
                             double relative_speed, bool sync) override;
@@ -59,8 +60,7 @@ namespace romi {
 
                 bool power_up() override;
                 bool power_down() override;
-                bool stand_by() override;
-                bool wake_up() override;
+                bool is_powered_up() override;
 
         };
 }

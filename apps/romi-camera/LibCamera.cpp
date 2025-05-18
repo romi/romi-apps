@@ -452,20 +452,17 @@ namespace romi {
         
         bool LibCamera::power_up()
         {
-                return true;
+                // FIXME
+                return true; 
         }
         
         bool LibCamera::power_down()
         {
+                // FIXME
                 return true;
         }
         
-        bool LibCamera::stand_by()
-        {
-                return true;
-        }
-        
-        bool LibCamera::wake_up()
+        bool LibCamera::is_powered_up()
         {
                 return true;
         }

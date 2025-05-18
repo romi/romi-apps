@@ -36,8 +36,8 @@ namespace romi {
 
                 void execute_power_up(rcom::RPCError& error);
                 void execute_power_down(rcom::RPCError& error);
-                void execute_stand_by(rcom::RPCError& error);
-                void execute_wake_up(rcom::RPCError& error);
+                void execute_is_powered_up(nlohmann::json& result,
+                                           rcom::RPCError& error);
                 void execute_set_value(nlohmann::json& params,
                                        nlohmann::json& result,
                                        rcom::RPCError& error);

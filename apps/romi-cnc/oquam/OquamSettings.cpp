@@ -21,27 +21,29 @@
   <http://www.gnu.org/licenses/>.
 
  */
+#include <util/Logger.h>
 #include "oquam/OquamSettings.h"
 
 namespace romi {
         
-        OquamSettings::OquamSettings(CNCRange& range,
+        OquamSettings::OquamSettings(Axis *axis,
                                      const double *vmax,
                                      const double *amax,
                                      const double *scale_meters_to_steps, 
                                      double path_max_deviation,
                                      double path_slice_duration,
-                                     double path_max_slice_duration,
-                                     const AxisIndex *homing_axes,
-                                     HomingMode homing_mode)
-                : range_(range),
-                  vmax_(vmax),
+                                     double path_max_slice_duration)
+                : vmax_(vmax),
                   amax_(amax),
                   path_max_deviation_(path_max_deviation),
                   path_slice_duration_(path_slice_duration),
                   path_max_slice_duration_(path_max_slice_duration),
-                  homing_mode_(homing_mode)
+                  range_()
         {
+                axis_[0] = axis[0];
+                axis_[1] = axis[1];
+                axis_[2] = axis[2];
+                
                 // 32 seconds = 32000 ms < 2^16/2, which is the
                 // maximum value in the int16_t used to send block
                 // moves.
@@ -49,8 +51,87 @@ namespace romi {
                         path_max_slice_duration_ = 32.0;
                 
                 vcopy(scale_meters_to_steps_, scale_meters_to_steps);
+                
+                init_range();
+                init_homing_axes();
+                init_homing_speeds();
+        }
+
+        void OquamSettings::init_range()
+        {
+                v3 min;
+                v3 max;
+                AxisRange r;
+
+                r = axis_[0].get_range();
+                min.x(r.min_);
+                max.x(r.max_);
+                
+                r = axis_[1].get_range();
+                min.y(r.min_);
+                max.y(r.max_);
+                
+                r = axis_[2].get_range();
+                min.z(r.min_);
+                max.z(r.max_);
+
+                range_.init(min, max);
+        }
+        
+        void OquamSettings::init_homing_axes()
+        {
+                for (int index = 0; index < 3; index++) {
+                        homing_axes_[index] = kNoAxis;
+                }
+
+                for (int index = 0; index < 3; index++) {
+                        if (axis_[index].homing()) {
+                                int order = axis_[index].homing_order();
+                                if (homing_axes_[order] != kNoAxis) {
+                                        r_err("OquamSettings: invalid homing order"
+                                              ": axis %s", axis_[index].name().c_str());
+                                        throw std::runtime_error("OquamSettings: "
+                                                                 "invalid homing order");
+                                }
+
+                                switch (index) {
+                                case 0:
+                                        homing_axes_[order] = kAxisX;
+                                        break;
+                                case 1:
+                                        homing_axes_[order] = kAxisY;
+                                        break;
+                                case 2:
+                                        homing_axes_[order] = kAxisZ;
+                                        break;
+                                default: // to satisfy the compiler
+                                        break; 
+                                }
+                        }
+                }
+        }
+
+        void OquamSettings::init_homing_speeds()
+        {
+                double speeds[3];
                 for (int i = 0; i < 3; i++) {
-                        homing_axes_[i] = homing_axes[i];
+                        speeds[i] = (vmax_[i]
+                                     * scale_meters_to_steps_[i]
+                                     * axis_[i].homing_speed());
+                        r_debug("Oquam:: vmax[%d]=%f", i, vmax_[i]);
+                        r_debug("Oquam:: scale[%d]=%f", i, scale_meters_to_steps_[i]);
+                        r_debug("Oquam:: homing speed[%d]=%f", i, speeds[i]);
+                }
+                
+                for (int i = 0; i < 3; i++) {
+                        homing_speeds_[i] = 0;
+                }
+                
+                for (int i = 0; i < 3; i++) {
+                        AxisIndex axis = homing_axes_[i];
+                        if (axis >= 0) {
+                                homing_speeds_[i] = (int16_t) speeds[axis];
+                        }
                 }
         }
 }

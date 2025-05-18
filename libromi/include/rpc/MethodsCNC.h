@@ -37,6 +37,7 @@ namespace romi {
                 static constexpr const char *kSpindle = "cnc-spindle";
                 static constexpr const char *kTravel = "cnc-travel";
                 static constexpr const char *kGetRange = "cnc-get-range";
+                static constexpr const char *kGetAxes = "cnc-get-axes";
                 static constexpr const char *kHelix = "cnc-helix";
                 static constexpr const char *kGetPosition = "cnc-get-position";
                 static constexpr const char *kSynchronize = "cnc-synchronize";

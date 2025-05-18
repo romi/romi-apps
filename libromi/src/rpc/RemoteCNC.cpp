@@ -22,6 +22,7 @@
 
  */
 #include "util/Logger.h"
+#include "api/Axis.h"
 #include "rpc/RemoteCNC.h"
 #include "rpc/MethodsCNC.h"
 #include "rpc/MethodsActivity.h"
@@ -54,6 +55,34 @@ namespace romi {
                 return success;
         }
 
+        bool RemoteCNC::get_axes(std::vector<std::unique_ptr<IAxis>>& axes)
+        {
+                r_debug("RemoteCNC::get_range");
+
+                bool success = false;
+                nlohmann::json result;
+
+                try {
+                        if (execute_with_result(MethodsCNC::kGetAxes, result)) {
+
+                                if (!result.is_array()) {
+                                        throw std::runtime_error("Expected an array");
+                                }
+
+                                for (size_t i = 0; i < result.size(); i++) {
+                                        axes.emplace_back(std::make_unique<Axis>(i, result[i]));
+                                }
+                                
+                                success = true;
+                        }
+                        
+                } catch (nlohmann::json::exception& je) {
+                        r_err("RemoteCNC::get_range failed: %s", je.what());
+                }
+
+                return success;
+        }
+        
         bool RemoteCNC::get_position(v3& position)
         {
                 r_debug("RemoteCNC::get_position");
@@ -204,24 +233,32 @@ namespace romi {
         bool RemoteCNC::power_up()
         {
                 r_debug("RemoteCNC::power_up");
-                return execute_simple_request(MethodsPowerDevice::power_up);
+                return execute_simple_request(MethodsPowerDevice::kPowerUp);
         }
         
         bool RemoteCNC::power_down()
         {
                 r_debug("RemoteCNC::power_down");
-                return execute_simple_request(MethodsPowerDevice::power_down);
+                return execute_simple_request(MethodsPowerDevice::kPowerDown);
         }
-        
-        bool RemoteCNC::stand_by()
+
+        bool RemoteCNC::is_powered_up()
         {
-                r_debug("RemoteCNC::stand_by");
-                return execute_simple_request(MethodsPowerDevice::stand_by);
-        }
-        
-        bool RemoteCNC::wake_up()
-        {
-                r_debug("RemoteCNC::wake_up");
-                return execute_simple_request(MethodsPowerDevice::wake_up);
+                r_debug("RemoteCNC::is_powered_up");
+                bool r = false;
+                try {
+                        nlohmann::json result;
+                        if (execute_with_result(MethodsPowerDevice::kIsPoweredUp,
+                                                result)) {
+                                r = result[MethodsPowerDevice::kPoweredUp];
+                        } else {
+                                throw std::runtime_error("RemoteCNC::is_powered_up: "
+                                                         "execute_with_result failed");
+                        }
+                }  catch (nlohmann::json::exception& je) {
+                        r_err("RemoteCNC::is_powered_up failed: %s", je.what());
+                        throw;
+                }
+                return r;
         }
 }

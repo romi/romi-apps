@@ -35,7 +35,8 @@ namespace romi {
                 : width_(width),
                   height_(height),
                   image_(Image::RGB, width, height),
-                  jpeg_()
+                  jpeg_(),
+                  powered_up_(false)
         {
                 make_image();
                 make_jpeg();
@@ -85,22 +86,19 @@ namespace romi {
 
         bool FakeCamera::power_up()
         {
+                powered_up_ = true;
                 return true;
         }
         
         bool FakeCamera::power_down()
         {
+                powered_up_ = false;
                 return true;
         }
         
-        bool FakeCamera::stand_by()
+        bool FakeCamera::is_powered_up()
         {
-                return true;
-        }
-        
-        bool FakeCamera::wake_up()
-        {
-                return true;
+                return powered_up_;
         }
 
         const ICameraSettings& FakeCamera::get_settings()

@@ -29,10 +29,11 @@ namespace romi {
         class MethodsPowerDevice
         {
         public:
-                static constexpr const char *power_up = "power-up";
-                static constexpr const char *power_down = "power-down";
-                static constexpr const char *stand_by = "power-stand-by";
-                static constexpr const char *wake_up = "power-wake-up";
+                static constexpr const char *kPowerUp = "power-up";
+                static constexpr const char *kPowerDown = "power-down";
+                static constexpr const char *kIsPoweredUp = "is-powered-up";
+
+                static constexpr const char *kPoweredUp = "powered-up";
         };
 }
 

@@ -34,6 +34,7 @@
 #include <rcom/RcomClient.h>
 #include <rcom/RcomMessageHandler.h>
 
+#include <api/Axis.h>
 #include <api/DeviceData.h>
 #include <api/Gps.h>
 #include <api/GpsLocationProvider.h>
@@ -127,6 +128,12 @@ int main(int argc, char** argv)
                         auto client = rcom::RcomClient::create("config", 10.0, log, system);
                         config = std::make_shared<romi::RemoteConfig>(client);
                 }
+
+                if (!config->has_section(topic)) {
+                        r_debug("main.cpp: The '%s' section (=topic name) is missing in "
+                                "the configuration file.", topic.c_str());
+                        throw std::runtime_error("Missing topic section in configuration");
+                }
                 
                 nlohmann::json cnc_config = config->get_section(topic);
                 
@@ -150,10 +157,56 @@ int main(int argc, char** argv)
                 
                 // CNC
                 romi::CNCFactory factory;
-                
-                nlohmann::json range_data = cnc_config["cnc-range"];
-                romi::CNCRange range(range_data);
 
+                //
+                romi::Axis axes[3];
+                
+                if (cnc_config.contains("axes")) {
+
+                        nlohmann::json axes_data = cnc_config["axes"];
+                        if (!axes_data.is_array()) {
+                                throw std::runtime_error("main: axis config must "
+                                                         "be an array");
+                        }
+                        
+                        for (size_t i = 0; i < axes_data.size(); i++) {
+                                axes[i].init(i, axes_data[i]);
+                        }
+                        
+                } else {
+                        nlohmann::json range_data = cnc_config["cnc-range"];
+                        romi::CNCRange range(range_data);
+
+                        axes[0].set_type(romi::kLinearAxis);
+                        axes[1].set_type(romi::kLinearAxis);
+                        axes[2].set_type(romi::kLinearAxis);
+                        axes[0].set_name("x");
+                        axes[1].set_name("y");
+                        axes[2].set_name("z");
+                        axes[0].set_range(range.xmin(), range.xmax());
+                        axes[1].set_range(range.ymin(), range.ymax());
+                        axes[2].set_range(range.zmin(), range.zmax());
+                        
+                        romi::AxisIndex homing_axes[3] = {
+                                romi::kAxisX,
+                                romi::kAxisY,
+                                romi::kAxisZ };
+                        
+                        nlohmann::json homing_settings = cnc_config["homing"];
+                        auto homing_mode = (romi::HomingMode) homing_settings["mode"];
+                        homing_axes[0] = homing_settings["axes"][0];
+                        homing_axes[1] = homing_settings["axes"][1];
+                        homing_axes[2] = homing_settings["axes"][2];
+
+                        for (int i = 0; i < 3; i++) {
+                                if (homing_axes[i] >= 0) {
+                                        int axis = homing_axes[i];
+                                        axes[axis].set_homing(i, homing_mode, 0.1);
+                                }
+                        }
+                }
+
+                
                 nlohmann::json stepper_data = cnc_config["stepper-settings"];
                 romi::StepperSettings stepper_settings(stepper_data);
         
@@ -167,25 +220,16 @@ int main(int argc, char** argv)
 
                 double max_steps_per_block = 32000.0; // Should be less than 2^15/2-1
                 double max_slice_duration = stepper_settings.compute_minimum_duration(max_steps_per_block);
-                
-                romi::AxisIndex homing_axes[3] = { romi::kAxisX, romi::kAxisY, romi::kAxisZ };
-
-                nlohmann::json homing_settings = cnc_config["homing"];
-                homing_axes[0] = homing_settings["axes"][0];
-                homing_axes[1] = homing_settings["axes"][1];
-                homing_axes[2] = homing_settings["axes"][2];
+                                        
                         
-                romi::HomingMode homing_mode = (romi::HomingMode) homing_settings["mode"];
-                        
-                romi::OquamSettings oquam_settings(range,
+                romi::OquamSettings oquam_settings(axes,
                                                    stepper_settings.maximum_speed,
                                                    stepper_settings.maximum_acceleration,
                                                    stepper_settings.steps_per_meter,
                                                    maximum_deviation,
                                                    slice_duration,
-                                                   max_slice_duration,
-                                                   homing_axes,
-                                                   homing_mode);
+                                                   max_slice_duration);
+                
                 romi::Oquam oquam(controller, oquam_settings, session);
 
                 // RPC access

@@ -41,6 +41,7 @@ namespace romi {
                 std::string filename_;
                 Image image_;
                 rcom::MemBuffer jpeg_;
+                bool powered_up_;
                 
                 bool load_image();
                 void load_jpeg();
@@ -61,8 +62,7 @@ namespace romi {
                 // Power device interface
                 bool power_up() override;
                 bool power_down() override;
-                bool stand_by() override;
-                bool wake_up() override;
+                bool is_powered_up() override;
         };
 }
 

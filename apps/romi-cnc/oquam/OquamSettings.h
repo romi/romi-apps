@@ -21,11 +21,12 @@
   <http://www.gnu.org/licenses/>.
 
  */
-#ifndef __ROMI_OQUAM_SETTINGS_H
-#define __ROMI_OQUAM_SETTINGS_H
+#ifndef ROMI_OQUAMSETTINGS_H
+#define ROMI_OQUAMSETTINGS_H
 
 #include "v3.h"
-#include "api/CNCRange.h"
+#include <api/CNCRange.h>
+#include <api/Axis.h>
 #include "oquam/ICNCController.h"
 
 namespace romi {
@@ -33,29 +34,33 @@ namespace romi {
         class OquamSettings
         {
         public:
-                CNCRange range_;
+                Axis axis_[3];
                 v3 vmax_; // in m/s
                 v3 amax_; // in m/s²
-
                 // The maximum deviation allowed when computed a
                 // continuous path, in m.
                 double path_max_deviation_;
                 double scale_meters_to_steps_[3];
                 double path_slice_duration_;
                 double path_max_slice_duration_;
-                AxisIndex homing_axes_[3];
-                HomingMode homing_mode_;
                 
-                OquamSettings(CNCRange& range,
+                CNCRange range_;
+                AxisIndex homing_axes_[3];
+                int16_t homing_speeds_[3];
+                
+                OquamSettings(Axis *axis,
                               const double *vmax,
                               const double *amax,
                               const double *scale_meters_to_steps, 
                               double path_max_deviation,
                               double path_slice_duration,
-                              double path_max_slice_duration,
-                              const AxisIndex *homing_axes,
-                              HomingMode homing_mode);
+                              double path_max_slice_duration);
+
+
+                void init_range();
+                void init_homing_axes();
+                void init_homing_speeds();
         };
 }
 
-#endif // __ROMI_OQUAM_SETTINGS_H
+#endif // ROMI_OQUAMSETTINGS_H

@@ -35,6 +35,7 @@ namespace romi {
                 ICNC &cnc_;
                 
                 void execute_get_range(nlohmann::json& result, rcom::RPCError &error);
+                void execute_get_axes(nlohmann::json& result, rcom::RPCError &error);
                 void execute_get_position(nlohmann::json& result, rcom::RPCError &error);
                 void execute_synchronize(nlohmann::json& params, rcom::RPCError &error);
                 void execute_moveto(nlohmann::json& params, rcom::RPCError &error);
@@ -47,8 +48,7 @@ namespace romi {
                 void execute_reset(rcom::RPCError &error);
                 void execute_power_up(rcom::RPCError &error);
                 void execute_power_down(rcom::RPCError &error);
-                void execute_stand_by(rcom::RPCError &error);
-                void execute_wake_up(rcom::RPCError &error);
+                void execute_is_powered_up(nlohmann::json& result, rcom::RPCError &error);
                 void execute_set_relay(nlohmann::json& params);
 
 

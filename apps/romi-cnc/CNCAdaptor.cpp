@@ -84,6 +84,9 @@ namespace romi {
                         } else if (method == MethodsCNC::kGetRange) {
                                 execute_get_range(result, error);
                                 
+                        } else if (method == MethodsCNC::kGetAxes) {
+                                execute_get_axes(result, error);
+                                
                         } else if (method == MethodsCNC::kGetPosition) {
                                 execute_get_position(result, error);
                                 
@@ -102,17 +105,15 @@ namespace romi {
                         } else if (method == MethodsActivity::activity_reset) {
                                 execute_reset(error);
                                 
-                        } else if (method == MethodsPowerDevice::power_up) {
+                        } else if (method == MethodsPowerDevice::kPowerUp) {
                                 execute_power_up(error);
                                 
-                        } else if (method == MethodsPowerDevice::power_down) {
+                        } else if (method == MethodsPowerDevice::kPowerDown) {
                                 execute_power_down(error);
                                 
-                        } else if (method == MethodsPowerDevice::stand_by) {
-                                execute_stand_by(error);
+                        } else if (method == MethodsPowerDevice::kIsPoweredUp) {
+                                execute_is_powered_up(result, error);
                                 
-                        } else if (method == MethodsPowerDevice::wake_up) {
-                                execute_wake_up(error);
                         } else {
                                 r_err("CNCAdaptor::execute: method not found: %s",
                                       method.c_str());
@@ -143,6 +144,24 @@ namespace romi {
                         r_err("CNCAdaptor::execute_get_range failed");
                         error.code = 1;
                         error.message = "get_range failed";
+                }
+        }
+
+        void CNCAdaptor::execute_get_axes(nlohmann::json& result, rcom::RPCError &error)
+        {
+                r_debug("CNCAdaptor::execute_get_axes");
+                std::vector<std::unique_ptr<IAxis>> axes;
+                if (cnc_.get_axes(axes)) {
+                        result = nlohmann::json::array();
+                        for (size_t i = 0; i < axes.size(); i++) {
+                                nlohmann::json obj;
+                                axes[i]->to_json(obj);
+                                result[i] = obj;
+                        }
+                } else {
+                        r_err("CNCAdaptor::execute_get_axes failed");
+                        error.code = 1;
+                        error.message = "get_axes failed";
                 }
         }
 
@@ -340,22 +359,11 @@ namespace romi {
                 }
         }
         
-        void CNCAdaptor::execute_stand_by(rcom::RPCError &error)
+        void CNCAdaptor::execute_is_powered_up(nlohmann::json& result,
+                                               rcom::RPCError &error)
         {
-                r_debug("CNCAdaptor::stand_by");
-                if (!cnc_.stand_by()) {
-                        error.code = 1;
-                        error.message = "stand_by failed";
-                }
-        }
-        
-        void CNCAdaptor::execute_wake_up(rcom::RPCError &error)
-        {
-                r_debug("CNCAdaptor::wake_up");
-                if (!cnc_.wake_up()) {
-                        error.code = 1;
-                        error.message = "wake_up failed";
-                }
+                r_debug("CNCAdaptor::is_powered_up");
+                result = {{MethodsPowerDevice::kPoweredUp, cnc_.is_powered_up()}};
         }
 }
 

@@ -6,41 +6,23 @@
     "cnc": {
         "axes": [
             {
-                "type": "linear",
-                "range": [0, 0.760000],
-                "homing": {
-                    "order": 0,
-                    "mode": "contact-and-backup",
-                    "speed": 0.1
-                }
-            },
-            {
-                "type": "linear",
-                "range": [0, 0.800000],
-                "homing": {
-                    "order": 1,
-                    "mode": "contact-and-backup",
-                    "speed": 0.1
-                }
-            },
-            {
                 "name": "pan",
                 "type": "angular",
-                "range": [-90, 90],
-                "homing": {
-                    "order": 2,
-                    "mode": "contact-and-backup",
-                    "speed": 0.1
-                }
+                "homing": false
+            },
+            {
+                "name": "tilt",
+                "type": "angular",
+                "homing": false,
+                "range": [-90, 90]
             }
         ],
         "cnc-range": [[0, 0.760000], [0, 0.800000], [0, 0.350000]],
         "homing": {
-            "axes": [0, 1, 2],
+            "axes": [0, 1, -1],
             "mode": 0
         },
-        "controller-classname-xxx": "stepper-controller",
-        "controller-classname": "fake-cnc-controller",
+        "controller-classname": "stepper-controller",
         "path-maximum-deviation": 0.0,
         "path-slice-duration": 0.020000,
         "stepper-settings": {

@@ -164,12 +164,7 @@ namespace romi {
                 return true;
         }
         
-        bool USBCamera::stand_by()
-        {
-                return true;
-        }
-        
-        bool USBCamera::wake_up()
+        bool USBCamera::is_powered_up()
         {
                 return true;
         }

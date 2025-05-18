@@ -27,6 +27,7 @@
 #include <iostream>
 #include <algorithm>
 
+#include "api/IAxis.h"
 #include "oquam/plotter.h"
 #include "oquam/print.h"
 #include "oquam/is_valid.h"
@@ -51,32 +52,14 @@ namespace romi {
                         throw std::runtime_error("Oquam: set_homing_axes failed");
                 }
 
-                double speeds[3];
-                for (int i = 0; i < 3; i++) {
-                        speeds[i] = (settings_.vmax_[i]
-                                    * settings_.scale_meters_to_steps_[i]
-                                    / 20.0);
-                        r_debug("Oquam:: vmax[%d]=%f", i, settings_.vmax_[i]);
-                        r_debug("Oquam:: scale[%d]=%f", i, settings_.scale_meters_to_steps_[i]);
-                        r_debug("Oquam:: homing speed[%d]=%f", i, speeds[i]);
-                }
-                
-                int16_t homing_speeds[3] = {0, 0, 0};
-                
-                for (int i = 0; i < 3; i++) {
-                        AxisIndex axis = settings_.homing_axes_[i];
-                        if (axis >= 0) {
-                                homing_speeds[i] = (int16_t) speeds[axis];
-                        }
-                }
-                
-                if (!controller_.set_homing_speeds(homing_speeds[0],
-                                                   homing_speeds[1],
-                                                   homing_speeds[2])) {
+                if (!controller_.set_homing_speeds(settings_.homing_speeds_[0],
+                                                   settings_.homing_speeds_[1],
+                                                   settings_.homing_speeds_[2])) {
                         throw std::runtime_error("Oquam: set_homing_speeds failed");
                 }
 
-                if (!controller_.set_homing_mode(settings_.homing_mode_)) {
+                // FIXME: also for other two axes!!!
+                if (!controller_.set_homing_mode(settings_.axis_[0].homing_mode())) {
                         throw std::runtime_error("Oquam: set_homing_mode failed");
                 }
 
@@ -84,13 +67,21 @@ namespace romi {
                         throw std::runtime_error("Oquam: failed to stop spindle");
                 }
         }
-                
+
         bool Oquam::get_range(CNCRange &range)
         {
                 range = settings_.range_;
                 return true;
         }
 
+        bool Oquam::get_axes(std::vector<std::unique_ptr<IAxis>>& axes)
+        {
+                axes.push_back(std::make_unique<Axis>(settings_.axis_[0]));
+                axes.push_back(std::make_unique<Axis>(settings_.axis_[1]));
+                axes.push_back(std::make_unique<Axis>(settings_.axis_[2]));
+                return true;
+        }
+        
         bool Oquam::get_position(int32_t *position) 
         {
                 return controller_.get_position(position);
@@ -459,14 +450,10 @@ namespace romi {
                 return disable_driver();
         }
         
-        bool Oquam::stand_by()
+        bool Oquam::is_powered_up()
         {
-                return disable_driver();
-        }
-        
-        bool Oquam::wake_up()
-        {
-                return enable_driver();
+                SynchronizedCodeBlock synchronize(mutex_);
+                return controller_.is_enabled();
         }
 
         bool Oquam::helix(double xc, double yc, double alpha, double z,

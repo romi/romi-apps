@@ -8,6 +8,7 @@ set(SOURCES
   include/v3.h
   src/v3.cpp
   
+  include/api/Axis.h
   include/api/ActivityHelper.h
   include/api/CameraSettings.h
   include/api/CNCRange.h
@@ -15,6 +16,7 @@ set(SOURCES
   include/api/DummyLocationProvider.h
   include/api/Gps.h
   include/api/GpsLocationProvider.h
+  include/api/IAxis.h
   include/api/ICNC.h
   include/api/ICamera.h
   include/api/ICameraSettings.h
@@ -30,6 +32,7 @@ set(SOURCES
   include/api/Range.h
   include/api/Session.h
   
+  src/api/Axis.cpp
   src/api/ActivityHelper.cpp
   src/api/CameraSettings.cpp
   src/api/CNCRange.cpp

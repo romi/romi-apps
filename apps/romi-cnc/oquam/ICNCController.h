@@ -25,6 +25,7 @@
 #define _OQUAM_CNC_CONTROLLER_HPP_
 
 #include "api/IActivity.h"
+#include "api/IAxis.h"
 
 namespace romi {
 
@@ -35,10 +36,10 @@ namespace romi {
                 kAxisZ = 2
         };
         
-        enum HomingMode {
-                kHomingDefault = 0,
-                kHomingWithContact = 1
-        };
+        // enum HomingMode {
+        //         kHomingDefault = 0,
+        //         kHomingWithContact = 1
+        // };
 
         class ICNCController : public IActivity
         {

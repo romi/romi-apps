@@ -26,6 +26,7 @@
 
 
 #include <mutex>
+#include <memory>
 
 #include "api/ISession.h"
 #include "api/ICNC.h"
@@ -70,6 +71,7 @@ namespace romi {
                 bool set_relay(uint8_t index, bool value) override;
                 bool homing() override;
                 bool get_range(CNCRange &range) override;
+                bool get_axes(std::vector<std::unique_ptr<IAxis>>& axes) override;
                 bool get_position(v3& position) override; 
                 bool synchronize(double timeout_seconds) override;
 
@@ -81,8 +83,7 @@ namespace romi {
                 // Power device interface
                 bool power_up() override;
                 bool power_down() override;
-                bool stand_by() override;
-                bool wake_up() override;
+                bool is_powered_up() override;
 
         protected:
                 

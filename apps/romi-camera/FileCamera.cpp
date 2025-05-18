@@ -31,7 +31,8 @@ namespace romi {
         FileCamera::FileCamera(const std::string& filename)
                 : filename_(filename),
                   image_(),
-                  jpeg_()
+                  jpeg_(),
+                  powered_up_(true)
         {
                 if (filename_.length() == 0)
                         throw std::runtime_error("FileCamera: Invalid filename");
@@ -85,22 +86,19 @@ namespace romi {
 
         bool FileCamera::power_up()
         {
+                powered_up_ = true;
                 return true;
         }
         
         bool FileCamera::power_down()
         {
+                powered_up_ = false;
                 return true;
         }
         
-        bool FileCamera::stand_by()
+        bool FileCamera::is_powered_up()
         {
-                return true;
-        }
-        
-        bool FileCamera::wake_up()
-        {
-                return true;
+                return powered_up_;
         }
 
         const ICameraSettings& FileCamera::get_settings()

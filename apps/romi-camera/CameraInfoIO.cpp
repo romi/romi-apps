@@ -39,6 +39,11 @@ namespace romi {
                 : config_(config),
                   section_(section)
         {
+                if (!config_->has_section(section_)) {
+                        r_debug("CameraInfoIO: The '%s' section (=topic name) is missing "
+                                "in the configuration file.", section_.c_str());
+                        throw std::runtime_error("Missing topic section in configuration");
+                }
         }
 
         nlohmann::json CameraInfoIO::get()

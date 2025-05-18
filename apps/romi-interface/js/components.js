@@ -46,6 +46,15 @@ class TextField
         this.value = e.target.value;
         this.callback(this);
     }
+
+    setValue(value) {
+        this.value = value;
+        this.element.value = value;
+    }
+    
+    getValue() {
+        return this.value;
+    }
 }
 
 class Checkbox
@@ -63,6 +72,22 @@ class Checkbox
     updateValue(e) {
         this.value = e.target.checked;
         this.callback(this);
+    }
+}
+
+class Button
+{
+    constructor(callback, classname, value) {
+        this.callback = callback;
+        this.element = document.createElement('button');
+        this.element.type = 'button';
+        this.element.className = 'btn btn-dark text-nowrap ' + classname;
+        this.element.innerHTML = value;
+        this.element.addEventListener('click', (e) => { this.callback(e); });
+    }
+
+    setValue(value) {
+        this.element.innerHTML = value;
     }
 }
 

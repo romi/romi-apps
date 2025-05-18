@@ -109,12 +109,7 @@ namespace romi {
                 return true;
         }
         
-        bool ExternalCamera::stand_by()
-        {
-                return true;
-        }
-        
-        bool ExternalCamera::wake_up()
+        bool ExternalCamera::is_powered_up()
         {
                 return true;
         }

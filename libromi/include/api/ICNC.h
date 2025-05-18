@@ -29,6 +29,7 @@
 #include "api/CNCRange.h"
 #include "api/IActivity.h"
 #include "api/IPowerDevice.h"
+#include "api/IAxis.h"
 
 namespace romi {
         
@@ -40,6 +41,7 @@ namespace romi {
                 virtual ~ICNC() = default;
 
                 virtual bool get_range(CNCRange &range) = 0;
+                virtual bool get_axes(std::vector<std::unique_ptr<IAxis>>& axes) = 0;
 
                 // The positions are given in meters. The speed is
                 // given as a fraction of the maximum speed. A value

@@ -24,6 +24,15 @@ class Index
                 components.push({ 'name': app.topic,
                                   'href': 'camera.html',
                                   'viewer': viewer });
+            } else if (app.type == "cnc") {
+                var controller = new RemoteController(app.topic,
+                                                      this.registry,
+                                                      app.address);
+                let viewer = new CNCViewer();
+                let cnc = new CNC(app.topic, controller, viewer);
+                components.push({ 'name': app.topic,
+                                  'href': 'cnc.html',
+                                  'viewer': viewer });
             }
         }
         let root = document.getElementById("index");
