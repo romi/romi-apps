@@ -33,8 +33,8 @@
                 }
             }
         ],
-        "controller-classname-xxx": "stepper-controller",
-        "controller-classname": "fake-cnc-controller",
+        "controller-classname": "stepper-controller",
+        "controller-classname-HIDE": "fake-cnc-controller",
         "path-maximum-deviation": 0.0,
         "path-slice-duration": 0.020000,
         "stepper-settings": {
