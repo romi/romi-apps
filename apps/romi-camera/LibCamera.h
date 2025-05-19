@@ -29,12 +29,42 @@
 #include <stdexcept>
 #include <mutex>
 #include <condition_variable>
+#include <unordered_map>
 #include <libcamera/libcamera.h>
 #include <api/ICamera.h>
 #include <util/ImageIO.h>
 
 namespace romi {
+        
+        struct MmapKey
+        {
+                const int fd_;
+                size_t length_;
 
+                MmapKey(const int fd, size_t length)
+                        : fd_(fd), 
+                          length_(length) {
+                }
+                
+                ~MmapKey() {
+                }
+        };
+        
+        struct MmapKeyHasher
+        {
+                size_t operator()(const MmapKey& a) const {
+                        return (std::hash<int>{}(a.fd_)
+                                + std::hash<size_t>{}(a.length_));
+                }
+        };
+
+        struct MmapKeyEquals
+        {
+                bool operator()(const MmapKey& a, const MmapKey& b) const {
+                        return ((a.fd_ == b.fd_) && (a.length_ == b.length_));
+                }
+        };
+        
         class LibCamera : public ICamera
         {
         public:
@@ -55,6 +85,8 @@ namespace romi {
                 bool request_completed_;
                 Image image_;
                 rcom::MemBuffer jpeg_;
+                std::unordered_map<MmapKey, const uint8_t *,
+                                   MmapKeyHasher, MmapKeyEquals> map_;
                 
         public:
                 uint8_t *buffer_;

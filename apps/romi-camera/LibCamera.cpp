@@ -55,6 +55,7 @@ namespace romi {
                   request_completed_(false),
                   image_(),
                   jpeg_(),
+                  map_(),
                   buffer_(nullptr),
                   buffer_size_(0),
                   image_size_(0)
@@ -369,7 +370,6 @@ namespace romi {
                         for (const libcamera::FrameBuffer::Plane &plane : buffer->planes()) {
 
                                 int mmapFlags = PROT_READ;
-                                size_t mapLength = 0;
                                 size_t dmabufLength = 0;
                                 
                                 const int fd = plane.fd.get();
@@ -384,29 +384,42 @@ namespace romi {
                                         return;
                                 }
 
-                                mapLength = (size_t) (plane.offset + plane.length);
-
-                                std::cout << "mapping <fd:" << fd << ",len:" << mapLength << ">" << std::endl;
+                                size_t mapLength = (size_t) (plane.offset + plane.length);
+                                const uint8_t *data = nullptr;
 
                                 struct timespec ts;
                                 timespec_get(&ts, TIME_UTC);
                                 double t_start = (double) ts.tv_sec + (double) ts.tv_nsec * 1.0e-9;
                                 
                                 
-                                void *map_address = mmap(nullptr, mapLength, mmapFlags,
-                                                         MAP_SHARED, fd, 0);
-                                if (map_address == MAP_FAILED) {
-                                        r_err("LibCamera: Failed to mmap plane: %s",
-                                              strerror(errno));
-                                        return;
-                                }
+                                MmapKey key(fd, mapLength);
+                                if (map_.contains(key)) {
+                                        data = map_[key];
+                                        std::cout << "found data for <fd:" << fd
+                                                  << ",len:" << mapLength << ">"
+                                                  << std::endl;
+                                } else {
+                                
+                                        std::cout << "mapping <fd:" << fd << ",len:"
+                                                  << mapLength << ">"
+                                                  << std::endl;
 
+                                        
+                                        void *map_address = mmap(nullptr, mapLength,
+                                                                 mmapFlags, MAP_SHARED,
+                                                                 fd, 0);
+                                        if (map_address == MAP_FAILED) {
+                                                r_err("LibCamera: Failed to mmap plane: %s",
+                                                      strerror(errno));
+                                                return;
+                                        }
+
+                                        data = (const uint8_t *) map_address;
+                                        map_[key] = data;
+                                }
+                                
                                 timespec_get(&ts, TIME_UTC);
                                 double t_map = (double) ts.tv_sec + (double) ts.tv_nsec * 1.0e-9;
-
-                                const uint8_t *data = (const uint8_t *) map_address;
-
-                                std::cout << "mapping <fd:" << fd << ",len:" << mapLength << ">" << std::endl;
 
                                 convert_to_jpeg(data);
 
@@ -418,7 +431,7 @@ namespace romi {
                                 timespec_get(&ts, TIME_UTC);
                                 double t_jpg = (double) ts.tv_sec + (double) ts.tv_nsec * 1.0e-9;
                                 
-                                munmap(map_address, mapLength);
+                                //munmap(map_address, mapLength);
                                 
                                 timespec_get(&ts, TIME_UTC);
                                 double t_unmap = (double) ts.tv_sec + (double) ts.tv_nsec * 1.0e-9;

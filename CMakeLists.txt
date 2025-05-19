@@ -25,7 +25,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(COMMON_COMPILATION_FLAGS "-Wall -Wextra -Wpedantic -Werror")
 set(CMAKE_CXX_FLAGS "${COMMON_COMPILATION_FLAGS}")
 set(CMAKE_C_FLAGS "${COMMON_COMPILATION_FLAGS}")
-set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
 
 # Options.
 #Build tests by default. We want run tests whether we are developing or building a release. I mean... why wouldn't you? :)
