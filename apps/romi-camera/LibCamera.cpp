@@ -182,6 +182,11 @@ namespace romi {
                 if (buffer_) {
                         free(buffer_);
                 }
+                for (auto& it: map_) {
+                        MmapKey key = it.first;
+                        const uint8_t *data = it.second;
+                        munmap((void *) data, key.length_);
+                }                
         }
 
         void LibCamera::assert_format()
@@ -354,18 +359,6 @@ namespace romi {
                 
                 for (auto bufferPair : buffers) {
                         libcamera::FrameBuffer *buffer = bufferPair.second;
-                        const libcamera::FrameMetadata &metadata = buffer->metadata();
-                        std::cout << " seq: " << std::setw(6) << std::setfill('0') << metadata.sequence
-                                  << " timestamp: " << metadata.timestamp
-                                  << " bytesused: ";
-                        unsigned int nplane = 0;
-                        for (const libcamera::FrameMetadata::Plane &plane : metadata.planes())
-                        {
-                                std::cout << plane.bytesused;
-                                if (++nplane < metadata.planes().size())
-                                        std::cout << "/";
-                        }
-                        std::cout << std::endl;
                 
                         for (const libcamera::FrameBuffer::Plane &plane : buffer->planes()) {
 
@@ -377,34 +370,21 @@ namespace romi {
                                 dmabufLength = lseek(fd, 0, SEEK_END);
                                 if (plane.offset > dmabufLength ||
                                     plane.offset + plane.length > dmabufLength) {
-                                        std::cerr << "plane is out of buffer: buffer length="
-                                                  << dmabufLength << ", plane offset=" << plane.offset
-                                                  << ", plane length=" << plane.length
-                                                  << std::endl;
+                                        r_err("LibCamera: plane is out of buffer: "
+                                              "buffer length=%d, plane offset=%d, "
+                                              "plane length=%d", 
+                                              (int) dmabufLength, (int) plane.offset,
+                                              (int) plane.length);
                                         return;
                                 }
 
                                 size_t mapLength = (size_t) (plane.offset + plane.length);
                                 const uint8_t *data = nullptr;
-
-                                struct timespec ts;
-                                timespec_get(&ts, TIME_UTC);
-                                double t_start = (double) ts.tv_sec + (double) ts.tv_nsec * 1.0e-9;
-                                
-                                
                                 MmapKey key(fd, mapLength);
+                                
                                 if (map_.contains(key)) {
                                         data = map_[key];
-                                        std::cout << "found data for <fd:" << fd
-                                                  << ",len:" << mapLength << ">"
-                                                  << std::endl;
                                 } else {
-                                
-                                        std::cout << "mapping <fd:" << fd << ",len:"
-                                                  << mapLength << ">"
-                                                  << std::endl;
-
-                                        
                                         void *map_address = mmap(nullptr, mapLength,
                                                                  mmapFlags, MAP_SHARED,
                                                                  fd, 0);
@@ -417,32 +397,14 @@ namespace romi {
                                         data = (const uint8_t *) map_address;
                                         map_[key] = data;
                                 }
-                                
-                                timespec_get(&ts, TIME_UTC);
-                                double t_map = (double) ts.tv_sec + (double) ts.tv_nsec * 1.0e-9;
 
                                 convert_to_jpeg(data);
 
-                                std::cout << "jpeg size " << image_size_ << std::endl;
-
                                 jpeg_.clear();
                                 jpeg_.append(buffer_, image_size_);
-                                                                
-                                timespec_get(&ts, TIME_UTC);
-                                double t_jpg = (double) ts.tv_sec + (double) ts.tv_nsec * 1.0e-9;
                                 
                                 //munmap(map_address, mapLength);
-                                
-                                timespec_get(&ts, TIME_UTC);
-                                double t_unmap = (double) ts.tv_sec + (double) ts.tv_nsec * 1.0e-9;
-
-                                std::cout << "map " << (t_map - t_start)
-                                          << ", jpg " << (t_jpg - t_map)
-                                          << ", unmap " << (t_unmap - t_jpg) << std::endl;
-                                
                         }
-
-                        std::cout << std::endl;
                 }
         }
 
