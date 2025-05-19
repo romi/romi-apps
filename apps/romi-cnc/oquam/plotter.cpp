@@ -20,14 +20,22 @@
   along with this program.  If not, see
   <http://www.gnu.org/licenses/>.
 
- */
+*/
 #include "v3.h"
 #include "oquam/plotter.h"
 
 namespace romi {
 
-        plotter::plotter() :
-        buffer_(), w_(), h_(),scale_(), d_(), L_(), xy_(), xz_(), yz_(){
+        plotter::plotter()
+                : buffer_(),
+                  w_(),
+                  h_(),
+                  scale_(),
+                  d_(),
+                  L_(),
+                  xy_(),
+                  xz_(),
+                  yz_() {
         }
 
         int plotter::plot_open()
@@ -36,23 +44,23 @@ namespace romi {
                 long h = lround(scale_ * h_ + 0.5);
                 buffer_.clear();
                 buffer_.printf(("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n"
-                               "<svg xmlns:svg=\"http://www.w3.org/2000/svg\"\n"
-                               "  xmlns=\"http://www.w3.org/2000/svg\"\n"
-                               "  xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n"
-                               "  xmlns:sodipodi=\"http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd\"\n"
-                               "  xmlns:inkscape=\"http://www.inkscape.org/namespaces/inkscape\"\n"
-                               "  version=\"1.0\" width=\"%dpx\" height=\"%dpx\">\n"),
-                              w, h);
+                                "<svg xmlns:svg=\"http://www.w3.org/2000/svg\"\n"
+                                "  xmlns=\"http://www.w3.org/2000/svg\"\n"
+                                "  xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n"
+                                "  xmlns:sodipodi=\"http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd\"\n"
+                                "  xmlns:inkscape=\"http://www.inkscape.org/namespaces/inkscape\"\n"
+                                "  version=\"1.0\" width=\"%dpx\" height=\"%dpx\">\n"),
+                               w, h);
 
-            buffer_.printf(("  <sodipodi:namedview id=\"namedview\" showgrid=\"false\">\n"
-                               "    <inkscape:grid type=\"xygrid\" id=\"zgrid\" \n"
-                               "        spacingx=\"0.1\" spacingy=\"0.1\" empspacing=\"10\" />\n"
-                               "  </sodipodi:namedview>\n"));
-            buffer_.printf("  <g transform=\"matrix(%f,0,0,-%f,0,%d)\"\n"
-                              "    inkscape:groupmode=\"layer\"\n"
-                              "    inkscape:label=\"graphs\"\n"
-                              "    id=\"graphs\">\n",
-                              scale_, scale_, h);
+                buffer_.printf(("  <sodipodi:namedview id=\"namedview\" showgrid=\"false\">\n"
+                                "    <inkscape:grid type=\"xygrid\" id=\"zgrid\" \n"
+                                "        spacingx=\"0.1\" spacingy=\"0.1\" empspacing=\"10\" />\n"
+                                "  </sodipodi:namedview>\n"));
+                buffer_.printf("  <g transform=\"matrix(%f,0,0,-%f,0,%d)\"\n"
+                               "    inkscape:groupmode=\"layer\"\n"
+                               "    inkscape:label=\"graphs\"\n"
+                               "    id=\"graphs\">\n",
+                               scale_, scale_, h);
                 return 0;
         }
 
@@ -80,38 +88,38 @@ namespace romi {
                 print_moveto( x0, y0);
                 print_lineto( x1, y1);
                 buffer_.printf( "\" id=\"path\" style=\"fill:none;stroke:%s;"
-                              "stroke-width:0.001;stroke-linecap:butt;"
-                              "stroke-linejoin:miter;stroke-miterlimit:4;"
-                              "stroke-opacity:1;stroke-dasharray:none\" />\n",
-                              color);
+                                "stroke-width:0.001;stroke-linecap:butt;"
+                                "stroke-linejoin:miter;stroke-miterlimit:4;"
+                                "stroke-opacity:1;stroke-dasharray:none\" />\n",
+                                color);
         }
 
         void plotter::print_rect(double x, double y, double w, double h)
         {
                 buffer_.printf(
-                              "      <rect x=\"%f\" y=\"%f\" width=\"%f\" height=\"%f\" "
-                              "style=\"fill:none;stroke:#cecece;"
-                              "stroke-width:0.002;stroke-linecap:butt;"
-                              "stroke-linejoin:miter;stroke-miterlimit:4;"
-                              "stroke-opacity:1;stroke-dasharray:none\" />\n",
-                              x, y, w, h);
+                        "      <rect x=\"%f\" y=\"%f\" width=\"%f\" height=\"%f\" "
+                        "style=\"fill:none;stroke:#cecece;"
+                        "stroke-width:0.002;stroke-linecap:butt;"
+                        "stroke-linejoin:miter;stroke-miterlimit:4;"
+                        "stroke-opacity:1;stroke-dasharray:none\" />\n",
+                        x, y, w, h);
         }
 
         void plotter::print_text(const char *s, double x, double y)
         {
                 buffer_.printf(
-                              "      <g transform=\"matrix(1,0,0,-1,0,%f)\" >"
-                              "<text x=\"%f\" y=\"%f\" "
-                              "style=\"font-weight:300;"
-                              "font-size:0.03px;"
-                              "font-family:'serif';"
-                              "font-style:italic;"
-                              "fill:#000000;"
-                              "text-anchor:end;"
-                              "text-align:end;"
-                              "fill-opacity:1;\" >"
-                              "%s</text></g>\n",
-                              2 * y, x, y, s);
+                        "      <g transform=\"matrix(1,0,0,-1,0,%f)\" >"
+                        "<text x=\"%f\" y=\"%f\" "
+                        "style=\"font-weight:300;"
+                        "font-size:0.03px;"
+                        "font-family:'serif';"
+                        "font-style:italic;"
+                        "fill:#000000;"
+                        "text-anchor:end;"
+                        "text-align:end;"
+                        "fill-opacity:1;\" >"
+                        "%s</text></g>\n",
+                        2 * y, x, y, s);
         }
 
         // REFACTOR. INLINE FUNCTIONS WITH MEANINGFUL NAMES!
@@ -122,7 +130,7 @@ namespace romi {
         void plotter::print_atdc_ij(SmoothPath& script, int i, int j, rect_t& r)
         {
                 buffer_.printf( "    <g transform=\"translate(%f %f)\">\n",
-                              r.x, r.y);
+                                r.x, r.y);
         
                 for (size_t k = 0; k < script.count_atdc(); k++) {
                         ATDC& t = script.get_atdc(k);
@@ -154,9 +162,9 @@ namespace romi {
                 
                         print_lineto(_X(r, t.curve.p1[i]), _Y(r, t.curve.p1[j]));
                         buffer_.printf( "\" id=\"path\" style=\"fill:none;stroke:#0000ce;"
-                                      "stroke-width:0.001;stroke-linecap:butt;"
-                                      "stroke-linejoin:miter;stroke-miterlimit:4;"
-                                      "stroke-opacity:1;stroke-dasharray:none\" />\n");
+                                        "stroke-width:0.001;stroke-linecap:butt;"
+                                        "stroke-linejoin:miter;stroke-miterlimit:4;"
+                                        "stroke-opacity:1;stroke-dasharray:none\" />\n");
                 }
         
                 buffer_.printf( "    </g>\n");
@@ -165,9 +173,9 @@ namespace romi {
         void plotter::print_atdc(SmoothPath& script)
         {
                 buffer_.printf(
-                              "    <g inkscape:groupmode=\"layer\" "
-                              "inkscape:label=\"atdc\" "
-                              "id=\"atdc\">\n");
+                        "    <g inkscape:groupmode=\"layer\" "
+                        "inkscape:label=\"atdc\" "
+                        "id=\"atdc\">\n");
         
                 print_atdc_ij(script, 0, 1, xy_);
                 print_atdc_ij(script, 0, 2, xz_);
@@ -179,7 +187,7 @@ namespace romi {
         void plotter::print_segment_ij(SmoothPath& script, int i, int j, rect_t& r)
         {
                 buffer_.printf( "    <g transform=\"translate(%f %f)\">\n",
-                              r.x, r.y);
+                                r.x, r.y);
                 buffer_.printf( "        <path d=\"");
         
                 for (size_t k = 0; k < script.count_segments(); k++) {
@@ -195,19 +203,19 @@ namespace romi {
                 }
         
                 buffer_.printf(
-                              "\" id=\"path\" style=\"fill:none;stroke:#000000;"
-                              "stroke-width:0.001;stroke-linecap:butt;"
-                              "stroke-linejoin:miter;stroke-miterlimit:4;"
-                              "stroke-opacity:1;stroke-dasharray:none\" />\n");
+                        "\" id=\"path\" style=\"fill:none;stroke:#000000;"
+                        "stroke-width:0.001;stroke-linecap:butt;"
+                        "stroke-linejoin:miter;stroke-miterlimit:4;"
+                        "stroke-opacity:1;stroke-dasharray:none\" />\n");
                 buffer_.printf( "    </g>\n");
         }
 
         void plotter::print_segments(SmoothPath& script)
         {
                 buffer_.printf(
-                              "    <g inkscape:groupmode=\"layer\" "
-                              "inkscape:label=\"paths\" "
-                              "id=\"paths\">\n");
+                        "    <g inkscape:groupmode=\"layer\" "
+                        "inkscape:label=\"paths\" "
+                        "id=\"paths\">\n");
         
                 print_segment_ij(script, 0, 1, xy_);
                 print_segment_ij(script, 0, 2, xz_);
@@ -217,9 +225,9 @@ namespace romi {
         }
 
         void plotter::print_speed_i(SmoothPath& script,
-                                  int i,
-                                  double duration,
-                                  const double *vm)
+                                    int i,
+                                    double duration,
+                                    const double *vm)
         {
                 double xscale = v_[i].w / duration;
                 double yscale = v_[i].h / vmax(vm);
@@ -274,17 +282,17 @@ namespace romi {
         }
 
         void plotter::print_speeds(SmoothPath& script,
-                                 double duration,
-                                 const double *vmax)
+                                   double duration,
+                                   const double *vmax)
         {
                 for (int i = 0; i < 3; i++)
                         print_speed_i(script, i, duration, vmax);
         }
 
         void plotter::print_acceleration_i(SmoothPath& script,
-                                         int i,
-                                         double duration,
-                                         const double *amax)
+                                           int i,
+                                           double duration,
+                                           const double *amax)
         {
                 double xscale = a_[i].w / duration;
                 double yscale = a_[i].h / vmax(amax);
@@ -334,15 +342,15 @@ namespace romi {
         }
 
         void plotter::print_accelerations(SmoothPath& script,
-                                        double duration,
-                                        const double *amax)
+                                          double duration,
+                                          const double *amax)
         {
                 for (int i = 0; i < 3; i++)
                         print_acceleration_i(script, i, duration, amax);
         }
 
         void plotter::print_slices_speed_i(SmoothPath& script, int i,
-                                         double duration, const double *vm)
+                                           double duration, const double *vm)
         {
                 double xscale = v_[i].w / duration;
                 double yscale = v_[i].h / vmax(vm);
@@ -364,7 +372,7 @@ namespace romi {
         void plotter::print_slices_ij(SmoothPath& script, int i, int j, rect_t& r)
         {
                 buffer_.printf( "    <g transform=\"translate(%f %f)\">\n",
-                              r.x, r.y);
+                                r.x, r.y);
 
                 for (size_t k = 0; k < script.count_slices(); k++) {
                         Section& section = script.get_slice(k);
@@ -379,9 +387,9 @@ namespace romi {
         void plotter::print_slices(SmoothPath& script, double duration, const double *vm)
         {
                 buffer_.printf(
-                              "    <g inkscape:groupmode=\"layer\" "
-                              "inkscape:label=\"slices\" "
-                              "id=\"slices\">\n");
+                        "    <g inkscape:groupmode=\"layer\" "
+                        "inkscape:label=\"slices\" "
+                        "id=\"slices\">\n");
 
                 print_slices_ij(script, 0, 1, xy_);
                 print_slices_speed_i(script, 0, duration, vm);
@@ -394,9 +402,9 @@ namespace romi {
         void plotter::print_axes()
         {
                 buffer_.printf(
-                              "    <g inkscape:groupmode=\"layer\" "
-                              "inkscape:label=\"axes\" "
-                              "id=\"axes\">\n");
+                        "    <g inkscape:groupmode=\"layer\" "
+                        "inkscape:label=\"axes\" "
+                        "id=\"axes\">\n");
         
                 // xy
                 print_rect(xy_.x, xy_.y, xy_.w, xy_.h);
@@ -459,27 +467,27 @@ namespace romi {
         
                 // ay
                 print_line(
-                           a_[1].x, a_[1].y,
-                           a_[1].x + a_[1].w, a_[1].y,
-                           "#cecece");
+                        a_[1].x, a_[1].y,
+                        a_[1].x + a_[1].w, a_[1].y,
+                        "#cecece");
         
                 print_line(
-                           a_[1].x, a_[1].y - a_[1].h,
-                           a_[1].x, a_[1].y + a_[1].h,
-                           "#cecece");
+                        a_[1].x, a_[1].y - a_[1].h,
+                        a_[1].x, a_[1].y + a_[1].h,
+                        "#cecece");
         
                 print_text("ay", a_[1].x - 0.15 * d_, a_[1].y);
         
                 // az
                 print_line(
-                           a_[2].x, a_[2].y,
-                           a_[2].x + a_[2].w, a_[2].y,
-                           "#cecece");
+                        a_[2].x, a_[2].y,
+                        a_[2].x + a_[2].w, a_[2].y,
+                        "#cecece");
         
                 print_line(
-                           a_[2].x, a_[2].y - a_[2].h,
-                           a_[2].x, a_[2].y + a_[2].h,
-                           "#cecece");
+                        a_[2].x, a_[2].y - a_[2].h,
+                        a_[2].x, a_[2].y + a_[2].h,
+                        "#cecece");
         
                 print_text("az", a_[2].x - 0.15 * d_, a_[2].y);
         
@@ -495,8 +503,8 @@ namespace romi {
                 L_ = vmax(dx);
         
                 w_ = (4 * d_
-                           + 2 * (xmax[0] - xmin[0])
-                           + (xmax[1] - xmin[1]));
+                      + 2 * (xmax[0] - xmin[0])
+                      + (xmax[1] - xmin[1]));
         
                 h_ = 3 * d_ + vmax(dx) + 0.7;
                 scale_ = 1000.0;
@@ -596,14 +604,14 @@ namespace romi {
                 }
         }
 
-    rcom::MemBuffer plotter::buffer() {
-        return buffer_;
-    }
+        rcom::MemBuffer plotter::buffer() {
+                return buffer_;
+        }
 
 
-    rcom::MemBuffer plot_to_mem(SmoothPath& script,
-                              const double *xmin, const double *xmax,
-                              const double *vmax_, const double *amax)
+        rcom::MemBuffer plot_to_mem(SmoothPath& script,
+                                    const double *xmin, const double *xmax,
+                                    const double *vmax_, const double *amax)
         {
                 plotter plot;
                 plot.plot_init(xmin, xmax);
@@ -616,7 +624,7 @@ namespace romi {
         }
 
         rcom::MemBuffer plot_to_mem(SmoothPath& script, CNCRange& range,
-                              const double *vmax, const double *amax)
+                                    const double *vmax, const double *amax)
         {
                 v3 min = range.min();
                 v3 max = range.max();
