@@ -32,7 +32,7 @@ namespace romi {
         class CNCAdaptor : public rcom::IRPCHandler
         {
         protected:
-                ICNC &cnc_;
+                ICNC& cnc_;
                 
                 void execute_get_range(nlohmann::json& result, rcom::RPCError &error);
                 void execute_get_axes(nlohmann::json& result, rcom::RPCError &error);

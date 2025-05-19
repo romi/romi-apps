@@ -35,10 +35,8 @@ set(SOURCES
   oquam/StepperSettings.cpp
   )
 
-
-
 add_executable(romi-cnc ${SOURCES})
-target_link_libraries(romi-cnc romi romiserial)
+target_link_libraries(romi-cnc romi rcom romiserial)
 target_include_directories(romi-cnc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 #add_subdirectory(test)
