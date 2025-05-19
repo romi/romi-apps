@@ -61,16 +61,14 @@ std::atomic<bool> quit(false);
 void SignalHandler(int signal)
 {
         if (signal == SIGSEGV){
-                syslog(1, "rcom-registry segmentation fault");
+                syslog(1, "main.cpp segmentation fault");
                 exit(signal);
-        }
-        else if (signal == SIGINT){
+        } else if (signal == SIGINT){
                 r_info("Ctrl-C Quitting Application");
                 perror("init_signal_handler");
                 quit = true;
-        }
-        else{
-                r_err("Unknown signam received %d", signal);
+        } else{
+                r_err("Unknown signal received %d", signal);
         }
 }
 
@@ -111,8 +109,8 @@ int main(int argc, char** argv)
                 }
 
                 // Topic
-                std::string topic = "dc-motors";
-                std::string type = "dc-motors";
+                std::string topic = "motors";
+                std::string type = "motors";
                 if (options.is_set(romi::RomiOptions::kTopic)) {
                         topic = options.get_value(romi::RomiOptions::kTopic);
                 }

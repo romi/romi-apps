@@ -1,0 +1,31 @@
+{
+    "motors": {
+        "dc-motors-driver": {
+            "encoder-directions": {
+                "left": -1,
+                "right": 1
+            },
+            "maximum-signal-amplitude": 40,
+            "pid": {
+                "kd": 0,
+                "ki": 1.200000,
+                "kp": 0.080000
+            },
+            "use-pid": true
+        },
+        "driver": "dc-motors-driver",
+        "rover": {
+            "encoder-steps": 13250,
+            "maximum-acceleration": 1,
+            "maximum-speed": 1,
+            "wheel-base": 1,
+            "wheel-diameter": 0.322000
+        }
+    },
+    "ports": {
+        "dc-motors-driver": {
+            "port": "/dev/ttyUSB0",
+            "type": "serial"
+        }
+    }
+}
