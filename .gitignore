@@ -36,3 +36,4 @@
 romi_config.h
 build/
 *.egg-info
+*.jpg
