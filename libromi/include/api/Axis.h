@@ -68,7 +68,7 @@ namespace romi {
                 std::string& homing_mode_as_string(std::string& s);
                 
         protected:
-                void assert_field(nlohmann::json data, const std::string& name);
+                void assert_field(nlohmann::json& data, const std::string& name);
         };
 }
 

@@ -46,7 +46,7 @@ namespace romi {
                 init(index, data);
         }
 
-        void Axis::assert_field(nlohmann::json data, const std::string& name)
+        void Axis::assert_field(nlohmann::json& data, const std::string& name)
         {
                 if (!data.contains(name)) {
                         r_err("Axis: missing field: %s", name.c_str());

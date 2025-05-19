@@ -54,7 +54,10 @@ set(SOURCES
 
   include/util/Clock.h
   include/util/ClockAccessor.h
+  include/util/DataLog.h
+  include/util/DataLogAccessor.h
   include/util/FileUtils.h
+  include/util/IDataLog.h
   include/util/ImageIO.h
   include/util/Logger.h
   include/util/LogWriter.h
@@ -66,6 +69,8 @@ set(SOURCES
   
   src/util/Clock.cpp
   src/util/ClockAccessor.cpp
+  src/util/DataLogAccessor.cpp
+  src/util/DataLog.cpp
   src/util/FileUtils.cpp
   src/util/ImageIO.cpp
   src/util/Logger.cpp
