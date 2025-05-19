@@ -2,11 +2,11 @@ import argparse
 import time
 from romi.cnc import CNC
 
-class PlantScanner():
+class PlantScannerV3():
 
     def __init__(self, camera_topic = 'camera', cnc_topic = 'cnc'):
-        self.cnc = CNC(cnc_topic, cnc_topic)
-        self.camera = Camera(camera_topic, camera_topic)
+        self.cnc = CNC.create(cnc_topic)
+        self.camera = Camera.create(camera_topic)
 
     def scan(self, radius, count):
         self.cnc.power_up()
@@ -57,6 +57,6 @@ if __name__ == '__main__':
                     help='The number of images')
     args = parser.parse_args()
 
-    scanner = PlantScanner(args.radius, args.count)
+    scanner = PlantScannerV3(args.radius, args.count)
     scanner.scan()
 
