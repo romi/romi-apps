@@ -39,7 +39,6 @@ class CNC():
         if speed != None:
             params["speed"] = speed
         params["sync"] = sync
-        cmd = { "method": "cnc-moveto", "params": params }
         self.client.execute('cnc-moveto', params)
 
     def current_theta(self):
