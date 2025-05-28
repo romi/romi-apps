@@ -78,7 +78,25 @@ namespace romi {
 
                 return output_;
         }
-        
+
+        nlohmann::json RemoteCamera::get_camera_info()
+        {
+                r_debug("RemoteCamera::get_camera_info");
+                nlohmann::json result;
+                try {
+                        if (!execute_with_result(MethodsCamera::kGetCameraInfo,
+                                                result)) {
+                                r_err("RemoteCamera::get_camera_info: failed");
+                                throw std::runtime_error("RemoteCamera::get_camera_info: "
+                                                         "failed");
+                        }
+                }  catch (nlohmann::json::exception& je) {
+                        r_err("RemoteCamera::get_camera_info: %s", je.what());
+                        throw;
+                }
+                return result;
+        }
+
         bool RemoteCamera::power_up()
         {
                 r_debug("RemoteCamera::power_up");
@@ -101,6 +119,7 @@ namespace romi {
                                                 result)) {
                                 r = result[MethodsPowerDevice::kPoweredUp];
                         } else {
+                                r_err("RemoteCamera::is_powered_up: failed");
                                 throw std::runtime_error("RemoteCamera::is_powered_up: "
                                                          "execute_with_result failed");
                         }

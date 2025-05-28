@@ -62,21 +62,20 @@ namespace romi {
                              const std::string& section);
                 ~CameraInfoIO() override = default;
 
-                std::unique_ptr<ICameraInfo> load() override;
-                void store(ICameraInfo& info) override;
+                std::unique_ptr<CameraInfo> load() override;
+                void store(CameraInfo& info) override;
 
                 nlohmann::json get() override;
-                
-                nlohmann::json to_json(ICameraInfo& info);
+                nlohmann::json to_json(CameraInfo& info);
                 
         protected:
-                std::unique_ptr<ICameraInfo>
+                std::unique_ptr<CameraInfo>
                 load_info(nlohmann::json& json,
-                          std::unique_ptr<ICameraIntrinsics>& intrinsics,
                           std::unique_ptr<ICameraSettings>& settings,
                           std::unique_ptr<ICameraDistortion>& distortion);
                 
-                std::unique_ptr<ICameraIntrinsics> load_intrinsics(nlohmann::json& json);
+                void load_intrinsics(nlohmann::json& json, CameraIntrinsics& intrinsics);
+                
                 std::unique_ptr<ICameraSettings> load_settings(const std::string& type,
                                                                nlohmann::json& json);
                 std::unique_ptr<ICameraDistortion> load_distortion(nlohmann::json& json);

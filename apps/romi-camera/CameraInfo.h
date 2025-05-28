@@ -25,65 +25,121 @@
 #ifndef ROMI_CAMERAINFO_H
 #define ROMI_CAMERAINFO_H
 
-#include "ICameraInfo.h"
+#include "api/ICameraSettings.h"
+#include "CameraIntrinsics.h"
+#include "ICameraDistortion.h"
 
 namespace romi {
-        
-        class CameraInfo : public ICameraInfo
+
+        class SensorResolution
+        {
+        public:
+                size_t columns_;
+                size_t rows_;
+                
+                SensorResolution()
+                        : columns_(0),
+                          rows_(0) {
+                }
+                
+                ~SensorResolution() {}
+
+                size_t columns() {
+                        return columns_;
+                }
+
+                size_t rows() {
+                        return rows_;
+                }
+
+                void set(size_t cols, size_t rows) {
+                        columns_ = cols;
+                        rows_ = rows;
+                }
+        };
+
+        class SensorDimensions
+        {
+        public:
+                double width_;
+                double height_;
+                
+                SensorDimensions()
+                        : width_(0),
+                          height_(0) {
+                }
+                
+                ~SensorDimensions() {}
+
+                double width() {
+                        return width_;
+                }
+
+                double height() {
+                        return height_;
+                }
+
+                void set(double width, double height) {
+                        width_ = width;
+                        height_ = height;
+                }
+        };
+                        
+        class CameraInfo
         {
         protected:
                 std::string id_;
                 std::string type_;
                 std::string name_;
                 std::string lens_;
-                std::pair<double,double> sensor_resolution_;
-                std::pair<double,double> sensor_dimensions_;
+                SensorResolution sensor_resolution_;
+                SensorDimensions sensor_dimensions_;
                 std::string calibration_date_;
                 std::string calibration_person_;
                 std::string calibration_method_;
-                std::unique_ptr<ICameraIntrinsics> intrinsics_;
+                
+                CameraIntrinsics intrinsics_;
                 std::unique_ptr<ICameraSettings> settings_;
                 std::unique_ptr<ICameraDistortion> distortion_;
                 
         public:
                 CameraInfo(const std::string& id,
                            const std::string& type,
-                           std::unique_ptr<ICameraIntrinsics>& intrinsics,
                            std::unique_ptr<ICameraSettings>& settings,
                            std::unique_ptr<ICameraDistortion>& distortion);
-                ~CameraInfo() override = default;
+                ~CameraInfo() = default;
 
-                std::string& get_id() override;
-                std::string& get_type() override;
+                std::string& get_id();
+                std::string& get_type();
                 
-                std::string& get_name() override;
-                void set_name(const std::string& value) override;
+                std::string& get_name();
+                void set_name(const std::string& value);
                 
-                std::string& get_lens() override;
-                void set_lens(const std::string& value) override;
+                std::string& get_lens();
+                void set_lens(const std::string& value);
                 
-                std::pair<double,double>& get_sensor_resolution() override;
-                void set_sensor_resolution(double rx, double ry) override;
+                SensorResolution& get_sensor_resolution();
+                void set_sensor_resolution(size_t rx, size_t ry);
                 
-                std::pair<double,double>& get_sensor_dimensions() override;
-                void set_sensor_dimensions(double dx, double dy) override;
+                SensorDimensions& get_sensor_dimensions();
+                void set_sensor_dimensions(double dx, double dy);
                 
-                std::string& get_calibration_date() override;
-                void set_calibration_date(const std::string& value) override;
+                std::string& get_calibration_date();
+                void set_calibration_date(const std::string& value);
                 
-                std::string& get_calibration_person() override;
-                void set_calibration_person(const std::string& value) override;
+                std::string& get_calibration_person();
+                void set_calibration_person(const std::string& value);
                 
-                std::string& get_calibration_method() override;
-                void set_calibration_method(const std::string& value) override;
+                std::string& get_calibration_method();
+                void set_calibration_method(const std::string& value);
 
-                ICameraIntrinsics& get_intrinsics() override;
-                ICameraSettings& get_settings() override;
-                ICameraDistortion& get_distortion() override;
+                CameraIntrinsics& get_intrinsics();
+                ICameraSettings& get_settings();
+                ICameraDistortion& get_distortion();
                 
         protected:
                 void assert_sensor_dimensions(double x, double y);
-                void assert_sensor_resolution(double x, double y);
+                void assert_sensor_resolution(size_t x, size_t y);
         };
 }
 

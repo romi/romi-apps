@@ -25,11 +25,9 @@
 #ifndef ROMI_CAMERAINTRINSICS_H
 #define ROMI_CAMERAINTRINSICS_H
 
-#include "ICameraIntrinsics.h"
-
 namespace romi {
         
-        class CameraIntrinsics : public ICameraIntrinsics
+        class CameraIntrinsics
         {
         protected:
                 double focal_length_x_;
@@ -40,16 +38,16 @@ namespace romi {
         public:
                 CameraIntrinsics();
                 CameraIntrinsics(double fx, double fy, double cx, double cy);
-                ~CameraIntrinsics() override = default;
+                ~CameraIntrinsics() = default;
 
-                void get_focal_length(double& fx, double& fy) override;
-                void set_focal_length(double fx, double fy) override;                
-                void get_central_point(double& cx, double& cy) override;
-                void set_central_point(double cx, double cy) override;
+                void get_focal_length(double& fx, double& fy);
+                void set_focal_length(double fx, double fy);                
+                void get_central_point(double& cx, double& cy);
+                void set_central_point(double cx, double cy);
                 
         protected:
                 void assert_values();
         };
 }
 
-#endif // ROMI_ICAMERAINTRINSICS_H
+#endif // ROMI_CAMERAINTRINSICS_H

@@ -39,6 +39,8 @@ namespace romi {
                 virtual ~ICamera() = default;
                 virtual bool grab(Image &image) = 0;
                 virtual rcom::MemBuffer& grab_jpeg() = 0;
+
+                virtual nlohmann::json get_camera_info() = 0;
                 
                 virtual bool set_value(const std::string& name, double value) = 0;
                 virtual bool select_option(const std::string& name,

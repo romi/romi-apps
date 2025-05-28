@@ -118,5 +118,11 @@ namespace romi {
         {
                 throw std::runtime_error("ExternalCamera::get_settings: not implemented");
         }
+
+        nlohmann::json ExternalCamera::get_camera_info()
+        {
+                r_err("ExternalCamera::get_camera_info: not implemented");
+                throw std::runtime_error("ExternalCamera::get_camera_info: not implemented");
+        }
 }
 

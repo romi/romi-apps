@@ -30,6 +30,9 @@ class Camera():
     def select_option(self, name, value):
         params = {'name': name, 'value': value}
         self.client.execute('camera:select-option', params)
+        
+    def get_camera_info(self):
+        return self.client.execute('camera:get-camera-info')
        
     def power_up(self):
         self.client.execute('power-up')

@@ -32,6 +32,7 @@ namespace romi {
                 static constexpr const char *kGrabJpegBinary = "camera:grab-jpeg-binary";
                 static constexpr const char *kSetValue = "camera:set-value";
                 static constexpr const char *kSelectOption = "camera:select-option";
+                static constexpr const char *kGetCameraInfo = "camera:get-camera-info";
 
                 static constexpr const char *kSettingName = "name";
                 static constexpr const char *kSettingValue = "value";

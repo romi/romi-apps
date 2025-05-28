@@ -53,6 +53,7 @@ namespace romi {
         
                 bool grab(Image &image) override;
                 rcom::MemBuffer& grab_jpeg() override;
+                nlohmann::json get_camera_info() override;
                 
                 bool set_value(const std::string& name, double value) override;
                 bool select_option(const std::string& name,

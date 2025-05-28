@@ -27,7 +27,7 @@
 
 #include <memory>
 #include <json.hpp>
-#include "ICameraInfo.h"
+#include "CameraInfo.h"
 
 namespace romi {
         
@@ -37,8 +37,8 @@ namespace romi {
                 virtual ~ICameraInfoIO() = default;
 
                 virtual nlohmann::json get() = 0;
-                virtual std::unique_ptr<ICameraInfo> load() = 0;
-                virtual void store(ICameraInfo& info) = 0;
+                virtual std::unique_ptr<CameraInfo> load() = 0;
+                virtual void store(CameraInfo& info) = 0;
         };
 }
 

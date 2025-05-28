@@ -451,5 +451,11 @@ namespace romi {
         {
                 throw std::runtime_error("LibCamera::get_settings: not implemented");
         }
+
+        nlohmann::json LibCamera::get_camera_info()
+        {
+                r_err("LibCamera::get_camera_info: not implemented");
+                throw std::runtime_error("LibCamera::get_camera_info: not implemented");
+        }
 }
 

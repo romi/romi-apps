@@ -29,7 +29,6 @@
 #include <rcom/ISystem.h>
 #include <rcom/ILog.h>
 #include <api/ICamera.h>
-#include "ICameraInfo.h"
 #include "ICameraInfoIO.h"
 
 namespace romi {

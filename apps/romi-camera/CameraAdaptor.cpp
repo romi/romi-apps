@@ -92,6 +92,9 @@ namespace romi {
                         } else if (method == MethodsCamera::kSelectOption) {
                                 execute_select_option(params, result, error);
                                 
+                        } else if (method == MethodsCamera::kGetCameraInfo) {
+                                execute_get_camera_info(result, error);
+                                
                         } else {
                                 error.code = rcom::RPCError::kMethodNotFound;
                                 error.message = "Unknown method";
@@ -170,5 +173,11 @@ namespace romi {
                                 error.message = "set_option failed";
                         }
                 }
+        }
+
+        void CameraAdaptor::execute_get_camera_info(nlohmann::json& result,
+                                                    rcom::RPCError& error)
+        {
+                result = camera_.get_camera_info();
         }
 }

@@ -44,6 +44,8 @@ namespace romi {
                 void execute_select_option(nlohmann::json& params,
                                            nlohmann::json& result,
                                            rcom::RPCError& error);
+                void execute_get_camera_info(nlohmann::json& result,
+                                             rcom::RPCError& error);
                 
         public:
                 CameraAdaptor(ICamera& camera);

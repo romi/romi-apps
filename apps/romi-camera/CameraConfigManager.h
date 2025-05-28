@@ -26,6 +26,7 @@
 #define ROMI_CAMERAWITHCONFIG_H
 
 #include "api/ICamera.h"
+#include "api/ICameraSettings.h"
 #include "ICameraInfoIO.h"
 
 namespace romi {
@@ -34,7 +35,7 @@ namespace romi {
         {
         protected:
                 std::shared_ptr<ICameraInfoIO> io_;
-                std::unique_ptr<ICameraInfo> info_;
+                std::unique_ptr<CameraInfo> info_;
                 std::unique_ptr<ICamera> camera_;
 
                 void apply_settings();
@@ -49,6 +50,7 @@ namespace romi {
         
                 bool grab(Image &image) override;
                 rcom::MemBuffer& grab_jpeg() override;
+                nlohmann::json get_camera_info() override;
                 
                 bool set_value(const std::string& name, double value) override;
                 bool select_option(const std::string& name,

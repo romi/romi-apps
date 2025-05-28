@@ -84,6 +84,12 @@ namespace romi {
             return jpeg_;
         }
 
+        nlohmann::json FakeCamera::get_camera_info()
+        {
+                r_err("FakeCamera::get_camera_info: not implemented");
+                throw std::runtime_error("FakeCamera::get_camera_info: not implemented");
+        }
+        
         bool FakeCamera::power_up()
         {
                 powered_up_ = true;

@@ -51,16 +51,13 @@ namespace romi {
                 return config_->get_section(section_);
         }
         
-        std::unique_ptr<ICameraInfo> CameraInfoIO::load()
+        std::unique_ptr<CameraInfo> CameraInfoIO::load()
         {
                 nlohmann::json json = get();
 
                 std::cout << json << std::endl;
                 
                 std::string camera_type = json[kCameraType];
-                
-                std::unique_ptr<ICameraIntrinsics> intrinsics
-                        = load_intrinsics(json[kIntrinsics]);
                         
                 std::unique_ptr<ICameraSettings> settings
                         = load_settings(camera_type, json[camera_type]);
@@ -68,28 +65,28 @@ namespace romi {
                 std::unique_ptr<ICameraDistortion> distortion
                         = load_distortion(json[kDistortion]);
                         
-                auto result = load_info(json, intrinsics, settings, distortion);
+                auto result = load_info(json, settings, distortion);
                         
                 return result;
         }
         
-        std::unique_ptr<ICameraIntrinsics>
-        CameraInfoIO::load_intrinsics(nlohmann::json& json)
+        void CameraInfoIO::load_intrinsics(nlohmann::json& json,
+                                           CameraIntrinsics& intrinsics)
         {
                 double fx = json[kFx];
                 double fy = json[kFy];
                 double cx = json[kCx];
                 double cy = json[kCy];
-                std::unique_ptr<ICameraIntrinsics> result
-                        = std::make_unique<CameraIntrinsics>(fx, fy, cx, cy);
-                return result;
+                
+                intrinsics.set_focal_length(fx, fy);                
+                intrinsics.set_central_point(cx, cy);
         }
         
         std::unique_ptr<ICameraSettings>
         CameraInfoIO::load_settings(const std::string& camera_type,
                                     nlohmann::json& json_settings)
         {
-                // if (camera_type != ICameraInfo::kPiCameraHQ1) {
+                // if (camera_type != CameraInfo::kPiCameraHQ1) {
                 //         r_err("CameraInfoIO::load_settings: unhandled camera type: %s",
                 //               camera_type.c_str());
                 //         throw std::runtime_error("CameraInfoIO::load_settings");
@@ -119,28 +116,32 @@ namespace romi {
                 return result;
         }
 
-        std::unique_ptr<ICameraInfo>
+        std::unique_ptr<CameraInfo>
         CameraInfoIO::load_info(nlohmann::json& json,
-                                std::unique_ptr<ICameraIntrinsics>& intrinsics,
                                 std::unique_ptr<ICameraSettings>& settings,
                                 std::unique_ptr<ICameraDistortion>& distortion)
         {
                 std::string id = json.value(kCameraID, "unspecified");
                 std::string type = json[kCameraType];
-                std::unique_ptr<ICameraInfo> result
-                        = std::make_unique<CameraInfo>(id, type, intrinsics,
-                                                       settings, distortion);
+                std::unique_ptr<CameraInfo> result
+                        = std::make_unique<CameraInfo>(id, type, settings, distortion);
+
+                if (json.contains(kIntrinsics)) {
+                        load_intrinsics(json[kIntrinsics], result->get_intrinsics());
+                }
+                
                 std::string name = json.value(kCameraName, "unspecified");
                 std::string lens = json.value(kCameraLens, "unspecified");
                 result->set_name(name);
                 result->set_lens(lens);
 
                 if (json.contains(kSensor)) {
-                        double rx = json[kSensor][kSensorResolution][0];
-                        double ry = json[kSensor][kSensorResolution][1];
+                        size_t rx = json[kSensor][kSensorResolution][0];
+                        size_t ry = json[kSensor][kSensorResolution][1];
+                        result->set_sensor_resolution(rx, ry);
+                        
                         double dx = json[kSensor][kSensorDimensions][0];
                         double dy = json[kSensor][kSensorDimensions][1];
-                        result->set_sensor_resolution(rx, ry);
                         result->set_sensor_dimensions(dx, dy);
                 }
                 
@@ -156,13 +157,13 @@ namespace romi {
                 return result;
         }
 
-        void CameraInfoIO::store(ICameraInfo& info)
+        void CameraInfoIO::store(CameraInfo& info)
         {
                 nlohmann::json json = to_json(info);
                 config_->set_section(section_, json);
         }
 
-        nlohmann::json CameraInfoIO::to_json(ICameraInfo& info)
+        nlohmann::json CameraInfoIO::to_json(CameraInfo& info)
         {
                 // Only the camera settings can be updated
                 // dynamically. First, we recover the original JSON,
@@ -177,7 +178,7 @@ namespace romi {
         }
 
         /*
-        nlohmann::json CameraInfoIO::to_json(ICameraInfo& info)
+        nlohmann::json CameraInfoIO::to_json(CameraInfo& info)
         {
                 ICameraIntrinsics& intrinsics = info.get_intrinsics();
                 double fx, fy, cx, cy;

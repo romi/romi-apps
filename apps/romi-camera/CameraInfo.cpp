@@ -30,15 +30,14 @@ namespace romi {
         
         CameraInfo::CameraInfo(const std::string& id,
                                const std::string& type,
-                               std::unique_ptr<ICameraIntrinsics>& intrinsics,
                                std::unique_ptr<ICameraSettings>& settings,
                                std::unique_ptr<ICameraDistortion>& distortion)
                 : id_(id),
                   type_(type),
                   name_("unspecified"),
                   lens_(),
-                  sensor_resolution_(0, 0),
-                  sensor_dimensions_(0, 0),
+                  sensor_resolution_(),
+                  sensor_dimensions_(),
                   calibration_date_(),
                   calibration_person_(),
                   calibration_method_(),
@@ -46,7 +45,6 @@ namespace romi {
                   settings_(),
                   distortion_()
         {
-                intrinsics_ = std::move(intrinsics);
                 settings_ = std::move(settings);
                 distortion_ = std::move(distortion);
         }
@@ -81,27 +79,26 @@ namespace romi {
                 lens_ = value;
         }
         
-        std::pair<double,double>& CameraInfo::get_sensor_resolution()
+        SensorResolution& CameraInfo::get_sensor_resolution()
         {
                 return sensor_resolution_;
         }
         
-        void CameraInfo::set_sensor_resolution(double rx, double ry)
+        void CameraInfo::set_sensor_resolution(size_t rx, size_t ry)
         {
                 assert_sensor_resolution(rx, ry);
-                sensor_resolution_.first = rx;
-                sensor_resolution_.second = ry;
+                sensor_resolution_.set(rx, ry);
         }
         
-        void CameraInfo::assert_sensor_resolution(double x, double y)
+        void CameraInfo::assert_sensor_resolution(size_t x, size_t y)
         {
-                if (x < 0.0 || x > 100000.0 || y < 0.0 || y > 100000.0) {
+                if (x > 100000 || y > 100000) {
                         r_err("CameraInfo: invalid sensor resolution");
                         throw std::runtime_error("CameraInfo: invalid sensor resolution");
                 }
         }
         
-        std::pair<double,double>& CameraInfo::get_sensor_dimensions()
+        SensorDimensions& CameraInfo::get_sensor_dimensions()
         {
                 return sensor_dimensions_;
         }
@@ -109,8 +106,7 @@ namespace romi {
         void CameraInfo::set_sensor_dimensions(double dx, double dy)
         {
                 assert_sensor_dimensions(dx, dy);
-                sensor_dimensions_.first = dx;
-                sensor_dimensions_.second = dy;
+                sensor_dimensions_.set(dx, dy);
         }
         
         void CameraInfo::assert_sensor_dimensions(double x, double y)
@@ -151,9 +147,9 @@ namespace romi {
                  calibration_method_ = value;
         }        
 
-        ICameraIntrinsics& CameraInfo::get_intrinsics()
+        CameraIntrinsics& CameraInfo::get_intrinsics()
         {
-                return *intrinsics_;
+                return intrinsics_;
         }
         
         ICameraSettings& CameraInfo::get_settings()

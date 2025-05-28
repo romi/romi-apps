@@ -107,6 +107,11 @@ namespace romi {
                 return camera_->grab_jpeg();
         }
 
+        nlohmann::json CameraConfigManager::get_camera_info()
+        {
+                return io_->get();
+        }
+        
         bool CameraConfigManager::power_up()
         {
                 return camera_->power_up();
