@@ -1,0 +1,53 @@
+{
+    "device": {
+        "hardware-id": "platscanner-v3-ens-lyon",
+        "type": "cnc"
+    },
+    "cnc": {
+        "axes": [
+            {
+                "type": "linear",
+                "range": [0, 0.76],
+                "homing": {
+                    "order": 0,
+                    "mode": "contact-and-backup",
+                    "speed": 0.1
+                }
+            },
+            {
+                "type": "linear",
+                "range": [0, 0.72],
+                "homing": {
+                    "order": 1,
+                    "mode": "contact-and-backup",
+                    "speed": 0.1
+                }
+            },
+            {
+                "type": "angular",
+                "homing": {
+                    "order": 2,
+                    "mode": "contact",
+                    "speed": 0.1
+                }
+            }
+        ],
+        "controller-classname": "stepper-controller",
+        "path-maximum-deviation": 0.0,
+        "path-slice-duration": 0.020000,
+        "stepper-settings": {
+            "displacement-per-revolution": [0.040000, 0.040000, 0.008000],
+            "gears-ratio": [1, 1, 1],
+            "maximum-acceleration": [0.300000, 0.300000, 0.030000],
+            "maximum-rpm": [300, 300, 300],
+            "microsteps": [16, 16, 16],
+            "steps-per-revolution": [200, 200, 200]
+        }
+    },
+    "ports": {
+        "cnc": {
+            "port": "/dev/ttyUSB0",
+            "type": "serial"
+        }
+    }
+}
