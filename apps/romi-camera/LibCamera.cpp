@@ -193,6 +193,8 @@ namespace romi {
         {
                 if (pixel_format_ == libcamera::formats::RGB888) {
                         r_info("LibCamera: RGB888 format");
+                } else if (pixel_format_ == libcamera::formats::BGR888) {
+                        r_info("LibCamera: BGR888 format");
                 } else if (pixel_format_ == libcamera::formats::MJPEG) {
                         r_info("LibCamera: MJPEG format");                        
                 } else {
