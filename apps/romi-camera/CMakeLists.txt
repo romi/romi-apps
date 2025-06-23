@@ -4,9 +4,7 @@ project(romi-camera)
 set(SOURCES
   main.cpp
   ICameraDistortion.h
-  ICameraInfo.h
   ICameraInfoIO.h
-  ICameraIntrinsics.h
   CameraAdaptor.h
   CameraAdaptor.cpp
   CameraFactory.h
