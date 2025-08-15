@@ -433,6 +433,7 @@ namespace romi {
                         
                         for (std::unique_ptr<libcamera::Request> &request : requests_) {
                                 r_info("camera_->queueRequest");
+                                request->reuse(libcamera::Request::ReuseBuffers);
                                 camera_->queueRequest(request.get());
                         }
 
