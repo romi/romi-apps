@@ -292,7 +292,6 @@ namespace romi {
 
         bool StepperController::is_enabled()
         {
-                r_info("StepperController: is_enabled");
                 bool is_enabled = false;
                 
                 nlohmann::json response;
