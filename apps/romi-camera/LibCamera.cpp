@@ -53,6 +53,7 @@ namespace romi {
                   cv_(),
                   image_requested_(false),
                   request_completed_(false),
+                  power_up_(false),
                   image_(),
                   jpeg_(),
                   map_(),
@@ -161,14 +162,6 @@ namespace romi {
                 }
 
                 camera_->requestCompleted.connect(this, &LibCamera::request_complete);
-
-                r_info("camera_->start()");
-                camera_->start();
-                
-                for (std::unique_ptr<libcamera::Request> &request : requests_) {
-                        r_info("camera_->queueRequest");
-                        camera_->queueRequest(request.get());
-                }
         }
 
         LibCamera::~LibCamera()
@@ -434,19 +427,32 @@ namespace romi {
         
         bool LibCamera::power_up()
         {
-                // FIXME
+                if (!power_up_) {
+                        r_info("camera_->start()");
+                        camera_->start();
+                        
+                        for (std::unique_ptr<libcamera::Request> &request : requests_) {
+                                r_info("camera_->queueRequest");
+                                camera_->queueRequest(request.get());
+                        }
+
+                        power_up_ = true;
+                }
                 return true; 
         }
         
         bool LibCamera::power_down()
         {
-                // FIXME
+                if (power_up_) {
+                        camera_->stop();
+                        power_up_ = false;
+                }
                 return true;
         }
         
         bool LibCamera::is_powered_up()
         {
-                return true;
+                return power_up_;
         }
 
         const ICameraSettings& LibCamera::get_settings()

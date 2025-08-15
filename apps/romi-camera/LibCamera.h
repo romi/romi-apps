@@ -83,6 +83,7 @@ namespace romi {
                 std::condition_variable cv_;
                 bool image_requested_;
                 bool request_completed_;
+                bool power_up_;
                 Image image_;
                 rcom::MemBuffer jpeg_;
                 std::unordered_map<MmapKey, const uint8_t *,
