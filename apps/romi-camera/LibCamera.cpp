@@ -61,9 +61,14 @@ namespace romi {
                   buffer_size_(0),
                   image_size_(0)
         {
+                width_ = width;
+                height_ = height;
                 manager_ = std::make_unique<libcamera::CameraManager>();
                 manager_->start();
-
+        }
+        
+        void LibCamera::init_camera()
+        {
                 auto cameras = manager_->cameras();
                 if (cameras.empty()) {
                         manager_->stop();
@@ -82,8 +87,8 @@ namespace romi {
                 std::cout << "Default stream configuration is: "
                           << streamConfig.toString() << std::endl;
         
-                streamConfig.size.width = (unsigned int) width;
-                streamConfig.size.height = (unsigned int) height;
+                streamConfig.size.width = (unsigned int) width_;
+                streamConfig.size.height = (unsigned int) height_;
                 streamConfig.pixelFormat = pixel_format_;
         
                 libcamera::CameraConfiguration::Status status = config->validate();
@@ -113,6 +118,7 @@ namespace romi {
                 width_ = streamConfig.size.width;
                 height_ = streamConfig.size.height;
 
+                // Jpeg buffer
                 buffer_size_ = width_ * height_ * 3;
                 buffer_ = (uint8_t *) malloc(buffer_size_);
                 if (buffer_ == nullptr) {
@@ -162,16 +168,28 @@ namespace romi {
                 }
 
                 camera_->requestCompleted.connect(this, &LibCamera::request_complete);
+
+                r_info("camera_->start()");
+                camera_->start();
+                        
+                for (std::unique_ptr<libcamera::Request> &request : requests_) {
+                        camera_->queueRequest(request.get());
+                }
         }
 
         LibCamera::~LibCamera()
+        {
+                release_camera();
+                manager_->stop();
+        }
+
+        void LibCamera::release_camera()
         {
                 camera_->stop();
                 allocator_->free(stream_);
                 delete allocator_;
                 camera_->release();
                 camera_.reset();
-                manager_->stop();
                 if (buffer_) {
                         free(buffer_);
                 }
@@ -179,7 +197,8 @@ namespace romi {
                         MmapKey key = it.first;
                         const uint8_t *data = it.second;
                         munmap((void *) data, key.length_);
-                }                
+                }
+                requests_.clear();
         }
 
         void LibCamera::assert_format()
@@ -406,37 +425,45 @@ namespace romi {
         bool LibCamera::grab(Image &image)
         {
                 r_debug("LibCamera::grab");
-                std::unique_lock<std::mutex> lk(mutex_);
-                send_request();
-                // wait_request_completed();
-                cv_.wait(lk, [this]{ return request_completed_; });
-                image = image_;
-                return true;
+                bool result = false;
+                if (!power_up_) {
+                        std::unique_lock<std::mutex> lk(mutex_);
+                        send_request();
+                        // wait_request_completed();
+                        cv_.wait(lk, [this]{ return request_completed_; });
+                        image = image_;
+                        result = true;
+                } else {
+                        request_completed_ = true;
+                        image_requested_ = false;
+                        r_info("LibCamera::grab: Not powered up");
+                        throw std::runtime_error("Not powered up");
+                }
+                return result;
         }
 
         rcom::MemBuffer& LibCamera::grab_jpeg()
         {
                 r_debug("LibCamera::grab_jpeg");
-                std::unique_lock<std::mutex> lk(mutex_);
-                send_request();
-                //wait_request_completed();
-                cv_.wait(lk, [this]{ return request_completed_; });
-                //r_debug("LibCamera::grab_jpeg: request completed: jpeg size: %d", (int) jpeg_.size());
-                return jpeg_;
+                if (!power_up_) {
+                        std::unique_lock<std::mutex> lk(mutex_);
+                        send_request();
+                        //wait_request_completed();
+                        cv_.wait(lk, [this]{ return request_completed_; });
+                        //r_debug("LibCamera::grab_jpeg: request completed: jpeg size: %d", (int) jpeg_.size());
+                        return jpeg_;
+                } else {
+                        request_completed_ = true;
+                        image_requested_ = false;
+                        r_info("LibCamera::grab: Not powered up");
+                        throw std::runtime_error("Not powered up");
+                }
         }
         
         bool LibCamera::power_up()
         {
                 if (!power_up_) {
-                        r_info("camera_->start()");
-                        camera_->start();
-                        
-                        for (std::unique_ptr<libcamera::Request> &request : requests_) {
-                                r_info("camera_->queueRequest");
-                                request->reuse(libcamera::Request::ReuseBuffers);
-                                camera_->queueRequest(request.get());
-                        }
-
+                        init_camera();
                         power_up_ = true;
                 }
                 return true; 
@@ -445,7 +472,7 @@ namespace romi {
         bool LibCamera::power_down()
         {
                 if (power_up_) {
-                        camera_->stop();
+                        release_camera();
                         power_up_ = false;
                 }
                 return true;
