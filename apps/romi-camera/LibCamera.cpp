@@ -110,8 +110,8 @@ namespace romi {
                                   << streamConfig.toString() << std::endl;
                 }
 
-                if (streamConfig.size.width != width
-                    || streamConfig.size.height != height) {
+                if (streamConfig.size.width != width_
+                    || streamConfig.size.height != height_) {
                         throw std::runtime_error("LibCamera: Invalid width or height.");
                 }
                 
@@ -192,6 +192,7 @@ namespace romi {
                 camera_.reset();
                 if (buffer_) {
                         free(buffer_);
+                        buffer_ = nullptr;
                 }
                 for (auto& it: map_) {
                         MmapKey key = it.first;
