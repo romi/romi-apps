@@ -88,6 +88,9 @@ namespace romi {
                 rcom::MemBuffer jpeg_;
                 std::unordered_map<MmapKey, const uint8_t *,
                                    MmapKeyHasher, MmapKeyEquals> map_;
+
+                void init_camera();
+                void release_camera();
                 
         public:
                 uint8_t *buffer_;
