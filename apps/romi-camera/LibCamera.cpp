@@ -263,26 +263,20 @@ namespace romi {
 
         void LibCamera::request_complete(libcamera::Request *request)
         {
-                r_debug("LibCamera::request_complete @ 1");
+                //r_debug("LibCamera::request_complete");
                 
                 if (request->status() == libcamera::Request::RequestCancelled)
                         return;
-
-                r_debug("LibCamera::request_complete @ 2");
                 
                 if (image_requested_) {
                         process_request_buffer(request);
                         signal_request_completed();
                 }
                 
-                r_debug("LibCamera::request_complete @ 3");
-                
                 if (power_up_) {
                         request->reuse(libcamera::Request::ReuseBuffers);
                         camera_->queueRequest(request);
                 }
-                
-                r_debug("LibCamera::request_complete @ 4");
                 
                 if (0) {
                         count_++;
@@ -376,7 +370,7 @@ namespace romi {
 
         void LibCamera::process_request_buffer(libcamera::Request *request)
         {
-                r_debug("LibCamera::process_request_buffer @ 1");
+                r_debug("LibCamera::process_request_buffer");
                 
                 // const libcamera::ControlList &requestMetadata = request->metadata();
                 // for (const auto &ctrl : requestMetadata) {
@@ -389,13 +383,9 @@ namespace romi {
                 
                 const std::map<const libcamera::Stream *, libcamera::FrameBuffer *> &buffers = request->buffers();
                 
-                r_debug("LibCamera::process_request_buffer @ 2");
-                
                 for (auto bufferPair : buffers) {
                         libcamera::FrameBuffer *buffer = bufferPair.second;
                 
-                        r_debug("LibCamera::process_request_buffer @ 3");
-                        
                         for (const libcamera::FrameBuffer::Plane &plane : buffer->planes()) {
 
                                 int mmapFlags = PROT_READ;
@@ -413,21 +403,14 @@ namespace romi {
                                               (int) plane.length);
                                         return;
                                 }
-
-                
-                                r_debug("LibCamera::process_request_buffer @ 4");
                         
                                 size_t mapLength = (size_t) (plane.offset + plane.length);
                                 const uint8_t *data = nullptr;
                                 MmapKey key(fd, mapLength);
-                                
-                                r_debug("LibCamera::process_request_buffer @ 5");
-                        
+                                                        
                                 if (map_.contains(key)) {
-                                        r_debug("LibCamera::process_request_buffer @ 6");
                                         data = map_[key];
                                 } else {
-                                        r_debug("LibCamera::process_request_buffer @ 7");
                                         void *map_address = mmap(nullptr, mapLength,
                                                                  mmapFlags, MAP_SHARED,
                                                                  fd, 0);
@@ -441,18 +424,14 @@ namespace romi {
                                         map_[key] = data;
                                 }
 
-                                r_debug("LibCamera::process_request_buffer @ 8");
                                 convert_to_jpeg(data);
 
-                                r_debug("LibCamera::process_request_buffer @ 9");
                                 jpeg_.clear();
                                 jpeg_.append(buffer_, image_size_);
                                 
                                 //munmap(map_address, mapLength);
                         }
                 }
-                
-                r_debug("LibCamera::process_request_buffer @ 10");
         }
 
         bool LibCamera::grab(Image &image)
