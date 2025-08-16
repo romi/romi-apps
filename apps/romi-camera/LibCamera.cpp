@@ -427,7 +427,7 @@ namespace romi {
         {
                 r_debug("LibCamera::grab");
                 bool result = false;
-                if (!power_up_) {
+                if (power_up_) {
                         std::unique_lock<std::mutex> lk(mutex_);
                         send_request();
                         // wait_request_completed();
@@ -446,7 +446,7 @@ namespace romi {
         rcom::MemBuffer& LibCamera::grab_jpeg()
         {
                 r_debug("LibCamera::grab_jpeg");
-                if (!power_up_) {
+                if (power_up_) {
                         std::unique_lock<std::mutex> lk(mutex_);
                         send_request();
                         //wait_request_completed();
