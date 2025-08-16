@@ -263,10 +263,11 @@ namespace romi {
                         signal_request_completed();
                 }
                 
-                request->reuse(libcamera::Request::ReuseBuffers);
-                camera_->queueRequest(request);
-
-
+                if (power_up_) {
+                        request->reuse(libcamera::Request::ReuseBuffers);
+                        camera_->queueRequest(request);
+                }
+                
                 if (0) {
                         count_++;
                         if (start_time_ == 0.0) {
