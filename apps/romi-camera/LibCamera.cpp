@@ -63,12 +63,18 @@ namespace romi {
         {
                 width_ = width;
                 height_ = height;
-                manager_ = std::make_unique<libcamera::CameraManager>();
-                manager_->start();
+        }
+
+        LibCamera::~LibCamera()
+        {
+                power_down();
         }
         
         void LibCamera::init_camera()
         {
+                manager_ = std::make_unique<libcamera::CameraManager>();
+                manager_->start();
+                
                 auto cameras = manager_->cameras();
                 if (cameras.empty()) {
                         manager_->stop();
@@ -177,12 +183,6 @@ namespace romi {
                 }
         }
 
-        LibCamera::~LibCamera()
-        {
-                release_camera();
-                manager_->stop();
-        }
-
         void LibCamera::release_camera()
         {
                 camera_->stop();
@@ -200,6 +200,8 @@ namespace romi {
                         munmap((void *) data, key.length_);
                 }
                 requests_.clear();
+                manager_->stop();
+                manager_.reset();
         }
 
         void LibCamera::assert_format()
