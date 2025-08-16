@@ -36,6 +36,8 @@
 
 namespace romi {
 
+        using SynchronizedCodeBlock = std::lock_guard<std::mutex>;
+
         static uint32_t count_ = 0;
         static double start_time_ = 0.0;
         
@@ -49,6 +51,7 @@ namespace romi {
                   requests_(),
                   //pixel_format_(libcamera::formats::RGB888),
                   pixel_format_(libcamera::formats::BGR888),
+                  api_mutex_(),
                   mutex_(),
                   cv_(),
                   image_requested_(false),
@@ -222,6 +225,7 @@ namespace romi {
         {
                 r_debug("LibCamera: set_value('%s', %f): NOT IMPLEMENTED",
                         name.c_str(), value);
+                SynchronizedCodeBlock sync(api_mutex_);
                 return true;
         }
         
@@ -230,6 +234,7 @@ namespace romi {
         {
                 r_debug("CameraConfigManager: set_option('%s', '%s'): NOT IMPLEMENTED",
                         name.c_str(), value.c_str());
+                SynchronizedCodeBlock sync(api_mutex_);
                 return true;
         }
 
@@ -453,6 +458,7 @@ namespace romi {
         bool LibCamera::grab(Image &image)
         {
                 r_debug("LibCamera::grab");
+                SynchronizedCodeBlock sync(api_mutex_);
                 bool result = false;
                 if (power_up_) {
                         std::unique_lock<std::mutex> lk(mutex_);
@@ -462,8 +468,6 @@ namespace romi {
                         image = image_;
                         result = true;
                 } else {
-                        request_completed_ = true;
-                        image_requested_ = false;
                         r_info("LibCamera::grab: Not powered up");
                         throw std::runtime_error("Not powered up");
                 }
@@ -473,6 +477,7 @@ namespace romi {
         rcom::MemBuffer& LibCamera::grab_jpeg()
         {
                 r_debug("LibCamera::grab_jpeg");
+                SynchronizedCodeBlock sync(api_mutex_);
                 if (power_up_) {
                         std::unique_lock<std::mutex> lk(mutex_);
                         send_request();
@@ -481,8 +486,6 @@ namespace romi {
                         //r_debug("LibCamera::grab_jpeg: request completed: jpeg size: %d", (int) jpeg_.size());
                         return jpeg_;
                 } else {
-                        request_completed_ = true;
-                        image_requested_ = false;
                         r_info("LibCamera::grab: Not powered up");
                         throw std::runtime_error("Not powered up");
                 }
@@ -490,6 +493,7 @@ namespace romi {
         
         bool LibCamera::power_up()
         {
+                SynchronizedCodeBlock sync(api_mutex_);
                 if (!power_up_) {
                         init_camera();
                         power_up_ = true;
@@ -499,6 +503,7 @@ namespace romi {
         
         bool LibCamera::power_down()
         {
+                SynchronizedCodeBlock sync(api_mutex_);
                 if (power_up_) {
                         release_camera();
                         power_up_ = false;
@@ -508,16 +513,20 @@ namespace romi {
         
         bool LibCamera::is_powered_up()
         {
+                SynchronizedCodeBlock sync(api_mutex_);
                 return power_up_;
         }
 
         const ICameraSettings& LibCamera::get_settings()
         {
+                //SynchronizedCodeBlock sync(api_mutex_);
+                r_err("LibCamera::get_settings: not implemented");
                 throw std::runtime_error("LibCamera::get_settings: not implemented");
         }
 
         nlohmann::json LibCamera::get_camera_info()
         {
+                //SynchronizedCodeBlock sync(api_mutex_);
                 r_err("LibCamera::get_camera_info: not implemented");
                 throw std::runtime_error("LibCamera::get_camera_info: not implemented");
         }

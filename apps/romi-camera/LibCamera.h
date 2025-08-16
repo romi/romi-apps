@@ -79,6 +79,7 @@ namespace romi {
                 libcamera::PixelFormat pixel_format_;
                 size_t width_;
                 size_t height_;
+                std::mutex api_mutex_;
                 std::mutex mutex_;
                 std::condition_variable cv_;
                 bool image_requested_;
