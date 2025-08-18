@@ -40,8 +40,22 @@ namespace romi {
 
         static uint32_t count_ = 0;
         static double start_time_ = 0.0;
-        
-        using SynchonizedCodeBlock = std::lock_guard<std::mutex>;
+
+        void print_fps()
+        {
+                count_++;
+                if (start_time_ == 0.0) {
+                        struct timespec ts;
+                        timespec_get(&ts, TIME_UTC);
+                        start_time_ = (double) ts.tv_sec + (double) ts.tv_nsec * 1.0e-9;
+                } else if ((count_ % 50) == 0) {
+                        struct timespec ts;
+                        timespec_get(&ts, TIME_UTC);
+                        double now = (double) ts.tv_sec + (double) ts.tv_nsec * 1.0e-9;
+                        r_debug("FPS: %f", (double) count_ / (now - start_time_));
+                }
+        }
+
 
         LibCamera::LibCamera(size_t width, size_t height)
                 : manager_(),
@@ -56,7 +70,7 @@ namespace romi {
                   cv_(),
                   image_requested_(false),
                   request_completed_(false),
-                  power_up_(false),
+                  running_(false),
                   image_(),
                   jpeg_(),
                   map_(),
@@ -72,6 +86,105 @@ namespace romi {
         {
                 power_down();
         }
+
+        // API
+
+        bool LibCamera::grab(Image &image)
+        {
+                SynchronizedCodeBlock sync(api_mutex_);
+                r_debug("LibCamera::grab");
+                bool result = false;
+                if (running_) {
+                        std::unique_lock<std::mutex> lk(mutex_);
+                        send_request();
+                        // wait_request_completed();
+                        cv_.wait(lk, [this]{ return request_completed_; });
+                        image = image_;
+                        result = true;
+                } else {
+                        r_info("LibCamera::grab: Not powered up");
+                        throw std::runtime_error("Not powered up");
+                }
+                return result;
+        }
+
+        rcom::MemBuffer& LibCamera::grab_jpeg()
+        {
+                SynchronizedCodeBlock sync(api_mutex_);
+                r_debug("LibCamera::grab_jpeg");
+                if (running_) {
+                        std::unique_lock<std::mutex> lk(mutex_);
+                        send_request();
+                        //wait_request_completed();
+                        cv_.wait(lk, [this]{ return request_completed_; });
+                        //r_debug("LibCamera::grab_jpeg: request completed: jpeg size: %d", (int) jpeg_.size());
+                        return jpeg_;
+                } else {
+                        r_info("LibCamera::grab: Not powered up");
+                        throw std::runtime_error("Not powered up");
+                }
+        }
+
+        bool LibCamera::power_up()
+        {
+                SynchronizedCodeBlock sync(api_mutex_);
+                r_debug("LibCamera::power_up");
+                if (!running_) {
+                        running_ = true;
+                        init_camera();
+                }
+                return true; 
+        }
+        
+        bool LibCamera::power_down()
+        {
+                SynchronizedCodeBlock sync(api_mutex_);
+                r_debug("LibCamera::power_down");
+                if (running_) {
+                        running_ = false;
+                        release_camera();
+                }
+                return true;
+        }
+        
+        bool LibCamera::is_powered_up()
+        {
+                SynchronizedCodeBlock sync(api_mutex_);
+                return running_;
+        }
+        
+        bool LibCamera::set_value(const std::string& name, double value)
+        {
+                r_debug("LibCamera: set_value('%s', %f): NOT IMPLEMENTED",
+                        name.c_str(), value);
+                SynchronizedCodeBlock sync(api_mutex_);
+                return true;
+        }
+        
+        bool LibCamera::select_option(const std::string& name,
+                                       const std::string& value)
+        {
+                r_debug("CameraConfigManager: set_option('%s', '%s'): NOT IMPLEMENTED",
+                        name.c_str(), value.c_str());
+                SynchronizedCodeBlock sync(api_mutex_);
+                return true;
+        }
+
+        const ICameraSettings& LibCamera::get_settings()
+        {
+                //SynchronizedCodeBlock sync(api_mutex_);
+                r_err("LibCamera::get_settings: not implemented");
+                throw std::runtime_error("LibCamera::get_settings: not implemented");
+        }
+
+        nlohmann::json LibCamera::get_camera_info()
+        {
+                //SynchronizedCodeBlock sync(api_mutex_);
+                r_err("LibCamera::get_camera_info: not implemented");
+                throw std::runtime_error("LibCamera::get_camera_info: not implemented");
+        }
+
+        //
         
         void LibCamera::init_camera()
         {
@@ -221,41 +334,14 @@ namespace romi {
                 }
         }
 
-        bool LibCamera::set_value(const std::string& name, double value)
-        {
-                r_debug("LibCamera: set_value('%s', %f): NOT IMPLEMENTED",
-                        name.c_str(), value);
-                SynchronizedCodeBlock sync(api_mutex_);
-                return true;
-        }
-        
-        bool LibCamera::select_option(const std::string& name,
-                                       const std::string& value)
-        {
-                r_debug("CameraConfigManager: set_option('%s', '%s'): NOT IMPLEMENTED",
-                        name.c_str(), value.c_str());
-                SynchronizedCodeBlock sync(api_mutex_);
-                return true;
-        }
-
         void LibCamera::send_request()
         {
-                //r_debug("LibCamera::send_request");
                 request_completed_ = false;
                 image_requested_ = true;
-                // camera_->queueRequest(request_.get());
-        }
-
-        void LibCamera::wait_request_completed()
-        {
-                r_debug("LibCamera::wait_request_completed");
-                // semaphore_.acquire();
-                r_debug("LibCamera::wait_request_completed: OK");
         }
 
         void LibCamera::signal_request_completed()
         {
-                //r_debug("LibCamera::signal_request_completed");
                 request_completed_ = true;
                 image_requested_ = false;
                 cv_.notify_one();
@@ -263,8 +349,6 @@ namespace romi {
 
         void LibCamera::request_complete(libcamera::Request *request)
         {
-                //r_debug("LibCamera::request_complete");
-                
                 if (request->status() == libcamera::Request::RequestCancelled)
                         return;
                 
@@ -272,100 +356,16 @@ namespace romi {
                         process_request_buffer(request);
                         signal_request_completed();
                 }
-                
-                if (power_up_) {
-                        request->reuse(libcamera::Request::ReuseBuffers);
-                        camera_->queueRequest(request);
-                }
-                
-                if (0) {
-                        count_++;
-                        if (start_time_ == 0.0) {
-                                struct timespec ts;
-                                timespec_get(&ts, TIME_UTC);
-                                start_time_ = (double) ts.tv_sec + (double) ts.tv_nsec * 1.0e-9;
-                        } else if ((count_ % 50) == 0) {
-                                struct timespec ts;
-                                timespec_get(&ts, TIME_UTC);
-                                double now = (double) ts.tv_sec + (double) ts.tv_nsec * 1.0e-9;
-                                r_debug("FPS: %f", (double) count_ / (now - start_time_));
+
+                {
+                        SynchronizedCodeBlock sync(api_mutex_);
+                        if (running_) {
+                                request->reuse(libcamera::Request::ReuseBuffers);
+                                camera_->queueRequest(request);
                         }
                 }
-        }
-
-        typedef struct _jpeg_my_dest_mgr_t {
-                struct jpeg_destination_mgr mgr;
-                LibCamera *camera;
-        } jpeg_my_dest_mgr_t;
-
-        static void jpeg_bufferinit(j_compress_ptr cinfo)
-        {
-                jpeg_my_dest_mgr_t* my_mgr = (jpeg_my_dest_mgr_t*) cinfo->dest;
-                LibCamera *camera = my_mgr->camera;
-
-                cinfo->dest->next_output_byte = camera->buffer_;
-                cinfo->dest->free_in_buffer = camera->buffer_size_;
-        }
-
-        static boolean jpeg_bufferemptyoutput(j_compress_ptr /* cinfo */ )
-        {
-                // jpeg_my_dest_mgr_t* my_mgr = (jpeg_my_dest_mgr_t*) cinfo->dest;
-                // LibCamera *camera = my_mgr->camera;
-        
-                // size_t oldsize = buffer->size();
-                // buffer->resize(oldsize + BLOCKSIZE);
-                // cinfo->dest->next_output_byte = buffer->data() + oldsize;
-                // cinfo->dest->free_in_buffer = buffer->size() - oldsize;
-                return 0;
-        }
-
-        static void jpeg_bufferterminate(j_compress_ptr cinfo)
-        {
-                jpeg_my_dest_mgr_t* my_mgr = (jpeg_my_dest_mgr_t*) cinfo->dest;
-                LibCamera *camera = my_mgr->camera;
-                camera->image_size_ = camera->buffer_size_ - cinfo->dest->free_in_buffer;
-        }
-
-        void LibCamera::convert_to_jpeg(const uint8_t *data)
-        {
-                struct jpeg_compress_struct cinfo;
-                struct jpeg_error_mgr jerr;
-                jpeg_my_dest_mgr_t* my_mgr;
-
-                JSAMPROW row_pointer[1];
-
-                cinfo.err = jpeg_std_error(&jerr);
-                jpeg_create_compress(&cinfo);
-
-                cinfo.dest = (struct jpeg_destination_mgr *) 
-                        (*cinfo.mem->alloc_small) ((j_common_ptr) &cinfo, JPOOL_PERMANENT,
-                                                   sizeof(jpeg_my_dest_mgr_t));       
-                cinfo.dest->init_destination = &jpeg_bufferinit;
-                cinfo.dest->empty_output_buffer = &jpeg_bufferemptyoutput;
-                cinfo.dest->term_destination = &jpeg_bufferterminate;
-
-                my_mgr = (jpeg_my_dest_mgr_t*) cinfo.dest;
-                my_mgr->camera = this;
-
-                cinfo.image_width = (JDIMENSION) width_;	
-                cinfo.image_height = (JDIMENSION) height_;
-                cinfo.input_components = 3;
-                cinfo.in_color_space = JCS_RGB;
-
-                jpeg_set_defaults(&cinfo);
-                jpeg_set_quality(&cinfo, 95, TRUE);
-
-                jpeg_start_compress(&cinfo, TRUE);
-
-                // feed data
-                while (cinfo.next_scanline < cinfo.image_height) {
-                        row_pointer[0] = (JSAMPROW) &data[cinfo.next_scanline * cinfo.image_width
-                                                          * cinfo.input_components];
-                        jpeg_write_scanlines(&cinfo, row_pointer, 1);
-                }
-
-                jpeg_finish_compress(&cinfo);
-                jpeg_destroy_compress(&cinfo);
+                
+                if (0) print_fps();
         }
 
         void LibCamera::process_request_buffer(libcamera::Request *request)
@@ -381,7 +381,7 @@ namespace romi {
                 //                   << std::endl;
                 // }
                 
-                const std::map<const libcamera::Stream *, libcamera::FrameBuffer *> &buffers = request->buffers();
+                auto buffers = request->buffers();
                 
                 for (auto bufferPair : buffers) {
                         libcamera::FrameBuffer *buffer = bufferPair.second;
@@ -434,80 +434,72 @@ namespace romi {
                 }
         }
 
-        bool LibCamera::grab(Image &image)
+        typedef struct _jpeg_my_dest_mgr_t {
+                struct jpeg_destination_mgr mgr;
+                LibCamera *camera;
+        } jpeg_my_dest_mgr_t;
+
+        static void jpeg_bufferinit(j_compress_ptr cinfo)
         {
-                r_debug("LibCamera::grab");
-                SynchronizedCodeBlock sync(api_mutex_);
-                bool result = false;
-                if (power_up_) {
-                        std::unique_lock<std::mutex> lk(mutex_);
-                        send_request();
-                        // wait_request_completed();
-                        cv_.wait(lk, [this]{ return request_completed_; });
-                        image = image_;
-                        result = true;
-                } else {
-                        r_info("LibCamera::grab: Not powered up");
-                        throw std::runtime_error("Not powered up");
-                }
-                return result;
+                jpeg_my_dest_mgr_t* my_mgr = (jpeg_my_dest_mgr_t*) cinfo->dest;
+                LibCamera *camera = my_mgr->camera;
+
+                cinfo->dest->next_output_byte = camera->buffer_;
+                cinfo->dest->free_in_buffer = camera->buffer_size_;
         }
 
-        rcom::MemBuffer& LibCamera::grab_jpeg()
+        static boolean jpeg_bufferemptyoutput(j_compress_ptr /* cinfo */ )
         {
-                r_debug("LibCamera::grab_jpeg");
-                SynchronizedCodeBlock sync(api_mutex_);
-                if (power_up_) {
-                        std::unique_lock<std::mutex> lk(mutex_);
-                        send_request();
-                        //wait_request_completed();
-                        cv_.wait(lk, [this]{ return request_completed_; });
-                        //r_debug("LibCamera::grab_jpeg: request completed: jpeg size: %d", (int) jpeg_.size());
-                        return jpeg_;
-                } else {
-                        r_info("LibCamera::grab: Not powered up");
-                        throw std::runtime_error("Not powered up");
-                }
-        }
-        
-        bool LibCamera::power_up()
-        {
-                SynchronizedCodeBlock sync(api_mutex_);
-                if (!power_up_) {
-                        init_camera();
-                        power_up_ = true;
-                }
-                return true; 
-        }
-        
-        bool LibCamera::power_down()
-        {
-                SynchronizedCodeBlock sync(api_mutex_);
-                if (power_up_) {
-                        release_camera();
-                        power_up_ = false;
-                }
-                return true;
-        }
-        
-        bool LibCamera::is_powered_up()
-        {
-                SynchronizedCodeBlock sync(api_mutex_);
-                return power_up_;
+                return 0;
         }
 
-        const ICameraSettings& LibCamera::get_settings()
+        static void jpeg_bufferterminate(j_compress_ptr cinfo)
         {
-                //SynchronizedCodeBlock sync(api_mutex_);
-                r_err("LibCamera::get_settings: not implemented");
-                throw std::runtime_error("LibCamera::get_settings: not implemented");
+                jpeg_my_dest_mgr_t* my_mgr = (jpeg_my_dest_mgr_t*) cinfo->dest;
+                LibCamera *camera = my_mgr->camera;
+                camera->image_size_ = camera->buffer_size_ - cinfo->dest->free_in_buffer;
         }
 
-        nlohmann::json LibCamera::get_camera_info()
+        void LibCamera::convert_to_jpeg(const uint8_t *data)
         {
-                //SynchronizedCodeBlock sync(api_mutex_);
-                r_err("LibCamera::get_camera_info: not implemented");
-                throw std::runtime_error("LibCamera::get_camera_info: not implemented");
+                struct jpeg_compress_struct cinfo;
+                struct jpeg_error_mgr jerr;
+                jpeg_my_dest_mgr_t* my_mgr;
+
+                JSAMPROW row_pointer[1];
+
+                cinfo.err = jpeg_std_error(&jerr);
+                jpeg_create_compress(&cinfo);
+
+                cinfo.dest = (struct jpeg_destination_mgr *) 
+                        (*cinfo.mem->alloc_small) ((j_common_ptr) &cinfo, JPOOL_PERMANENT,
+                                                   sizeof(jpeg_my_dest_mgr_t));       
+                cinfo.dest->init_destination = &jpeg_bufferinit;
+                cinfo.dest->empty_output_buffer = &jpeg_bufferemptyoutput;
+                cinfo.dest->term_destination = &jpeg_bufferterminate;
+
+                my_mgr = (jpeg_my_dest_mgr_t*) cinfo.dest;
+                my_mgr->camera = this;
+
+                cinfo.image_width = (JDIMENSION) width_;	
+                cinfo.image_height = (JDIMENSION) height_;
+                cinfo.input_components = 3;
+                cinfo.in_color_space = JCS_RGB;
+
+                jpeg_set_defaults(&cinfo);
+                jpeg_set_quality(&cinfo, 95, TRUE);
+
+                jpeg_start_compress(&cinfo, TRUE);
+
+                // feed data
+                while (cinfo.next_scanline < cinfo.image_height) {
+                        row_pointer[0] = (JSAMPROW) &data[cinfo.next_scanline * cinfo.image_width
+                                                          * cinfo.input_components];
+                        jpeg_write_scanlines(&cinfo, row_pointer, 1);
+                }
+
+                jpeg_finish_compress(&cinfo);
+                jpeg_destroy_compress(&cinfo);
         }
 }
 

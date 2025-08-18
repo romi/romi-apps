@@ -84,7 +84,7 @@ namespace romi {
                 std::condition_variable cv_;
                 bool image_requested_;
                 bool request_completed_;
-                bool power_up_;
+                bool running_;
                 Image image_;
                 rcom::MemBuffer jpeg_;
                 std::unordered_map<MmapKey, const uint8_t *,
@@ -118,7 +118,6 @@ namespace romi {
         protected:
                 void assert_format();
                 void send_request();
-                void wait_request_completed();
                 void signal_request_completed();
                 void request_complete(libcamera::Request *request);
                 void process_request_buffer(libcamera::Request *request);
