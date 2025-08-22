@@ -66,7 +66,7 @@ namespace romi {
                   //pixel_format_(libcamera::formats::RGB888),
                   pixel_format_(libcamera::formats::BGR888),
                   api_mutex_(),
-                  mutex_(),
+                  cv_mutex_(),
                   cv_(),
                   image_requested_(false),
                   request_completed_(false),
@@ -95,16 +95,17 @@ namespace romi {
                 r_debug("LibCamera::grab");
                 bool result = false;
                 if (running_) {
-                        std::unique_lock<std::mutex> lk(mutex_);
+                        std::unique_lock<std::mutex> lock(cv_mutex_);
                         send_request();
                         // wait_request_completed();
-                        cv_.wait(lk, [this]{ return request_completed_; });
+                        cv_.wait(lock, [this]{ return request_completed_; });
                         image = image_;
                         result = true;
                 } else {
                         r_info("LibCamera::grab: Not powered up");
                         throw std::runtime_error("Not powered up");
                 }
+                //r_debug("LibCamera::grab DONE");
                 return result;
         }
 
@@ -113,14 +114,16 @@ namespace romi {
                 SynchronizedCodeBlock sync(api_mutex_);
                 r_debug("LibCamera::grab_jpeg");
                 if (running_) {
-                        std::unique_lock<std::mutex> lk(mutex_);
+                        std::unique_lock<std::mutex> lock(cv_mutex_);
                         send_request();
                         //wait_request_completed();
-                        cv_.wait(lk, [this]{ return request_completed_; });
+                        cv_.wait(lock, [this]{ return request_completed_; });
                         //r_debug("LibCamera::grab_jpeg: request completed: jpeg size: %d", (int) jpeg_.size());
+                        //r_debug("LibCamera::grab_jpeg DONE");
                         return jpeg_;
                 } else {
                         r_info("LibCamera::grab: Not powered up");
+                        //r_debug("LibCamera::grab_jpeg DONE");
                         throw std::runtime_error("Not powered up");
                 }
         }
@@ -133,6 +136,7 @@ namespace romi {
                         running_ = true;
                         init_camera();
                 }
+                //r_debug("LibCamera::power_up DONE");
                 return true; 
         }
         
@@ -141,6 +145,7 @@ namespace romi {
                 SynchronizedCodeBlock sync(api_mutex_);
                 r_debug("LibCamera::power_down");
                 if (running_) {
+                        //r_debug("LibCamera::power_down running");
                         running_ = false;
                         release_camera();
                 }
@@ -172,14 +177,14 @@ namespace romi {
 
         const ICameraSettings& LibCamera::get_settings()
         {
-                //SynchronizedCodeBlock sync(api_mutex_);
+                SynchronizedCodeBlock sync(api_mutex_);
                 r_err("LibCamera::get_settings: not implemented");
                 throw std::runtime_error("LibCamera::get_settings: not implemented");
         }
 
         nlohmann::json LibCamera::get_camera_info()
         {
-                //SynchronizedCodeBlock sync(api_mutex_);
+                SynchronizedCodeBlock sync(api_mutex_);
                 r_err("LibCamera::get_camera_info: not implemented");
                 throw std::runtime_error("LibCamera::get_camera_info: not implemented");
         }
@@ -245,7 +250,7 @@ namespace romi {
                 buffer_ = (uint8_t *) malloc(buffer_size_);
                 if (buffer_ == nullptr) {
                         r_err("LibCamera: malloc failed. size: %d", (int) buffer_size_);
-                        std::runtime_error("LibCamera: malloc failed");
+                        throw std::runtime_error("LibCamera: malloc failed");
                 }
                 
                 camera_->configure(config.get());
@@ -256,7 +261,7 @@ namespace romi {
                 int ret = allocator_->allocate(stream_);
                 if (ret < 0) {
                         manager_->stop();
-                        std::runtime_error("LibCamera: Can't allocate buffers");
+                        throw std::runtime_error("LibCamera: Can't allocate buffers");
                 }
                 
                 const std::vector<std::unique_ptr<libcamera::FrameBuffer>>& buffers
@@ -268,7 +273,7 @@ namespace romi {
                         std::unique_ptr<libcamera::Request> request = camera_->createRequest();
                         if (!request) {
                                 manager_->stop();
-                                std::runtime_error("LibCamera: Can't create request");
+                                throw std::runtime_error("LibCamera: Can't create request");
                         }
 
                         const std::unique_ptr<libcamera::FrameBuffer> &buffer = buffers[i];
@@ -276,7 +281,7 @@ namespace romi {
                         if (ret < 0) {
                                 if (ret < 0) {
                                         manager_->stop();
-                                        std::runtime_error("LibCamera: Can't set buffer for request");
+                                        throw std::runtime_error("LibCamera: Can't set buffer for request");
                                 }
                         }
 
@@ -292,7 +297,10 @@ namespace romi {
                 camera_->requestCompleted.connect(this, &LibCamera::request_complete);
 
                 r_info("camera_->start()");
-                camera_->start();
+                if (camera_->start() != 0) {
+                        release_camera();
+                        throw std::runtime_error("LibCamera: camera->start failed");
+                }
                         
                 for (std::unique_ptr<libcamera::Request> &request : requests_) {
                         camera_->queueRequest(request.get());
@@ -340,29 +348,26 @@ namespace romi {
                 image_requested_ = true;
         }
 
-        void LibCamera::signal_request_completed()
-        {
-                request_completed_ = true;
-                image_requested_ = false;
-                cv_.notify_one();
-        }
-
         void LibCamera::request_complete(libcamera::Request *request)
         {
-                if (request->status() == libcamera::Request::RequestCancelled)
+                if (request->status() == libcamera::Request::RequestCancelled) {
+                        r_debug("LibCamera::request_complete DONE (cancelled)");
                         return;
+                }
                 
-                if (image_requested_) {
-                        process_request_buffer(request);
-                        signal_request_completed();
+                {
+                        std::unique_lock<std::mutex> lock(cv_mutex_);
+                        if (image_requested_) {
+                                process_request_buffer(request);
+                                request_completed_ = true;
+                                image_requested_ = false;
+                                cv_.notify_one();
+                        }
                 }
 
-                {
-                        SynchronizedCodeBlock sync(api_mutex_);
-                        if (running_) {
-                                request->reuse(libcamera::Request::ReuseBuffers);
-                                camera_->queueRequest(request);
-                        }
+                if (running_) {
+                        request->reuse(libcamera::Request::ReuseBuffers);
+                        camera_->queueRequest(request);
                 }
                 
                 if (0) print_fps();
@@ -370,8 +375,6 @@ namespace romi {
 
         void LibCamera::process_request_buffer(libcamera::Request *request)
         {
-                r_debug("LibCamera::process_request_buffer");
-                
                 // const libcamera::ControlList &requestMetadata = request->metadata();
                 // for (const auto &ctrl : requestMetadata) {
                 //         const libcamera::ControlId *id = libcamera::controls::controls.at(ctrl.first);

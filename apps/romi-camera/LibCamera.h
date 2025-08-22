@@ -27,6 +27,7 @@
 
 #include <string>
 #include <stdexcept>
+#include <atomic>
 #include <mutex>
 #include <condition_variable>
 #include <unordered_map>
@@ -80,11 +81,11 @@ namespace romi {
                 size_t width_;
                 size_t height_;
                 std::mutex api_mutex_;
-                std::mutex mutex_;
+                std::mutex cv_mutex_;
                 std::condition_variable cv_;
                 bool image_requested_;
                 bool request_completed_;
-                bool running_;
+                std::atomic<bool> running_;
                 Image image_;
                 rcom::MemBuffer jpeg_;
                 std::unordered_map<MmapKey, const uint8_t *,
@@ -118,7 +119,6 @@ namespace romi {
         protected:
                 void assert_format();
                 void send_request();
-                void signal_request_completed();
                 void request_complete(libcamera::Request *request);
                 void process_request_buffer(libcamera::Request *request);
                 void convert_to_jpeg(const uint8_t *data);
