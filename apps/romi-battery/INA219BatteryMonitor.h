@@ -19,6 +19,7 @@ namespace romi {
 
                 ~INA219BatteryMonitor() override;
 
+                bool is_charging() override;
                 double get_voltage() override;
                 double get_current() override;
 

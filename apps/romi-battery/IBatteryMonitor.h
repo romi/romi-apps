@@ -1,13 +1,14 @@
 #pragma once
 
 namespace romi {
-        
+
         class IBatteryMonitor
         {
         public:
                 virtual ~IBatteryMonitor() = default;
-                virtual double get_voltage() = 0; // volts
-                virtual double get_current() = 0; // amps
+                virtual bool is_charging() = 0;
+                virtual double get_voltage() = 0;
+                virtual double get_current() = 0;
         };
 }
 

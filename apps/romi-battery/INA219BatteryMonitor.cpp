@@ -1,11 +1,8 @@
-//#include <cstdint>
 #include <string>
-//#include <limits>
 #include <iostream>
 #include <cmath>
 #include <cerrno>
 #include <cstring>
-
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -32,12 +29,23 @@ namespace romi {
                 if (fd_ >= 0)
                         close(fd_);
         }
+        
+        bool INA219BatteryMonitor::is_charging()
+        {
+                double current = get_current();
+                double voltage = get_voltage();
+                // Allow a tidy negative discharge current. This may
+                // happen when the battery is full.
+                return (current >= -0.001); 
+        }
 
         double INA219BatteryMonitor::get_voltage()
         {
-                if (!ensure_init_()) return NaN();
+                if (!ensure_init_())
+                        return NaN();
                 uint16_t be;
-                if (!readReg16_(REG_BUS_V, be)) return NaN();
+                if (!readReg16_(REG_BUS_V, be))
+                        return NaN();
                 // BUS_V: bits [15:3] are data, LSB = 4 mV.
                 const uint16_t data = static_cast<uint16_t>(be >> 3);
                 return static_cast<double>(data) * 0.004; // volts

@@ -59,7 +59,8 @@ int main(int argc, char **argv)
         romi::INA219BatteryMonitor monitor;
         monitor.begin();
         std::cout << "Bus Voltage (V): " << monitor.get_voltage() << "\n";
-        std::cout << "Current (A)   : " << monitor.get_current() << "\n";
+        std::cout << "Current (A)    : " << monitor.get_current() << "\n";
+        std::cout << "Charging       : " << monitor.is_charging() << "\n";
         return 0;
 }
 
