@@ -33,7 +33,6 @@ namespace romi {
         bool INA219BatteryMonitor::is_charging()
         {
                 double current = get_current();
-                double voltage = get_voltage();
                 // Allow a tidy negative discharge current. This may
                 // happen when the battery is full.
                 return (current >= -0.001); 
