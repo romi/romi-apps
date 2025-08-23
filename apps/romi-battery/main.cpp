@@ -30,57 +30,83 @@
 #include <rcom/RcomServer.h>
 #include <rcom/RcomClient.h>
 #include <rcom/RcomMessageHandler.h>
-
-#include <rpc/RcomLog.h>
-
-#include <api/ICameraSettings.h>
-#include <configuration/GetOpt.h>
-#include <configuration/LocalConfig.h>
 #include <configuration/RomiOptions.h>
+#include <rpc/RcomLog.h>
 #include <util/ClockAccessor.h>
 #include <util/Logger.h>
-#include <rpc/RemoteConfig.h>
-#include <romi_config.h>
 
-// Session
-// #include <api/DeviceData.h>
-// #include <api/DummyLocationProvider.h>
-// #include <api/Session.h>
-
-#include <iostream>
+#include "BatteryMonitorAdaptor.h"
 #include "INA219BatteryMonitor.h"
 
-// static bool quit = false;
-// static void set_quit(int sig, siginfo_t *info, void *ucontext);
-// static void quit_on_control_c();
+static bool quit = false;
+static void set_quit(int sig, siginfo_t *info, void *ucontext);
+static void quit_on_control_c();
 
 int main(int argc, char **argv)
 {
-        romi::INA219BatteryMonitor monitor;
-        monitor.begin();
-        std::cout << "Bus Voltage (V): " << monitor.get_voltage() << "\n";
-        std::cout << "Current (A)    : " << monitor.get_current() << "\n";
-        std::cout << "Charging       : " << monitor.is_charging() << "\n";
+        std::shared_ptr<romi::IClock> clock = std::make_shared<romi::Clock>();
+        romi::ClockAccessor::SetInstance(clock);
+
+
+        try {
+                romi::RcomLog log;
+                rcom::Linux system(log);
+                // Options
+                romi::RomiOptions options;
+                options.parse(argc, argv);
+                if (options.is_help_requested()) {
+                        options.print_usage();
+                        exit(0);
+                }
+                
+                if (options.is_set(romi::RomiOptions::kRegistry)) {
+                        std::string ip = options.get_value(romi::RomiOptions::kRegistry);
+                        r_info("Registry IP set to %s", ip.c_str());
+                        rcom::RegistryServer::set_address(ip.c_str());
+                }
+
+                // Topic
+                std::string topic = "camera";
+                std::string type = "camera";
+                if (options.is_set(romi::RomiOptions::kTopic)) {
+                        topic = options.get_value(romi::RomiOptions::kTopic);
+                }
+                
+                log_set_application(topic);
+                
+                romi::INA219BatteryMonitor monitor;
+                monitor.begin();
+
+                romi::BatteryMonitorAdaptor adaptor(monitor);
+                rcom::RcomMessageHandler listener(adaptor);
+                auto monitor_server = rcom::RcomServer::create(topic, type, listener,
+                                                               log, system);
+                
+                quit_on_control_c();
+        
+        } catch (std::exception& e) {
+                r_err("RomiBattery: caught exception: %s", e.what());
+        }
         return 0;
 }
 
-// static void set_quit(int sig, siginfo_t *info, void *ucontext)
-// {
-//         (void) sig;
-//         (void) info;
-//         (void) ucontext;
-//         quit = true;
-// }
+static void set_quit(int sig, siginfo_t *info, void *ucontext)
+{
+        (void) sig;
+        (void) info;
+        (void) ucontext;
+        quit = true;
+}
 
-// static void quit_on_control_c()
-// {
-//         struct sigaction act;
-//         memset(&act, 0, sizeof(struct sigaction));
+static void quit_on_control_c()
+{
+        struct sigaction act;
+        memset(&act, 0, sizeof(struct sigaction));
 
-//         act.sa_flags = SA_SIGINFO;
-//         act.sa_sigaction = set_quit;
-//         if (sigaction(SIGINT, &act, nullptr) != 0) {
-//                 perror("init_signal_handler");
-//                 exit(1);
-//         }
-// }
+        act.sa_flags = SA_SIGINFO;
+        act.sa_sigaction = set_quit;
+        if (sigaction(SIGINT, &act, nullptr) != 0) {
+                perror("init_signal_handler");
+                exit(1);
+        }
+}
