@@ -66,8 +66,8 @@ int main(int argc, char **argv)
                 }
 
                 // Topic
-                std::string topic = "camera";
-                std::string type = "camera";
+                std::string topic = "battery";
+                std::string type = "battery";
                 if (options.is_set(romi::RomiOptions::kTopic)) {
                         topic = options.get_value(romi::RomiOptions::kTopic);
                 }
