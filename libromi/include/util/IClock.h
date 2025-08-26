@@ -21,8 +21,8 @@
   <http://www.gnu.org/licenses/>.
 
  */
-#ifndef _ROMI_I_CLOCK_H_
-#define _ROMI_I_CLOCK_H_
+#ifndef _ROMI_ICLOCK_H_
+#define _ROMI_ICLOCK_H_
 
 #include <string>
 #include <stdint.h>
@@ -66,5 +66,5 @@ namespace romi {
         };
 }
 
-#endif // _ROMI_I_CLOCK_H_
+#endif // _ROMI_ICLOCK_H_
 
