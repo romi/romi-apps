@@ -1,0 +1,15 @@
+[Unit]
+Description=Romi camera service
+ConditionPathExists=/home/romi/romi-apps/build/bin/romi-camera
+After=network.target
+After=systemd-user-sessions.service
+After=network-online.target
+
+[Service]
+User=romi
+Type=forking
+ExecStart=/home/romi/romi-apps/systemd/romi-camera-start.sh
+ExecStop=/home/romi/romi-apps/systemd/romi-camera-stop.sh
+
+[Install]
+WantedBy=multi-user.target

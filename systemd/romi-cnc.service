@@ -1,0 +1,15 @@
+[Unit]
+Description=Romi CNC service
+ConditionPathExists=/home/romi/romi-apps/build/bin/romi-cnc
+After=network.target
+After=systemd-user-sessions.service
+After=network-online.target
+
+[Service]
+User=romi
+Type=forking
+ExecStart=/home/romi/romi-apps/systemd/romi-cnc-start.sh
+ExecStop=/home/romi/romi-apps/systemd/romi-cnc-stop.sh
+
+[Install]
+WantedBy=multi-user.target

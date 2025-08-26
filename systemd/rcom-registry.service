@@ -1,0 +1,17 @@
+[Unit]
+Description=Rcom Registry service
+ConditionPathExists=/home/romi/romi-apps/build/bin/rcom-registry
+After=network.target
+After=systemd-user-sessions.service
+After=network-online.target
+
+[Service]
+User=romi
+Type=forking
+ExecStart=/home/romi/romi-apps/systemd/rcom-registry-start.sh
+ExecStop=/home/romi/romi-apps/systemd/rcom-registry-stop.sh
+
+[Install]
+WantedBy=multi-user.target
+
+

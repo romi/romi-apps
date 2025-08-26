@@ -1,0 +1,15 @@
+[Unit]
+Description=Romi config service
+ConditionPathExists=/home/romi/romi-apps/build/bin/romi-config
+After=network.target
+After=systemd-user-sessions.service
+After=network-online.target
+
+[Service]
+User=romi
+Type=forking
+ExecStart=/home/romi/romi-apps/systemd/romi-config-start.sh
+ExecStop=/home/romi/romi-apps/systemd/romi-config-stop.sh
+
+[Install]
+WantedBy=multi-user.target
