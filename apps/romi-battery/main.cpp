@@ -28,7 +28,6 @@
 #include <rcom/Linux.h>
 #include <rcom/RegistryServer.h>
 #include <rcom/RcomServer.h>
-#include <rcom/RcomClient.h>
 #include <rcom/RcomMessageHandler.h>
 #include <configuration/RomiOptions.h>
 #include <rpc/RcomLog.h>
@@ -44,13 +43,13 @@ static void quit_on_control_c();
 
 int main(int argc, char **argv)
 {
-        std::shared_ptr<romi::IClock> clock = std::make_shared<romi::Clock>();
-        romi::ClockAccessor::SetInstance(clock);
-
 
         try {
+                std::shared_ptr<romi::IClock> clock = std::make_shared<romi::Clock>();
+                romi::ClockAccessor::SetInstance(clock);
                 romi::RcomLog log;
                 rcom::Linux system(log);
+                
                 // Options
                 romi::RomiOptions options;
                 options.parse(argc, argv);
@@ -79,11 +78,16 @@ int main(int argc, char **argv)
 
                 romi::BatteryMonitorAdaptor adaptor(monitor);
                 rcom::RcomMessageHandler listener(adaptor);
-                auto monitor_server = rcom::RcomServer::create(topic, type, listener,
+                auto server = rcom::RcomServer::create(topic, type, listener,
                                                                log, system);
                 
                 quit_on_control_c();
         
+                while (!quit) {
+                        server->handle_events();
+                        clock->sleep(0.001);
+                }
+                
         } catch (std::exception& e) {
                 r_err("RomiBattery: caught exception: %s", e.what());
         }
