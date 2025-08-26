@@ -1,0 +1,17 @@
+[Unit]
+Description=Romi battery service
+ConditionPathExists=/home/romi/romi-apps/build/bin/romi-battery
+After=network.target
+After=systemd-user-sessions.service
+After=network-online.target
+
+[Service]
+User=romi
+Type=forking
+ExecStart=/home/romi/romi-apps/systemd/romi-battery-start.sh
+ExecStop=/home/romi/romi-apps/systemd/romi-battery-stop.sh
+
+[Install]
+WantedBy=multi-user.target
+
+
