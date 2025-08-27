@@ -42,10 +42,15 @@ namespace romi {
         
         bool LithiumBattery::is_charging()
         {
-                double current = get_current();
+                SynchonizedCodeBlock synchonized(mutex_);
+                return is_charging_locked(); 
+        }
+        
+        bool LithiumBattery::is_charging_locked()
+        {
                 // Allow a tidy negative discharge current. This may
                 // happen when the battery is full.
-                return (current >= -0.001); 
+                return (current_ >= -0.001); 
         }
 
         bool LithiumBattery::is_charged()
@@ -112,7 +117,7 @@ namespace romi {
                 
                 r_info("Battery: %.3f A, %.2f V, %.3f mAh, %.3f Wh, %s, %s",
                        current_, voltage_, charge_, energy_,
-                       is_charging()? "charging" : "discharging",
+                       is_charging_locked()? "charging" : "discharging",
                        is_charged()? "charged" : "...");
         }
 }

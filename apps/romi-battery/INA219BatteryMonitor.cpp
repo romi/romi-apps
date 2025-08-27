@@ -41,11 +41,13 @@ namespace romi {
                         const uint16_t data = static_cast<uint16_t>(be >> 3);
                         result = static_cast<double>(data) * 0.004; // volts
                 } 
+                r_debug("INA219BatteryMonitor::get_voltage done");
                 return result;
         }
 
         double INA219BatteryMonitor::get_current()
         {
+                r_debug("INA219BatteryMonitor::get_current");
                 double result = NaN();
                 uint16_t be;
                 if (ensure_init_() && readReg16_(REG_CURRENT, be)) {
@@ -54,6 +56,7 @@ namespace romi {
                         const int16_t raw = static_cast<int16_t>(be);
                         result = static_cast<double>(raw) * current_lsb_A_;
                 } 
+                r_debug("INA219BatteryMonitor::get_current done");
                 return result;
         }
 
@@ -139,6 +142,7 @@ namespace romi {
                         r_err("INA219: I2C write fail: %s", std::strerror(errno));
                         return false;
                 }
+                r_debug("INA219BatteryMonitor::writeReg16_ done");
                 return true;
         }
 
@@ -168,6 +172,7 @@ namespace romi {
                         return false;
                 }
                 out_be = (uint16_t) (rbuf[0] << 8 | rbuf[1]);
+                r_debug("INA219BatteryMonitor::readReg16_ done");
                 return true;
         }
 

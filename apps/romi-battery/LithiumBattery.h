@@ -28,6 +28,7 @@ namespace romi {
                 void update();
                 void measure();
                 bool is_charged();
+                bool is_charging_locked();
 
         public:
                 // capatity in mAh
