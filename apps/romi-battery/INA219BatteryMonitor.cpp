@@ -33,7 +33,7 @@ namespace romi {
         
         double INA219BatteryMonitor::get_voltage()
         {
-                r_debug("INA219BatteryMonitor::get_voltage");
+                //r_debug("INA219BatteryMonitor::get_voltage");
                 double result = NaN();
                 uint16_t be;
                 if (ensure_init_() && readReg16_(REG_BUS_V, be)) {
@@ -41,13 +41,13 @@ namespace romi {
                         const uint16_t data = static_cast<uint16_t>(be >> 3);
                         result = static_cast<double>(data) * 0.004; // volts
                 } 
-                r_debug("INA219BatteryMonitor::get_voltage done");
+                //r_debug("INA219BatteryMonitor::get_voltage done");
                 return result;
         }
 
         double INA219BatteryMonitor::get_current()
         {
-                r_debug("INA219BatteryMonitor::get_current");
+                //r_debug("INA219BatteryMonitor::get_current");
                 double result = NaN();
                 uint16_t be;
                 if (ensure_init_() && readReg16_(REG_CURRENT, be)) {
@@ -56,7 +56,7 @@ namespace romi {
                         const int16_t raw = static_cast<int16_t>(be);
                         result = static_cast<double>(raw) * current_lsb_A_;
                 } 
-                r_debug("INA219BatteryMonitor::get_current done");
+                //r_debug("INA219BatteryMonitor::get_current done");
                 return result;
         }
 
@@ -122,7 +122,7 @@ namespace romi {
         
         bool INA219BatteryMonitor::writeReg16_(uint8_t reg, uint16_t value_be)
         {
-                r_debug("INA219BatteryMonitor::writeReg16_");
+                //r_debug("INA219BatteryMonitor::writeReg16_");
                 // value_be is already big-endian (msb first) for the bus write
                 uint8_t buf[3] = { reg,
                         static_cast<uint8_t>((value_be >> 8) & 0xFF),
@@ -142,13 +142,13 @@ namespace romi {
                         r_err("INA219: I2C write fail: %s", std::strerror(errno));
                         return false;
                 }
-                r_debug("INA219BatteryMonitor::writeReg16_ done");
+                //r_debug("INA219BatteryMonitor::writeReg16_ done");
                 return true;
         }
 
         bool INA219BatteryMonitor::readReg16_(uint8_t reg, uint16_t& out_be)
         {
-                r_debug("INA219BatteryMonitor::readReg16_");
+                //r_debug("INA219BatteryMonitor::readReg16_");
                 uint8_t regbuf = reg;
                 uint8_t rbuf[2] = {0,0};
                 struct i2c_msg msgs[2]{};
@@ -172,7 +172,7 @@ namespace romi {
                         return false;
                 }
                 out_be = (uint16_t) (rbuf[0] << 8 | rbuf[1]);
-                r_debug("INA219BatteryMonitor::readReg16_ done");
+                //r_debug("INA219BatteryMonitor::readReg16_ done");
                 return true;
         }
 

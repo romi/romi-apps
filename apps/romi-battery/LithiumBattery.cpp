@@ -21,7 +21,8 @@ namespace romi {
                   error_count_(0),
                   timestamp_(0),
                   charge_(capacity),
-                  energy_(0)
+                  energy_(0),
+                  info_count_(0)
         {
                 capacity_energy_ = nominal_voltage_ * capacity_charge_ / 1000.0; // Wh
                 // Ussume that the battery is fully charged at start-up
@@ -74,7 +75,7 @@ namespace romi {
 
         void LithiumBattery::update()
         {
-                r_debug("LithiumBattery::update");
+                //r_debug("LithiumBattery::update");
                 timestamp_ = ClockAccessor::GetInstance()->time();
                 while (!done_) {
                         measure();
@@ -84,7 +85,7 @@ namespace romi {
 
         void LithiumBattery::measure()
         {
-                r_debug("LithiumBattery::measure");
+                //r_debug("LithiumBattery::measure");
                 SynchonizedCodeBlock synchonized(mutex_);
                 
                 double prev_current_ = current_;
@@ -114,10 +115,13 @@ namespace romi {
                         energy_ = capacity_energy_;
                 if (energy_ < 0)
                         energy_ = 0;
-                
-                r_info("Battery: %.3f A, %.2f V, %.3f mAh, %.3f Wh, %s, %s",
-                       current_, voltage_, charge_, energy_,
-                       is_charging_locked()? "charging" : "discharging",
-                       is_charged()? "charged" : "...");
+
+                if (info_count_++ == 60) {
+                        r_info("Battery: %.3f A, %.2f V, %.3f mAh, %.3f Wh, %s, %s",
+                               current_, voltage_, charge_, energy_,
+                               is_charging_locked()? "charging" : "discharging",
+                               is_charged()? "charged" : "...");
+                        info_count_ = 0;
+                }
         }
 }

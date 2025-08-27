@@ -24,6 +24,7 @@ namespace romi {
                 double timestamp_;
                 double charge_;
                 double energy_;
+                int info_count_;
 
                 void update();
                 void measure();
