@@ -26,9 +26,9 @@ namespace romi {
                 capacity_energy_ = nominal_voltage_ * capacity_charge_ / 1000.0; // Wh
                 // Ussume that the battery is fully charged at start-up
                 energy_ = capacity_energy_;
-                r_info("Battery: nominal voltage: %f V, "
-                       "capacity (charge): %f mAh, "
-                       "capacity (energy): %f Wh",
+                r_info("Battery: nominal voltage: %.2f V, "
+                       "capacity (charge): %.2f mAh, "
+                       "capacity (energy): %.2f Wh",
                        nominal_voltage_, capacity_charge_, capacity_energy_);
                 thread_ = std::thread(&LithiumBattery::update, this);
         }
@@ -69,6 +69,7 @@ namespace romi {
 
         void LithiumBattery::update()
         {
+                r_debug("LithiumBattery::update");
                 timestamp_ = ClockAccessor::GetInstance()->time();
                 while (!done_) {
                         measure();
@@ -78,8 +79,9 @@ namespace romi {
 
         void LithiumBattery::measure()
         {
+                r_debug("LithiumBattery::measure");
                 SynchonizedCodeBlock synchonized(mutex_);
-
+                
                 double prev_current_ = current_;
                 double prev_voltage_ = voltage_;
                 double prev_timestamp_ = timestamp_;
