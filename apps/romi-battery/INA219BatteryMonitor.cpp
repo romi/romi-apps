@@ -9,6 +9,7 @@
 #include <linux/i2c.h>
 #include <linux/i2c-dev.h>
 
+#include <util/Logger.h>
 #include "INA219BatteryMonitor.h"
 
 namespace romi {
@@ -32,6 +33,7 @@ namespace romi {
         
         double INA219BatteryMonitor::get_voltage()
         {
+                r_debug("INA219BatteryMonitor::get_voltage");
                 double result = NaN();
                 uint16_t be;
                 if (ensure_init_() && readReg16_(REG_BUS_V, be)) {
@@ -68,8 +70,7 @@ namespace romi {
                         const std::string dev = "/dev/i2c-" + std::to_string(bus_);
                         fd_ = open(dev.c_str(), O_RDWR);
                         if (fd_ < 0) {
-                                std::cerr << "INA219: open failed: "
-                                          << std::strerror(errno) << "\n";
+                                r_err("INA219: open failed: %s", std::strerror(errno));
                                 return false;
                         }
                 }
@@ -89,7 +90,7 @@ namespace romi {
                                                               | MODE_CONT_SVB);
 
                 if (!writeReg16_(REG_CONFIG, config)) {
-                        std::cerr << "INA219: write CONFIG failed\n";
+                        r_err("INA219: write CONFIG failed");
                         return false;
                 }
 
@@ -108,7 +109,7 @@ namespace romi {
                 power_lsb_W_ = 20.0 * current_lsb_A_;
 
                 if (!writeReg16_(REG_CAL, cal_)) {
-                        std::cerr << "INA219: write CAL failed\n";
+                        r_err("INA219: write CAL failed");
                         return false;
                 }
                 
@@ -118,6 +119,7 @@ namespace romi {
         
         bool INA219BatteryMonitor::writeReg16_(uint8_t reg, uint16_t value_be)
         {
+                r_debug("INA219BatteryMonitor::writeReg16_");
                 // value_be is already big-endian (msb first) for the bus write
                 uint8_t buf[3] = { reg,
                         static_cast<uint8_t>((value_be >> 8) & 0xFF),
@@ -134,8 +136,7 @@ namespace romi {
                 pkt.nmsgs = 1;
 
                 if (ioctl(fd_, I2C_RDWR, &pkt) < 0) {
-                        std::cerr << "INA219: I2C write fail: "
-                                  << std::strerror(errno) << "\n";
+                        r_err("INA219: I2C write fail: %s", std::strerror(errno));
                         return false;
                 }
                 return true;
@@ -143,6 +144,7 @@ namespace romi {
 
         bool INA219BatteryMonitor::readReg16_(uint8_t reg, uint16_t& out_be)
         {
+                r_debug("INA219BatteryMonitor::readReg16_");
                 uint8_t regbuf = reg;
                 uint8_t rbuf[2] = {0,0};
                 struct i2c_msg msgs[2]{};
@@ -162,8 +164,7 @@ namespace romi {
                 pkt.nmsgs = 2;
 
                 if (ioctl(fd_, I2C_RDWR, &pkt) < 0) {
-                        std::cerr << "INA219: I2C read fail: "
-                                  << std::strerror(errno) << "\n";
+                        r_err("INA219: I2C read fail: %s", std::strerror(errno));
                         return false;
                 }
                 out_be = (uint16_t) (rbuf[0] << 8 | rbuf[1]);
