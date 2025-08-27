@@ -101,7 +101,8 @@ namespace romi {
                 double I = (prev_current_ + current_) / 2.0;
                 double V = (prev_voltage_ + voltage_) / 2.0; 
                 
-                charge_ += I * h / 1000.0; // mAh
+                double delta_charge_ = I * h * 1000.0; // x1000 → mAh
+                charge_ += delta_charge_;
 
                 if (charge_ > capacity_charge_)
                         charge_ = capacity_charge_;
@@ -117,8 +118,8 @@ namespace romi {
                         energy_ = 0;
 
                 if (info_count_++ == 60) {
-                        r_info("Battery: %.3f A, %.2f V, %.3f mAh, %.3f Wh, %s, %s",
-                               current_, voltage_, charge_, energy_,
+                        r_info("Battery: %.3f A, %.2f V, Δ%.1f/∑%.1f mAh, %.3f Wh, %s, %s",
+                               current_, voltage_, delta_charge_, charge_, energy_,
                                is_charging_locked()? "charging" : "discharging",
                                is_charged()? "charged" : "...");
                         info_count_ = 0;
