@@ -20,10 +20,12 @@ namespace romi {
                   voltage_(0),
                   error_count_(0),
                   timestamp_(0),
-                  charge_(0),
+                  charge_(capacity),
                   energy_(0)
         {
                 capacity_energy_ = nominal_voltage_ * capacity_charge_ / 1000.0; // Wh
+                // Ussume that the battery is fully charged at start-up
+                energy_ = capacity_energy_;
                 r_info("Battery: nominal voltage: %f V, "
                        "capacity (charge): %f mAh, "
                        "capacity (energy): %f Wh",
