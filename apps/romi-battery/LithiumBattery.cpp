@@ -18,8 +18,11 @@ namespace romi {
                   mutex_(),
                   current_(0),
                   voltage_(0),
-                  error_count_(0),
                   timestamp_(0),
+                  prev_current_(0),
+                  prev_voltage_(0),
+                  prev_timestamp_(0),
+                  error_count_(0),
                   charge_(capacity),
                   energy_(0),
                   info_count_(0)
@@ -75,19 +78,25 @@ namespace romi {
 
         void LithiumBattery::update()
         {
-                //r_debug("LithiumBattery::update");
                 timestamp_ = ClockAccessor::GetInstance()->time();
                 while (!done_) {
-                        measure();
+                        updated_locked();
                         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
                 }
         }
 
+        void LithiumBattery::updated_locked()
+        {
+                SynchonizedCodeBlock synchonized(mutex_);
+                measure();
+                update_charge();
+                update_energy();
+                set_capacity_if_charged();
+                print();
+        }
+        
         void LithiumBattery::measure()
         {
-                //r_debug("LithiumBattery::measure");
-                SynchonizedCodeBlock synchonized(mutex_);
-                
                 double prev_current_ = current_;
                 double prev_voltage_ = voltage_;
                 double prev_timestamp_ = timestamp_;
@@ -95,29 +104,41 @@ namespace romi {
                 voltage_ = monitor_.get_voltage();
                 current_ = monitor_.get_current();
                 timestamp_ = ClockAccessor::GetInstance()->time();
-
+        }
+        
+        void LithiumBattery::update_charge()
+        {
                 // seconds to hour
                 double h = (timestamp_ - prev_timestamp_) / 3600.0;
                 double I = (prev_current_ + current_) / 2.0;
                 double V = (prev_voltage_ + voltage_) / 2.0; 
-                
                 double delta_charge_ = I * h * 1000.0; // x1000 → mAh
+                
                 charge_ += delta_charge_;
-
                 if (charge_ > capacity_charge_)
                         charge_ = capacity_charge_;
                 if (charge_ < 0)
                         charge_ = 0;
-
+        }
+        
+        void LithiumBattery::update_energy()
+        {
+                // seconds to hour
+                double h = (timestamp_ - prev_timestamp_) / 3600.0;
+                double I = (prev_current_ + current_) / 2.0;
+                double V = (prev_voltage_ + voltage_) / 2.0;
                 double P = V * I;
                 double delta_energy = P * h; // in Wh
+                
                 energy_ += delta_energy; 
-
                 if (energy_ > capacity_energy_)
                         energy_ = capacity_energy_;
                 if (energy_ < 0)
                         energy_ = 0;
-
+        }
+        
+        void LithiumBattery::print()
+        {
                 if (info_count_++ == 60) {
                         r_info("Battery: %.3f A, %.2f V, "
                                "Δ(%.1f)/∑(%.1f) mAh, "
@@ -129,6 +150,14 @@ namespace romi {
                                is_charging_locked()? "charging" : "discharging",
                                is_charged()? "charged" : "...");
                         info_count_ = 0;
+                }
+        }
+        
+        void LithiumBattery::set_capacity_if_charged()
+        {
+                if (is_charged()) {
+                        charge_ = capacity_charge_;
+                        energy_ = capacity_energy_;
                 }
         }
 }

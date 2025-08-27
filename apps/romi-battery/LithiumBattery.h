@@ -20,14 +20,22 @@ namespace romi {
                 std::mutex mutex_;
                 double current_;
                 double voltage_;
-                uint32_t error_count_;
                 double timestamp_;
+                double prev_current_;
+                double prev_voltage_;
+                double prev_timestamp_;
+                uint32_t error_count_;
                 double charge_;
                 double energy_;
                 int info_count_;
 
                 void update();
+                void updated_locked();
                 void measure();
+                void update_charge();
+                void update_energy();
+                void print();
+                void set_capacity_if_charged();
                 bool is_charged();
                 bool is_charging_locked();
 
