@@ -19,7 +19,6 @@ namespace romi {
 
                 ~INA219BatteryMonitor() override;
 
-                bool is_charging() override;
                 double get_voltage() override;
                 double get_current() override;
 
@@ -51,6 +50,6 @@ namespace romi {
                 bool initialized_ = false;
                 uint16_t cal_ = 0;
                 double current_lsb_A_ = 0.0;
-                double power_lsb_W_ = 0.0; 
+                double power_lsb_W_ = 0.0;
         };
 }

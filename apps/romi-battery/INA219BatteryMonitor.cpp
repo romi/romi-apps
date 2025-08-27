@@ -30,34 +30,29 @@ namespace romi {
                         close(fd_);
         }
         
-        bool INA219BatteryMonitor::is_charging()
-        {
-                double current = get_current();
-                // Allow a tidy negative discharge current. This may
-                // happen when the battery is full.
-                return (current >= -0.001); 
-        }
-
         double INA219BatteryMonitor::get_voltage()
         {
-                if (!ensure_init_())
-                        return NaN();
+                double result = NaN();
                 uint16_t be;
-                if (!readReg16_(REG_BUS_V, be))
-                        return NaN();
-                // BUS_V: bits [15:3] are data, LSB = 4 mV.
-                const uint16_t data = static_cast<uint16_t>(be >> 3);
-                return static_cast<double>(data) * 0.004; // volts
+                if (ensure_init_() && readReg16_(REG_BUS_V, be)) {
+                        // BUS_V: bits [15:3] are data, LSB = 4 mV.
+                        const uint16_t data = static_cast<uint16_t>(be >> 3);
+                        result = static_cast<double>(data) * 0.004; // volts
+                } 
+                return result;
         }
 
         double INA219BatteryMonitor::get_current()
         {
-                if (!ensure_init_()) return NaN();
+                double result = NaN();
                 uint16_t be;
-                if (!readReg16_(REG_CURRENT, be)) return NaN();
-                // CURRENT is signed; scale by Current_LSB set during calibration.
-                const int16_t raw = static_cast<int16_t>(be);
-                return static_cast<double>(raw) * current_lsb_A_;
+                if (ensure_init_() && readReg16_(REG_CURRENT, be)) {
+                        // CURRENT is signed; scale by Current_LSB set
+                        // during calibration.
+                        const int16_t raw = static_cast<int16_t>(be);
+                        result = static_cast<double>(raw) * current_lsb_A_;
+                } 
+                return result;
         }
 
         bool INA219BatteryMonitor::ensure_init_()
@@ -116,11 +111,11 @@ namespace romi {
                         std::cerr << "INA219: write CAL failed\n";
                         return false;
                 }
-
+                
                 initialized_ = true;
                 return true;
         }
-
+        
         bool INA219BatteryMonitor::writeReg16_(uint8_t reg, uint16_t value_be)
         {
                 // value_be is already big-endian (msb first) for the bus write

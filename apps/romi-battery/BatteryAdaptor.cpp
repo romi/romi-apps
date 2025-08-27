@@ -22,45 +22,45 @@
 
  */
 #include "util/Logger.h"
-#include "MethodsBatteryMonitor.h"
-#include "BatteryMonitorAdaptor.h"
+#include "MethodsBattery.h"
+#include "BatteryAdaptor.h"
 
 namespace romi {
 
-        BatteryMonitorAdaptor::BatteryMonitorAdaptor(IBatteryMonitor& monitor)
-                : monitor_(monitor)
+        BatteryAdaptor::BatteryAdaptor(IBattery& battery)
+                : battery_(battery)
         {
         }
 
-        void BatteryMonitorAdaptor::execute(const std::string&,
+        void BatteryAdaptor::execute(const std::string&,
                                             const std::string&,
                                             nlohmann::json& result,
                                             rcom::MemBuffer&,
                                             rcom::RPCError& error)
         {
-                r_debug("BatteryMonitorAdaptor::execute (binary)");
+                r_debug("BatteryAdaptor::execute (binary)");
                 result.clear();
                 error.code = rcom::RPCError::kMethodNotFound;
                 error.message = "Unknown method";
         }
 
-        void BatteryMonitorAdaptor::execute(const std::string&,
+        void BatteryAdaptor::execute(const std::string&,
                                     const std::string& method,
                                     nlohmann::json& params,
                                     nlohmann::json& result,
                                     rcom::RPCError& error)
         {
                 error.code = 0;
-                r_debug("BatteryMonitorAdaptor::execute (text)");
+                r_debug("BatteryAdaptor::execute (text)");
                                 
                 try {
-                        if (method == MethodsBatteryMonitor::kIsCharging) {
+                        if (method == MethodsBattery::kIsCharging) {
                                 execute_is_charging(result, error);
                                 
-                        } else if (method == MethodsBatteryMonitor::kGetVoltage) {
+                        } else if (method == MethodsBattery::kGetVoltage) {
                                 execute_get_voltage(result, error);
                                 
-                        } else if (method == MethodsBatteryMonitor::kGetCurrent) {
+                        } else if (method == MethodsBattery::kGetCurrent) {
                                 execute_get_current(result, error);
                                 
                         } else {
@@ -74,21 +74,21 @@ namespace romi {
                 }
         }
 
-        void BatteryMonitorAdaptor::execute_is_charging(nlohmann::json& result,
+        void BatteryAdaptor::execute_is_charging(nlohmann::json& result,
                                                         rcom::RPCError& error)
         {
-                result = {{MethodsBatteryMonitor::kCharging, monitor_.is_charging()}};
+                result = {{MethodsBattery::kCharging, battery_.is_charging()}};
         }
 
-        void BatteryMonitorAdaptor::execute_get_voltage(nlohmann::json& result,
+        void BatteryAdaptor::execute_get_voltage(nlohmann::json& result,
                                                         rcom::RPCError& error)
         {
-                result = {{MethodsBatteryMonitor::kVoltage, monitor_.get_voltage()}};
+                result = {{MethodsBattery::kVoltage, battery_.get_voltage()}};
         }
 
-        void BatteryMonitorAdaptor::execute_get_current(nlohmann::json& result,
+        void BatteryAdaptor::execute_get_current(nlohmann::json& result,
                                                         rcom::RPCError& error)
         {
-                result = {{MethodsBatteryMonitor::kCurrent, monitor_.get_current()}};
+                result = {{MethodsBattery::kCurrent, battery_.get_current()}};
         }
 }

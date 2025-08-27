@@ -34,7 +34,8 @@
 #include <util/ClockAccessor.h>
 #include <util/Logger.h>
 
-#include "BatteryMonitorAdaptor.h"
+#include "LithiumBattery.h"
+#include "BatteryAdaptor.h"
 #include "INA219BatteryMonitor.h"
 
 static bool quit = false;
@@ -76,7 +77,8 @@ int main(int argc, char **argv)
                 romi::INA219BatteryMonitor monitor;
                 monitor.begin();
 
-                romi::BatteryMonitorAdaptor adaptor(monitor);
+                romi::LithiumBattery battery(monitor, 3.7, 1600.0);
+                romi::BatteryAdaptor adaptor(battery);
                 rcom::RcomMessageHandler listener(adaptor);
                 auto server = rcom::RcomServer::create(topic, type, listener,
                                                                log, system);

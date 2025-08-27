@@ -1,0 +1,114 @@
+#include <util/Logger.h>
+#include <util/ClockAccessor.h>
+#include "LithiumBattery.h"
+
+namespace romi {
+
+        using SynchonizedCodeBlock = std::lock_guard<std::mutex>;
+        
+        LithiumBattery::LithiumBattery(IBatteryMonitor& monitor,
+                                       double voltage,
+                                       double capacity)
+                : monitor_(monitor),
+                  nominal_voltage_(voltage),
+                  capacity_charge_(capacity),
+                  capacity_energy_(0),
+                  done_(false),
+                  thread_(),
+                  mutex_(),
+                  current_(0),
+                  voltage_(0),
+                  error_count_(0),
+                  timestamp_(0),
+                  charge_(0),
+                  energy_(0)
+        {
+                capacity_energy_ = nominal_voltage_ * capacity_charge_ / 1000.0; // Wh
+                r_info("Battery: nominal voltage: %f V, "
+                       "capacity (charge): %f mAh, "
+                       "capacity (energy): %f Wh",
+                       nominal_voltage_, capacity_charge_, capacity_energy_);
+                thread_ = std::thread(&LithiumBattery::update, this);
+        }
+
+        LithiumBattery::~LithiumBattery()
+        {
+                done_ = true;
+                if (thread_.joinable())
+                        thread_.join();
+        }
+        
+        bool LithiumBattery::is_charging()
+        {
+                double current = get_current();
+                // Allow a tidy negative discharge current. This may
+                // happen when the battery is full.
+                return (current >= -0.001); 
+        }
+
+        bool LithiumBattery::is_charged()
+        {
+                return ((voltage_ > 4.15) &&
+                        ((current_ > -0.001)
+                         && (current_ < 0.001))) ;
+        }
+
+        double LithiumBattery::get_voltage()
+        {
+                SynchonizedCodeBlock synchonized(mutex_);
+                return voltage_;
+        }
+
+        double LithiumBattery::get_current()
+        {
+                SynchonizedCodeBlock synchonized(mutex_);
+                return current_;
+        }
+
+        void LithiumBattery::update()
+        {
+                timestamp_ = ClockAccessor::GetInstance()->time();
+                while (!done_) {
+                        measure();
+                        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                }
+        }
+
+        void LithiumBattery::measure()
+        {
+                SynchonizedCodeBlock synchonized(mutex_);
+
+                double prev_current_ = current_;
+                double prev_voltage_ = voltage_;
+                double prev_timestamp_ = timestamp_;
+                
+                voltage_ = monitor_.get_voltage();
+                current_ = monitor_.get_current();
+                timestamp_ = ClockAccessor::GetInstance()->time();
+
+                // seconds to hour
+                double h = (timestamp_ - prev_timestamp_) / 3600.0;
+                double I = (prev_current_ + current_) / 2.0;
+                double V = (prev_voltage_ + voltage_) / 2.0; 
+                
+                charge_ += I * h / 1000.0; // mAh
+
+                if (charge_ > capacity_charge_)
+                        charge_ = capacity_charge_;
+                if (charge_ < 0)
+                        charge_ = 0;
+
+                double P = V * I;
+                energy_ += P * h; // Wh
+
+                if (energy_ > capacity_energy_)
+                        energy_ = capacity_energy_;
+                if (energy_ < 0)
+                        energy_ = 0;
+                
+                r_info("Battery: %.3f A, %.2f V, %.3f mAh, %.3f Wh, %s, %s",
+                       current_, voltage_, charge_, energy_,
+                       is_charging()? "charging" : "discharging",
+                       is_charged()? "charged" : "...");
+        }
+}

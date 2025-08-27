@@ -21,26 +21,26 @@
   <http://www.gnu.org/licenses/>.
 
  */
-#ifndef ROMI_BATTERYMONITORADAPTOR_H
-#define ROMI_BATTERYMONITORADAPTOR_H
+#ifndef ROMI_BATTERYADAPTOR_H
+#define ROMI_BATTERYADAPTOR_H
 
 #include <rcom/IRPCHandler.h>
-#include "IBatteryMonitor.h"
+#include "IBattery.h"
 
 namespace romi {
 
-        class BatteryMonitorAdaptor : public rcom::IRPCHandler
+        class BatteryAdaptor : public rcom::IRPCHandler
         {
         protected:
-                IBatteryMonitor& monitor_;
+                IBattery& battery_;
 
                 void execute_is_charging(nlohmann::json& result, rcom::RPCError& error);
                 void execute_get_voltage(nlohmann::json& result, rcom::RPCError& error);
                 void execute_get_current(nlohmann::json& result, rcom::RPCError& error);
                 
         public:
-                BatteryMonitorAdaptor(IBatteryMonitor& monitor);
-                ~BatteryMonitorAdaptor() override = default;
+                BatteryAdaptor(IBattery& battery);
+                ~BatteryAdaptor() override = default;
         
                 void execute(const std::string& id,
                              const std::string& method,
@@ -55,4 +55,4 @@ namespace romi {
         };
 }
 
-#endif // ROMI_BATTERYMONITORADAPTOR_H
+#endif // ROMI_BATTERYADAPTOR_H

@@ -21,22 +21,22 @@
   <http://www.gnu.org/licenses/>.
 
  */
-#ifndef __ROMI_METHODSBATTERYMONITOR_H
-#define __ROMI_METHODSBATTERYMONITOR_H
+#ifndef __ROMI_METHODSBATTERY_H
+#define __ROMI_METHODSBATTERY_H
 
 namespace romi {
         
-        class MethodsBatteryMonitor
+        class MethodsBattery
         {
         public:
-                static constexpr const char *kIsCharging = "battery-monitor:is-charging";
-                static constexpr const char *kGetVoltage = "battery-monitor:get-voltage";
-                static constexpr const char *kGetCurrent = "battery-monitor:get-current";
+                static constexpr const char *kIsCharging = "battery:is-charging";
+                static constexpr const char *kGetVoltage = "battery:get-voltage";
+                static constexpr const char *kGetCurrent = "battery:get-current";
 
-                static constexpr const char *kCharging = "battery-monitor:charging";
-                static constexpr const char *kVoltage = "battery-monitor:voltage";
-                static constexpr const char *kCurrent = "battery-monitor:current";
+                static constexpr const char *kCharging = "battery:charging";
+                static constexpr const char *kVoltage = "battery:voltage";
+                static constexpr const char *kCurrent = "battery:current";
         };
 }
 
-#endif // __ROMI_METHODSBATTERYMONITOR_H
+#endif // __ROMI_METHODSBATTERY_H

@@ -3,12 +3,15 @@ project(romi-battery)
 
 set(SOURCES
   main.cpp
-  BatteryMonitorAdaptor.h
-  BatteryMonitorAdaptor.cpp
+  BatteryAdaptor.h
+  BatteryAdaptor.cpp
+  IBattery.h
   IBatteryMonitor.h
   INA219BatteryMonitor.h
   INA219BatteryMonitor.cpp
-  MethodsBatteryMonitor.h
+  LithiumBattery.h
+  LithiumBattery.cpp
+  MethodsBattery.h
   )
 
 add_executable(romi-battery ${SOURCES})
