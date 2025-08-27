@@ -110,7 +110,8 @@ namespace romi {
                         charge_ = 0;
 
                 double P = V * I;
-                energy_ += P * h; // Wh
+                double delta_energy = P * h; // in Wh
+                energy_ += delta_energy; 
 
                 if (energy_ > capacity_energy_)
                         energy_ = capacity_energy_;
@@ -118,8 +119,13 @@ namespace romi {
                         energy_ = 0;
 
                 if (info_count_++ == 60) {
-                        r_info("Battery: %.3f A, %.2f V, Δ%.1f/∑%.1f mAh, %.3f Wh, %s, %s",
-                               current_, voltage_, delta_charge_, charge_, energy_,
+                        r_info("Battery: %.3f A, %.2f V, "
+                               "Δ(%.1f)/∑(%.1f) mAh, "
+                               "Δ(%.3f)/∑(%.2f) Wh, "
+                               "%s, %s",
+                               current_, voltage_,
+                               delta_charge_, charge_,
+                               delta_energy, energy_,
                                is_charging_locked()? "charging" : "discharging",
                                is_charged()? "charged" : "...");
                         info_count_ = 0;
