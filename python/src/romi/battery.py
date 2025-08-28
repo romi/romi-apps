@@ -21,6 +21,9 @@ class Battery():
         
     def get_current(self):
         return self.client.execute('battery:get-current')
+        
+    def get_status(self):
+        return self.client.execute('battery:get-status')
 
         
 if __name__ == '__main__':
