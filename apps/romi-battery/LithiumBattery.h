@@ -36,8 +36,8 @@ namespace romi {
                 void update_energy();
                 void print();
                 void set_capacity_if_charged();
-                bool is_charged();
                 bool is_charging_locked();
+                bool is_charged_locked();
 
         public:
                 // capatity in mAh
@@ -45,6 +45,7 @@ namespace romi {
                 virtual ~LithiumBattery() override;
 
                 bool is_charging() override;
+                bool is_charged() override;
                 double get_voltage() override;
                 double get_current() override;
                 double get_level() override;

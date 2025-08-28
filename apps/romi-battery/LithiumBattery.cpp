@@ -57,6 +57,12 @@ namespace romi {
 
         bool LithiumBattery::is_charged()
         {
+                SynchonizedCodeBlock synchonized(mutex_);
+                return is_charged_locked();
+        }
+
+        bool LithiumBattery::is_charged_locked()
+        {
                 return ((voltage_ > 4.15) &&
                         ((current_ > -0.001)
                          && (current_ < 0.001))) ;
@@ -77,7 +83,7 @@ namespace romi {
         double LithiumBattery::get_level()
         {
                 SynchonizedCodeBlock synchonized(mutex_);
-                return charge_ / capacity_energy_;
+                return charge_ / capacity_charge_;
         }
 
         void LithiumBattery::update()
@@ -148,14 +154,14 @@ namespace romi {
                                current_, voltage_,
                                charge_, energy_,
                                is_charging_locked()? "charging" : "discharging",
-                               is_charged()? "charged" : "...");
+                               is_charged_locked()? "charged" : "...");
                         info_count_ = 0;
                 }
         }
         
         void LithiumBattery::set_capacity_if_charged()
         {
-                if (is_charged()) {
+                if (is_charged_locked()) {
                         charge_ = capacity_charge_;
                         energy_ = capacity_energy_;
                 }

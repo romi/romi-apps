@@ -110,6 +110,7 @@ namespace romi {
                 result = {{MethodsBattery::kLevel, battery_.get_level()},
                           {MethodsBattery::kCurrent, battery_.get_current()},
                           {MethodsBattery::kVoltage, battery_.get_voltage()},
-                          {MethodsBattery::kIsCharging, battery_.is_charging()}};
+                          {MethodsBattery::kIsCharging, battery_.is_charging()},
+                          {MethodsBattery::kCharged, battery_.is_charged()}};
         }
 }

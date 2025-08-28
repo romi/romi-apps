@@ -39,6 +39,7 @@ namespace romi {
                 static constexpr const char *kVoltage = "voltage";
                 static constexpr const char *kCurrent = "current";
                 static constexpr const char *kLevel = "level";
+                static constexpr const char *kCharged = "charged";
         };
 }
 
