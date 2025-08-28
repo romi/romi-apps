@@ -38,7 +38,6 @@ namespace romi {
                                             rcom::MemBuffer&,
                                             rcom::RPCError& error)
         {
-                r_debug("BatteryAdaptor::execute (binary)");
                 result.clear();
                 error.code = rcom::RPCError::kMethodNotFound;
                 error.message = "Unknown method";
@@ -51,7 +50,6 @@ namespace romi {
                                     rcom::RPCError& error)
         {
                 error.code = 0;
-                r_debug("BatteryAdaptor::execute (text)");
                                 
                 try {
                         if (method == MethodsBattery::kIsCharging) {
