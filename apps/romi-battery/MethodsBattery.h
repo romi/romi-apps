@@ -33,11 +33,12 @@ namespace romi {
                 static constexpr const char *kGetVoltage = "battery:get-voltage";
                 static constexpr const char *kGetCurrent = "battery:get-current";
                 static constexpr const char *kGetLevel = "battery:get-level";
+                static constexpr const char *kGetStatus = "battery:get-status";
 
-                static constexpr const char *kCharging = "battery:charging";
-                static constexpr const char *kVoltage = "battery:voltage";
-                static constexpr const char *kCurrent = "battery:current";
-                static constexpr const char *kLevel = "battery:level";
+                static constexpr const char *kCharging = "charging";
+                static constexpr const char *kVoltage = "voltage";
+                static constexpr const char *kCurrent = "current";
+                static constexpr const char *kLevel = "level";
         };
 }
 
