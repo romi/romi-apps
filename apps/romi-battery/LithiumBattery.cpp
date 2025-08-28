@@ -23,13 +23,11 @@ namespace romi {
                   prev_voltage_(0),
                   prev_timestamp_(0),
                   error_count_(0),
-                  charge_(capacity),
+                  charge_(0),
                   energy_(0),
                   info_count_(0)
         {
                 capacity_energy_ = nominal_voltage_ * capacity_charge_ / 1000.0; // Wh
-                // Ussume that the battery is fully charged at start-up
-                energy_ = capacity_energy_;
                 r_info("Battery: nominal voltage: %.2f V, "
                        "capacity (charge): %.2f mAh, "
                        "capacity (energy): %.2f Wh",
@@ -74,6 +72,12 @@ namespace romi {
         {
                 SynchonizedCodeBlock synchonized(mutex_);
                 return current_;
+        }
+
+        double LithiumBattery::get_level()
+        {
+                SynchonizedCodeBlock synchonized(mutex_);
+                return charge_ / capacity_energy_;
         }
 
         void LithiumBattery::update()

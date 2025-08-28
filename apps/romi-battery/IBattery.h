@@ -10,6 +10,6 @@ namespace romi {
                 virtual bool is_charging() = 0;
                 virtual double get_voltage() = 0;
                 virtual double get_current() = 0;
-                //virtual double get_percentage() = 0;
+                virtual double get_level() = 0;
         };
 }

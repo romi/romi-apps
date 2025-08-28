@@ -47,6 +47,6 @@ namespace romi {
                 bool is_charging() override;
                 double get_voltage() override;
                 double get_current() override;
-                //double get_percentage() override;
+                double get_level() override;
         };
 }

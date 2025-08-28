@@ -63,6 +63,9 @@ namespace romi {
                         } else if (method == MethodsBattery::kGetCurrent) {
                                 execute_get_current(result, error);
                                 
+                        } else if (method == MethodsBattery::kGetLevel) {
+                                execute_get_current(result, error);
+                                
                         } else {
                                 error.code = rcom::RPCError::kMethodNotFound;
                                 error.message = "Unknown method";
@@ -90,5 +93,11 @@ namespace romi {
                                                         rcom::RPCError& error)
         {
                 result = {{MethodsBattery::kCurrent, battery_.get_current()}};
+        }
+
+        void BatteryAdaptor::execute_get_level(nlohmann::json& result,
+                                               rcom::RPCError& error)
+        {
+                result = {{MethodsBattery::kLevel, battery_.get_level()}};
         }
 }

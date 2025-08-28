@@ -37,6 +37,7 @@ namespace romi {
                 void execute_is_charging(nlohmann::json& result, rcom::RPCError& error);
                 void execute_get_voltage(nlohmann::json& result, rcom::RPCError& error);
                 void execute_get_current(nlohmann::json& result, rcom::RPCError& error);
+                void execute_get_level(nlohmann::json& result, rcom::RPCError& error);
                 
         public:
                 BatteryAdaptor(IBattery& battery);
