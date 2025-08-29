@@ -46,7 +46,7 @@
 
 #include <romi_config.h>
 
-#include "Oquam.h"
+#include "CNC.h"
 #include "StepperSettings.h"
 #include "CNCOptions.h"
 #include "CNCFactory.h"
@@ -153,7 +153,7 @@ int main(int argc, char** argv)
                 r_info("Session directory: %s", directory.c_str());
                 romi::Session session(system, directory, std::move(device),
                                       std::move(location));
-                session.start("oquam_observation_id");
+                session.start("cnc_observation_id");
                 
                 // CNC
                 romi::CNCFactory factory;
@@ -222,7 +222,7 @@ int main(int argc, char** argv)
                 double max_slice_duration = stepper_settings.compute_minimum_duration(max_steps_per_block);
                                         
                         
-                romi::OquamSettings oquam_settings(axes,
+                romi::CNCSettings cnc_settings(axes,
                                                    stepper_settings.maximum_speed,
                                                    stepper_settings.maximum_acceleration,
                                                    stepper_settings.steps_per_meter,
@@ -230,10 +230,10 @@ int main(int argc, char** argv)
                                                    slice_duration,
                                                    max_slice_duration);
                 
-                romi::Oquam oquam(controller, oquam_settings, session);
+                romi::CNC cnc(controller, cnc_settings, session);
 
                 // RPC access
-                romi::CNCAdaptor adaptor(oquam);
+                romi::CNCAdaptor adaptor(cnc);
                 rcom::RcomMessageHandler listener(adaptor);
                 auto server = rcom::RcomServer::create(topic, type, listener, log, system);
                 

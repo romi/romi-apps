@@ -4,7 +4,7 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "Helix.h"
-#include "Oquam.h"
+#include "CNC.h"
 #include "StepperSettings.h"
 #include <mock_cnccontroller.h>
 //#include <mock_session.h>
@@ -555,7 +555,7 @@ TEST_F(helix_tests, test_helix_full_circle)
         double max_steps_per_block = 32000.0; // Should be less than 2^15/2-1
         double max_slice_duration = stepper_settings.compute_minimum_duration(max_steps_per_block);
                 
-        romi::OquamSettings settings(range,
+        romi::CNCSettings settings(range,
                                            stepper_settings.maximum_speed,
                                            stepper_settings.maximum_acceleration,
                                            stepper_settings.steps_per_meter,
@@ -581,7 +581,7 @@ TEST_F(helix_tests, test_helix_full_circle)
         EXPECT_CALL(controller, synchronize(_))
                 .WillRepeatedly(Return(true));
 
-        romi::Oquam oquam(controller, settings, session);
+        romi::CNC oquam(controller, settings, session);
 
         // Act
         oquam.moveto(0.0, 0.375, 0.0, 0.5);

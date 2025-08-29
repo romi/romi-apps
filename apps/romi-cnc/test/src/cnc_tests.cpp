@@ -2,7 +2,7 @@
 #include "gmock/gmock.h"
 #include "mock_cnccontroller.h"
 #include "mock_clock.h"
-#include "Oquam.h"
+#include "CNC.h"
 
 #include <rcom/Linux.h>
 
@@ -33,7 +33,7 @@ protected:
         const romi::AxisIndex homing[3] = {romi::kAxisX, romi::kAxisY, romi::kNoAxis};
         
         CNCRange range;
-        OquamSettings settings;
+        CNCSettings settings;
         MockCNCController controller;
         
 	cnc_tests()
@@ -42,7 +42,7 @@ protected:
                            max_slice_interval, homing, kHomingDefault),
                   controller(),
                   linux(),
-                  romiDeviceData("Oquam", "0001"),
+                  romiDeviceData("CNC", "0001"),
                   softwareVersion(),
                   gps(),
                   locationPrivider(),
@@ -128,7 +128,7 @@ TEST_F(cnc_tests, constructor_calls_set_homing_axes)
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start(observation_id);
 
-        Oquam oquam(controller, settings, session);
+        CNC cnc(controller, settings, session);
 }
 
 TEST_F(cnc_tests, constructor_throws_exception_when_set_homing_axes_fails)
@@ -140,7 +140,7 @@ TEST_F(cnc_tests, constructor_throws_exception_when_set_homing_axes_fails)
         try {
                 romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
                 session.start(observation_id);
-                Oquam oquam(controller, settings, session);
+                CNC cnc(controller, settings, session);
                 FAIL() << "Excpected a runtime error";
                 
         } catch (std::runtime_error& e) {
@@ -157,8 +157,8 @@ TEST_F(cnc_tests, pause_activity_calls_controller_1)
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start(observation_id);
-        Oquam oquam(controller, settings, session);
-        bool success = oquam.pause_activity();
+        CNC cnc(controller, settings, session);
+        bool success = cnc.pause_activity();
         ASSERT_EQ(success, true);
 }
 
@@ -171,8 +171,8 @@ TEST_F(cnc_tests, pause_activity_calls_controller_2)
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start(observation_id);
-        Oquam oquam(controller, settings, session);
-        bool success = oquam.pause_activity();
+        CNC cnc(controller, settings, session);
+        bool success = cnc.pause_activity();
         ASSERT_EQ(success, false);
 }
 
@@ -185,8 +185,8 @@ TEST_F(cnc_tests, continue_activity_calls_controller_1)
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start(observation_id);
-        Oquam oquam(controller, settings, session);
-        bool success = oquam.continue_activity();
+        CNC cnc(controller, settings, session);
+        bool success = cnc.continue_activity();
         ASSERT_EQ(success, true);
 }
 
@@ -199,8 +199,8 @@ TEST_F(cnc_tests, continue_activity_calls_controller_2)
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start(observation_id);
-        Oquam oquam(controller, settings, session);
-        bool success = oquam.continue_activity();
+        CNC cnc(controller, settings, session);
+        bool success = cnc.continue_activity();
         ASSERT_EQ(success, false);
 }
 
@@ -213,8 +213,8 @@ TEST_F(cnc_tests, reset_calls_controller_1)
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start(observation_id);
-        Oquam oquam(controller, settings, session);
-        bool success = oquam.reset_activity();
+        CNC cnc(controller, settings, session);
+        bool success = cnc.reset_activity();
         ASSERT_EQ(success, true);
 }
 
@@ -227,8 +227,8 @@ TEST_F(cnc_tests, reset_calls_controller_2)
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start(observation_id);
-        Oquam oquam(controller, settings, session);
-        bool success = oquam.reset_activity();
+        CNC cnc(controller, settings, session);
+        bool success = cnc.reset_activity();
         ASSERT_EQ(success, false);
 }
 
@@ -242,10 +242,10 @@ TEST_F(cnc_tests, constructor_copies_range)
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start(observation_id);
-        Oquam oquam(controller, settings, session);
+        CNC cnc(controller, settings, session);
 
         CNCRange range;
-        oquam.get_range(range);
+        cnc.get_range(range);
 
         ASSERT_EQ(range.xmin(), xmin[0]);
         ASSERT_EQ(range.xmax(), xmax[0]);
@@ -261,10 +261,10 @@ TEST_F(cnc_tests, moveto_returns_error_when_speed_is_invalid)
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start(observation_id);
-        Oquam oquam(controller, settings, session);
+        CNC cnc(controller, settings, session);
         
-        ASSERT_EQ(oquam.moveto(0.1, 0.0, 0.0, 1.1), false);
-        ASSERT_EQ(oquam.moveto(0.1, 0.0, 0.0, -0.1), false);
+        ASSERT_EQ(cnc.moveto(0.1, 0.0, 0.0, 1.1), false);
+        ASSERT_EQ(cnc.moveto(0.1, 0.0, 0.0, -0.1), false);
 }
 
 TEST_F(cnc_tests, moveto_returns_error_when_position_is_invalid)
@@ -273,13 +273,13 @@ TEST_F(cnc_tests, moveto_returns_error_when_position_is_invalid)
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start(observation_id);
-        Oquam oquam(controller, settings, session);
-        ASSERT_EQ(oquam.moveto(range.xmin()-0.1, 0.0, 0.0, 0.1), false);
-        ASSERT_EQ(oquam.moveto(range.xmax()+0.1, 0.0, 0.0, 0.1), false);
-        ASSERT_EQ(oquam.moveto(0.0, range.ymin()-0.1, 0.0, 0.1), false);
-        ASSERT_EQ(oquam.moveto(0.0, range.ymax()+0.1, 0.0, 0.1), false);
-        ASSERT_EQ(oquam.moveto(0.0, 0.0, range.zmin()-0.1, 0.1), false);
-        ASSERT_EQ(oquam.moveto(0.0, 0.0, range.zmax()+0.1, 0.1), false);
+        CNC cnc(controller, settings, session);
+        ASSERT_EQ(cnc.moveto(range.xmin()-0.1, 0.0, 0.0, 0.1), false);
+        ASSERT_EQ(cnc.moveto(range.xmax()+0.1, 0.0, 0.0, 0.1), false);
+        ASSERT_EQ(cnc.moveto(0.0, range.ymin()-0.1, 0.0, 0.1), false);
+        ASSERT_EQ(cnc.moveto(0.0, range.ymax()+0.1, 0.0, 0.1), false);
+        ASSERT_EQ(cnc.moveto(0.0, 0.0, range.zmin()-0.1, 0.1), false);
+        ASSERT_EQ(cnc.moveto(0.0, 0.0, range.zmax()+0.1, 0.1), false);
 }
 
 TEST_F(cnc_tests, returns_false_when_get_position_fails)
@@ -295,8 +295,8 @@ TEST_F(cnc_tests, returns_false_when_get_position_fails)
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start(observation_id);
-        Oquam oquam(controller, settings, session);
-        bool success = oquam.moveto(0.1, 0.0, 0.0, 0.3);
+        CNC cnc(controller, settings, session);
+        bool success = cnc.moveto(0.1, 0.0, 0.0, 0.3);
         ASSERT_EQ(success, false);        
 }
 
@@ -315,8 +315,8 @@ TEST_F(cnc_tests, returns_false_when_moveto_fails)
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start(observation_id);
-        Oquam oquam(controller, settings, session);
-        bool success = oquam.moveto(0.1, 0.0, 0.0, 0.3);
+        CNC cnc(controller, settings, session);
+        bool success = cnc.moveto(0.1, 0.0, 0.0, 0.3);
         ASSERT_EQ(success, false);        
 }
 
@@ -337,12 +337,12 @@ TEST_F(cnc_tests, returns_false_when_synchronize_fails)
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start(observation_id);
-        Oquam oquam(controller, settings, session);
-        bool success = oquam.moveto(0.1, 0.0, 0.0, 0.3);
+        CNC cnc(controller, settings, session);
+        bool success = cnc.moveto(0.1, 0.0, 0.0, 0.3);
         ASSERT_EQ(success, false);        
 }
 
-TEST_F(cnc_tests, test_oquam_moveto)
+TEST_F(cnc_tests, test_cnc_moveto)
 {
         InSequence seq;
 
@@ -361,13 +361,13 @@ TEST_F(cnc_tests, test_oquam_moveto)
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start(observation_id);
-        Oquam oquam(controller, settings, session);
-        bool success = oquam.moveto(0.1, 0.0, 0.0, 0.3);
+        CNC cnc(controller, settings, session);
+        bool success = cnc.moveto(0.1, 0.0, 0.0, 0.3);
         ASSERT_EQ(success, true);
         ASSERT_EQ(position[0], 4000);        
 }
 
-TEST_F(cnc_tests, test_oquam_moveto_2)
+TEST_F(cnc_tests, test_cnc_moveto_2)
 {
         InSequence seq;
 
@@ -388,37 +388,37 @@ TEST_F(cnc_tests, test_oquam_moveto_2)
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start(observation_id);
-        Oquam oquam(controller, settings, session);
+        CNC cnc(controller, settings, session);
 
-        bool success = oquam.moveto(0.1, 0.0, 0.0, 0.3);
+        bool success = cnc.moveto(0.1, 0.0, 0.0, 0.3);
         ASSERT_EQ(success, true);
         
-        success = oquam.moveto(0.0, 0.0, 0.0, 0.3);
+        success = cnc.moveto(0.0, 0.0, 0.0, 0.3);
         ASSERT_EQ(success, true);
         
         ASSERT_EQ(position[0], 0);        
 }
 
-TEST_F(cnc_tests, test_oquam_travel_empty_path)
+TEST_F(cnc_tests, test_cnc_travel_empty_path)
 {
         DefaultSetUp();
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start("travel_empty");
-        Oquam oquam(controller, settings, session);
+        CNC cnc(controller, settings, session);
 
         Path path;
-        bool success = oquam.travel(path, 0.3);
+        bool success = cnc.travel(path, 0.3);
         ASSERT_EQ(success, true);
 }
 
-TEST_F(cnc_tests, test_oquam_travel_square)
+TEST_F(cnc_tests, test_cnc_travel_square)
 {
         DefaultSetUp();
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start("travel_square");
-        Oquam oquam(controller, settings, session);
+        CNC cnc(controller, settings, session);
 
         Path path;
         v3 p0(0.1, 0.0, 0.0);
@@ -430,17 +430,17 @@ TEST_F(cnc_tests, test_oquam_travel_square)
         path.push_back(p2);
         path.push_back(p3);
 
-        bool success = oquam.travel(path, 0.3);
+        bool success = cnc.travel(path, 0.3);
         ASSERT_EQ(success, true);
 }
 
-TEST_F(cnc_tests, test_oquam_travel_square_fast)
+TEST_F(cnc_tests, test_cnc_travel_square_fast)
 {
         DefaultSetUp();
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start("travel_fast");
-        Oquam oquam(controller, settings, session);
+        CNC cnc(controller, settings, session);
 
         Path path;
         v3 p0(0.1, 0.0, 0.0);
@@ -452,17 +452,17 @@ TEST_F(cnc_tests, test_oquam_travel_square_fast)
         path.push_back(p2);
         path.push_back(p3);
 
-        bool success = oquam.travel(path, 1.0);
+        bool success = cnc.travel(path, 1.0);
         ASSERT_EQ(success, true);
 }
 
-TEST_F(cnc_tests, test_oquam_travel_snake)
+TEST_F(cnc_tests, test_cnc_travel_snake)
 {
         DefaultSetUp();
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start("travel_snake");
-        Oquam oquam(controller, settings, session);
+        CNC cnc(controller, settings, session);
 
         Path path;
         int N = 10;
@@ -476,17 +476,17 @@ TEST_F(cnc_tests, test_oquam_travel_snake)
         v3 p(0.0, 0.0, 0.0);
         path.push_back(p);
 
-        bool success = oquam.travel(path, 1.0);
+        bool success = cnc.travel(path, 1.0);
         ASSERT_EQ(success, true);
 }
 
-TEST_F(cnc_tests, test_oquam_travel_snake_2)
+TEST_F(cnc_tests, test_cnc_travel_snake_2)
 {
         DefaultSetUp();
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start("travel_snake_2");
-        Oquam oquam(controller, settings, session);
+        CNC cnc(controller, settings, session);
 
         int N = 11;
         Path path;
@@ -506,34 +506,34 @@ TEST_F(cnc_tests, test_oquam_travel_snake_2)
         v3 p(0.0, 0.0, 0.0);
         path.push_back(p);
 
-        bool success = oquam.travel(path, 1.0);
+        bool success = cnc.travel(path, 1.0);
         ASSERT_EQ(success, true);
 }
 
-TEST_F(cnc_tests, test_oquam_travel_round_trip)
+TEST_F(cnc_tests, test_cnc_travel_round_trip)
 {
         DefaultSetUp();
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start("travel_round_trip");
-        Oquam oquam(controller, settings, session);
+        CNC cnc(controller, settings, session);
 
         Path path;
         path.push_back(v3(0.0, 0.0, 0.0));
         path.push_back(v3(0.1, 0.0, 0.0));
         path.push_back(v3(0.0, 0.0, 0.0));
         
-        bool success = oquam.travel(path, 1.0);
+        bool success = cnc.travel(path, 1.0);
         ASSERT_EQ(success, true);
 }
 
-TEST_F(cnc_tests, test_oquam_travel_collinear)
+TEST_F(cnc_tests, test_cnc_travel_collinear)
 {
         DefaultSetUp();
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start("travel_round_collinear");
-        Oquam oquam(controller, settings, session);
+        CNC cnc(controller, settings, session);
 
         Path path;
         path.push_back(v3(0.0, 0.0, 0.0));
@@ -541,17 +541,17 @@ TEST_F(cnc_tests, test_oquam_travel_collinear)
         path.push_back(v3(0.2, 0.0, 0.0));
         path.push_back(v3(0.0, 0.0, 0.0));
         
-        bool success = oquam.travel(path, 1.0);
+        bool success = cnc.travel(path, 1.0);
         ASSERT_EQ(success, true);
 }
 
-TEST_F(cnc_tests, test_oquam_travel_large_displacement)
+TEST_F(cnc_tests, test_cnc_travel_large_displacement)
 {
         DefaultSetUp();
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start("travel_large_displacement");
-        Oquam oquam(controller, settings, session);
+        CNC cnc(controller, settings, session);
 
         Path path;
         path.push_back(v3(0.0, 0.0, 0.0));
@@ -560,17 +560,17 @@ TEST_F(cnc_tests, test_oquam_travel_large_displacement)
         path.push_back(v3(0.2, 0.07, 0.0));
         path.push_back(v3(0.0, 0.0, 0.0));
         
-        bool success = oquam.travel(path, 1.0);
+        bool success = cnc.travel(path, 1.0);
         ASSERT_EQ(success, true);
 }
 
-TEST_F(cnc_tests, test_oquam_travel_small_displacement)
+TEST_F(cnc_tests, test_cnc_travel_small_displacement)
 {
         DefaultSetUp();
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start("travel_small_displacement");
-        Oquam oquam(controller, settings, session);
+        CNC cnc(controller, settings, session);
 
         Path path;
         path.push_back(v3(0.0, 0.0, 0.0));
@@ -579,18 +579,18 @@ TEST_F(cnc_tests, test_oquam_travel_small_displacement)
         path.push_back(v3(0.2, 0.04, 0.0));
         path.push_back(v3(0.0, 0.0, 0.0));
         
-        bool success = oquam.travel(path, 1.0);
+        bool success = cnc.travel(path, 1.0);
         ASSERT_EQ(success, true);
 }
 
-TEST_F(cnc_tests, test_oquam_travel_tiny_displacement)
+TEST_F(cnc_tests, test_cnc_travel_tiny_displacement)
 {
         DefaultSetUp();
 
         romi::Session session(linux, session_directory, romiDeviceData, softwareVersion, std::move(locationPrivider));
         session.start("travel_tiny_displacement");
-        Oquam oquam(controller, settings, session);
-        //oquam.set_file_cabinet(&debug_session);
+        CNC cnc(controller, settings, session);
+        //cnc.set_file_cabinet(&debug_session);
 
         Path path;
         path.push_back(v3(0.0, 0.0, 0.0));
@@ -599,18 +599,18 @@ TEST_F(cnc_tests, test_oquam_travel_tiny_displacement)
         path.push_back(v3(0.2, 0.005, 0.0));
         path.push_back(v3(0.0, 0.0, 0.0));
         
-        bool success = oquam.travel(path, 1.0);
+        bool success = cnc.travel(path, 1.0);
         ASSERT_EQ(success, true);
 }
 
-TEST_F(cnc_tests, test_oquam_travel_zigzag)
+TEST_F(cnc_tests, test_cnc_travel_zigzag)
 {
         DefaultSetUp();
 
         romi::Session session(linux, session_directory, romiDeviceData,
                               softwareVersion, std::move(locationPrivider));
         session.start("travel_zigzag");
-        Oquam oquam(controller, settings, session);
+        CNC cnc(controller, settings, session);
 
         Path path;
         v3 p(0.0, 0.0, 0.0);
@@ -631,7 +631,7 @@ TEST_F(cnc_tests, test_oquam_travel_zigzag)
         
         path.push_back(v3(0.0, 0.0, 0.0));
 
-        bool success = oquam.travel(path, 1.0);
+        bool success = cnc.travel(path, 1.0);
         ASSERT_EQ(success, true);
 }
 
@@ -645,10 +645,10 @@ TEST_F(cnc_tests, power_up_calls_homing_after_construct)
     romi::Session session(linux, session_directory, romiDeviceData,
                           softwareVersion, std::move(locationPrivider));
     session.start("travel_zigzag");
-    Oquam oquam(controller, settings, session);
+    CNC cnc(controller, settings, session);
 
     // Act
-    auto actual = oquam.power_up();
+    auto actual = cnc.power_up();
 
     // Assert
     ASSERT_EQ(actual, true);
@@ -664,12 +664,12 @@ TEST_F(cnc_tests, power_up_calls_homing_only_once_when_no_movement)
     romi::Session session(linux, session_directory, romiDeviceData,
                           softwareVersion, std::move(locationPrivider));
     session.start("no_movement");
-    Oquam oquam(controller, settings, session);
+    CNC cnc(controller, settings, session);
 
     // Act
-    auto actual = oquam.power_up();
-    actual = oquam.power_up();
-    actual = oquam.power_up();
+    auto actual = cnc.power_up();
+    actual = cnc.power_up();
+    actual = cnc.power_up();
 
     // Assert
     ASSERT_EQ(actual, true);
@@ -687,13 +687,13 @@ TEST_F(cnc_tests, power_up_calls_homing_after_moveto)
     romi::Session session(linux, session_directory, romiDeviceData,
                           softwareVersion, std::move(locationPrivider));
     session.start("homing_test");
-    Oquam oquam(controller, settings, session);
+    CNC cnc(controller, settings, session);
 
     // Act
-    auto actual = oquam.power_up();
-    actual = oquam.moveto(1, 1, 1, 0.1);
+    auto actual = cnc.power_up();
+    actual = cnc.moveto(1, 1, 1, 0.1);
 
-    actual = oquam.power_up();
+    actual = cnc.power_up();
 
     // Assert
     ASSERT_EQ(actual, true);
@@ -713,12 +713,12 @@ TEST_F(cnc_tests, power_up_calls_homing_after_moveto)
 //     romi::Session session(linux, session_directory, romiDeviceData,
 //                           softwareVersion, std::move(locationPrivider));
 //     session.start("homing_test");
-//     Oquam oquam(controller, settings, session);
+//     CNC cnc(controller, settings, session);
 
 //     // Act
-//     auto actual = oquam.power_up();
-//     actual = oquam.moveat(1, 1, 1);
-//     actual = oquam.power_up();
+//     auto actual = cnc.power_up();
+//     actual = cnc.moveat(1, 1, 1);
+//     actual = cnc.power_up();
 
 //     // Assert
 //     ASSERT_EQ(actual, true);
@@ -738,12 +738,12 @@ TEST_F(cnc_tests, power_up_calls_homing_after_spindle)
     romi::Session session(linux, session_directory, romiDeviceData,
                           softwareVersion, std::move(locationPrivider));
     session.start("homing_test");
-    Oquam oquam(controller, settings, session);
+    CNC cnc(controller, settings, session);
 
     // Act
-    auto actual = oquam.power_up();
-    actual = oquam.spindle(1.0);
-    actual = oquam.power_up();
+    auto actual = cnc.power_up();
+    actual = cnc.spindle(1.0);
+    actual = cnc.power_up();
 
     // Assert
     ASSERT_EQ(actual, true);
@@ -761,13 +761,13 @@ TEST_F(cnc_tests, power_up_calls_homing_after_travel)
     romi::Session session(linux, session_directory, romiDeviceData,
                           softwareVersion, std::move(locationPrivider));
     session.start("homing_test");
-    Oquam oquam(controller, settings, session);
+    CNC cnc(controller, settings, session);
 
     // Act
-    auto actual = oquam.power_up();
+    auto actual = cnc.power_up();
     Path travel_path;
-    actual = oquam.travel(travel_path, 1.0);
-    actual = oquam.power_up();
+    actual = cnc.travel(travel_path, 1.0);
+    actual = cnc.power_up();
 
     // Assert
     ASSERT_EQ(actual, true);
