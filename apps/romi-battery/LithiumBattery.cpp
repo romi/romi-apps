@@ -134,32 +134,36 @@ namespace romi {
         
         void LithiumBattery::update_charge()
         {
-                // seconds to hour
-                double h = (timestamp_ - prev_timestamp_) / 3600.0;
-                double I = (prev_current_ + current_) / 2.0;
-                double delta_charge_ = I * h * 1000.0; // x1000 → mAh
+                if (!std::isnan(current_)) {
+                        // seconds to hour
+                        double h = (timestamp_ - prev_timestamp_) / 3600.0;
+                        double I = (prev_current_ + current_) / 2.0;
+                        double delta_charge_ = I * h * 1000.0; // x1000 → mAh
                 
-                charge_ += delta_charge_;
-                if (charge_ > capacity_charge_)
-                        charge_ = capacity_charge_;
-                if (charge_ < 0)
-                        charge_ = 0;
+                        charge_ += delta_charge_;
+                        if (charge_ > capacity_charge_)
+                                charge_ = capacity_charge_;
+                        if (charge_ < 0)
+                                charge_ = 0;
+                }
         }
         
         void LithiumBattery::update_energy()
         {
-                // seconds to hour
-                double h = (timestamp_ - prev_timestamp_) / 3600.0;
-                double I = (prev_current_ + current_) / 2.0;
-                double V = (prev_voltage_ + voltage_) / 2.0;
-                double P = V * I;
-                double delta_energy = P * h; // in Wh
+                if (!std::isnan(current_) && !std::isnan(voltage_)) {
+                        // seconds to hour
+                        double h = (timestamp_ - prev_timestamp_) / 3600.0;
+                        double I = (prev_current_ + current_) / 2.0;
+                        double V = (prev_voltage_ + voltage_) / 2.0;
+                        double P = V * I;
+                        double delta_energy = P * h; // in Wh
                 
-                energy_ += delta_energy; 
-                if (energy_ > capacity_energy_)
-                        energy_ = capacity_energy_;
-                if (energy_ < 0)
-                        energy_ = 0;
+                        energy_ += delta_energy; 
+                        if (energy_ > capacity_energy_)
+                                energy_ = capacity_energy_;
+                        if (energy_ < 0)
+                                energy_ = 0;
+                }
         }
         
         void LithiumBattery::print()
