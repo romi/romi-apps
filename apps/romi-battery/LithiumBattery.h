@@ -28,6 +28,7 @@ namespace romi {
                 double charge_;
                 double energy_;
                 int info_count_;
+                int reset_count_;
 
                 void update();
                 void updated_locked();
@@ -35,6 +36,7 @@ namespace romi {
                 void update_charge();
                 void update_energy();
                 void print();
+                void reset_perhaps();
                 void set_capacity_if_charged();
                 bool is_charging_locked();
                 bool is_charged_locked();

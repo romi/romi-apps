@@ -24,7 +24,13 @@ namespace romi {
 
                 // Optional: call explicitly if you prefer to fail
                 // fast at startup.
-                bool begin() { return init_(); }
+                bool begin() {
+                        return open_();
+                }
+                
+                bool reset() override {
+                        return close_() && open_();
+                }
 
         private:
                 static constexpr uint8_t REG_CONFIG   = 0x00;
@@ -37,7 +43,8 @@ namespace romi {
                 static double NaN() { return std::numeric_limits<double>::quiet_NaN(); }
 
                 bool ensure_init_();
-                bool init_();
+                bool open_();
+                bool close_();
                 bool writeReg16_(uint8_t reg, uint16_t value_be);
                 bool readReg16_(uint8_t reg, uint16_t& out_be);
 

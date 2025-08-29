@@ -62,11 +62,22 @@ namespace romi {
 
         bool INA219BatteryMonitor::ensure_init_()
         {
-                if (initialized_) return true;
-                return init_();
+                if (initialized_)
+                        return true;
+                return open_();
         }
 
-        bool INA219BatteryMonitor::init_()
+        bool INA219BatteryMonitor::close_()
+        {
+                if (fd_ >= 0) {
+                        close(fd_);
+                        fd_ = -1;
+                        initialized_ = false;
+                }
+                return true;
+        }
+        
+        bool INA219BatteryMonitor::open_()
         {
                 // Open bus (lazy)
                 if (fd_ < 0) {

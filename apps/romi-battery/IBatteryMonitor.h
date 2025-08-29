@@ -8,6 +8,7 @@ namespace romi {
                 virtual ~IBatteryMonitor() = default;
                 virtual double get_voltage() = 0;
                 virtual double get_current() = 0;
+                virtual bool reset() = 0;
         };
 }
 

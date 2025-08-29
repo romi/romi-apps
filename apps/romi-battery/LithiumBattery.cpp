@@ -1,3 +1,4 @@
+#include <cmath>
 #include <util/Logger.h>
 #include <util/ClockAccessor.h>
 #include "LithiumBattery.h"
@@ -25,7 +26,8 @@ namespace romi {
                   error_count_(0),
                   charge_(0),
                   energy_(0),
-                  info_count_(0)
+                  info_count_(0),
+                  reset_count_(0)
         {
                 capacity_energy_ = nominal_voltage_ * capacity_charge_ / 1000.0; // Wh
                 r_info("Battery: nominal voltage: %.2f V, "
@@ -103,6 +105,7 @@ namespace romi {
                 update_energy();
                 set_capacity_if_charged();
                 print();
+                reset_perhaps();
         }
         
         void LithiumBattery::measure()
@@ -113,6 +116,20 @@ namespace romi {
                 voltage_ = monitor_.get_voltage();
                 current_ = monitor_.get_current();
                 timestamp_ = ClockAccessor::GetInstance()->time();
+        }
+
+        void LithiumBattery::reset_perhaps()
+        {
+                reset_count_++;
+                if (std::isnan(voltage_) || std::isnan(current_)) {
+                        r_info("LithiumBattery::measure: monitor returned NaN. Resetting.");
+                        monitor_.reset();
+                        reset_count_ = 0;
+                } else if (reset_count_ >= 86400) { // Reset once a day
+                        r_info("LithiumBattery::measure: Reached reset count. Resetting.");
+                        monitor_.reset();
+                        reset_count_ = 0;
+                }
         }
         
         void LithiumBattery::update_charge()
