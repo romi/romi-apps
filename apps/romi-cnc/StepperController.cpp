@@ -25,9 +25,9 @@
 #include <iostream>
 #include <rcom/json.hpp>
 #include <RomiSerialErrors.h>
-#include "util/ClockAccessor.h"
-#include "util/Logger.h"
-#include "oquam/StepperController.h"
+#include <util/ClockAccessor.h>
+#include <util/Logger.h>
+#include "StepperController.h"
 
 namespace romi {
 

@@ -24,8 +24,8 @@
 
 #include <cfloat>
 #include <stdexcept>
-#include "util/Logger.h"
-#include "oquam/StepperSettings.h"
+#include <util/Logger.h>
+#include "StepperSettings.h"
 
 // TBD: REFACTOR - remove raw pointers and arrays. Replace with vectors.
 namespace romi {

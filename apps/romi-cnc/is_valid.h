@@ -22,25 +22,28 @@
 
  */
 
-#ifndef _OQUAM_PRINT_H_
-#define _OQUAM_PRINT_H_
+#ifndef _OQUAM_IS_VALID_H_
+#define _OQUAM_IS_VALID_H_
 
-#include <rcom/MemBuffer.h>
-#include "oquam/SmoothPath.h"
+#include <api/CNCRange.h>
+#include "SmoothPath.h"
 
 namespace romi {
-
-        void print(Section& section, rcom::MemBuffer& text, int indent = 0);
-        void print(Section& section);
-
-        void print(ATDC& atdc, rcom::MemBuffer& text, int indent = 0);
-        void print(ATDC& atdc);
         
-        void print(SmoothPath& script, rcom::MemBuffer& text, bool include_slices = true);
-        void print(SmoothPath& script, bool include_slices = true);
+        bool is_valid(Section& section, const char *name, 
+                      const double *xmin, const double *xmax, 
+                      const double *vmax, const double *amax);
+
+        bool is_valid(ATDC& atdc, 
+                      const double *xmin, const double *xmax, 
+                      const double *vmax, const double *amax);
+
+        bool is_valid(SmoothPath& script, CNCRange& range, 
+                      const double *vmax, const double *amax);
+       
 }
 
-#endif // _OQUAM_PRINT_H_
+#endif // _OQUAM_IS_VALID_H_
 
 
 

@@ -25,7 +25,7 @@
 #ifndef _OQUAM_ATDC_H_
 #define _OQUAM_ATDC_H_
 
-#include "oquam/Section.h"
+#include "Section.h"
 
 namespace romi {
 

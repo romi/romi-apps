@@ -22,11 +22,11 @@
 
  */
 #include <util/Logger.h>
-#include "oquam/OquamSettings.h"
+#include "CNCSettings.h"
 
 namespace romi {
         
-        OquamSettings::OquamSettings(Axis *axis,
+        CNCSettings::CNCSettings(Axis *axis,
                                      const double *vmax,
                                      const double *amax,
                                      const double *scale_meters_to_steps, 
@@ -57,7 +57,7 @@ namespace romi {
                 init_homing_speeds();
         }
 
-        void OquamSettings::init_range()
+        void CNCSettings::init_range()
         {
                 v3 min;
                 v3 max;
@@ -78,7 +78,7 @@ namespace romi {
                 range_.init(min, max);
         }
         
-        void OquamSettings::init_homing_axes()
+        void CNCSettings::init_homing_axes()
         {
                 for (int index = 0; index < 3; index++) {
                         homing_axes_[index] = kNoAxis;
@@ -88,9 +88,9 @@ namespace romi {
                         if (axis_[index].homing()) {
                                 int order = axis_[index].homing_order();
                                 if (homing_axes_[order] != kNoAxis) {
-                                        r_err("OquamSettings: invalid homing order"
+                                        r_err("CNCSettings: invalid homing order"
                                               ": axis %s", axis_[index].name().c_str());
-                                        throw std::runtime_error("OquamSettings: "
+                                        throw std::runtime_error("CNCSettings: "
                                                                  "invalid homing order");
                                 }
 
@@ -111,16 +111,16 @@ namespace romi {
                 }
         }
 
-        void OquamSettings::init_homing_speeds()
+        void CNCSettings::init_homing_speeds()
         {
                 double speeds[3];
                 for (int i = 0; i < 3; i++) {
                         speeds[i] = (vmax_[i]
                                      * scale_meters_to_steps_[i]
                                      * axis_[i].homing_speed());
-                        r_debug("Oquam:: vmax[%d]=%f", i, vmax_[i]);
-                        r_debug("Oquam:: scale[%d]=%f", i, scale_meters_to_steps_[i]);
-                        r_debug("Oquam:: homing speed[%d]=%f", i, speeds[i]);
+                        r_debug("CNC:: vmax[%d]=%f", i, vmax_[i]);
+                        r_debug("CNC:: scale[%d]=%f", i, scale_meters_to_steps_[i]);
+                        r_debug("CNC:: homing speed[%d]=%f", i, speeds[i]);
                 }
                 
                 for (int i = 0; i < 3; i++) {

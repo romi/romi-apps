@@ -22,8 +22,8 @@
 
  */
 
-#include "oquam/print.h"
-#include "oquam/is_valid.h"
+#include "print.h"
+#include "is_valid.h"
 
 namespace romi {
 

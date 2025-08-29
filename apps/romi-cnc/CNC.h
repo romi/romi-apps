@@ -21,43 +21,43 @@
   <http://www.gnu.org/licenses/>.
 
  */
-#ifndef ROMI_OQUAM_H
-#define ROMI_OQUAM_H
+#ifndef ROMI_CNC_H
+#define ROMI_CNC_H
 
 
 #include <mutex>
 #include <memory>
 
-#include "api/ISession.h"
-#include "api/ICNC.h"
+#include <api/ISession.h>
+#include <api/ICNC.h>
 #include "v3.h"
-#include "oquam/ICNCController.h"
-#include "oquam/SmoothPath.h" 
-#include "oquam/OquamSettings.h" 
+#include "ICNCController.h"
+#include "SmoothPath.h" 
+#include "CNCSettings.h" 
 
 namespace romi {
 
         using SynchronizedCodeBlock = std::lock_guard<std::mutex>;
         
-        class Oquam : public ICNC
+        class CNC : public ICNC
         {
         public:
                 ICNCController& controller_;
-                OquamSettings settings_;
+                CNCSettings settings_;
                 ISession& session_;
                 std::mutex mutex_;
                 bool store_script_;
                 
         public:
                 
-                Oquam(ICNCController& controller,
-                      OquamSettings& settings,
+                CNC(ICNCController& controller,
+                      CNCSettings& settings,
                       ISession& session);
 
-                Oquam(const Oquam&) = delete;
-                Oquam& operator=(const Oquam&) = delete;
+                CNC(const CNC&) = delete;
+                CNC& operator=(const CNC&) = delete;
                 
-                ~Oquam() override = default;
+                ~CNC() override = default;
                 
                 // ICNC interface, See ICNC.h for more info
                 bool moveto(double x, double y, double z,
@@ -125,4 +125,4 @@ namespace romi {
         };
 }
 
-#endif // ROMI_OQUAM_H
+#endif // ROMI_CNC_H

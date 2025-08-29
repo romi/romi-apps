@@ -27,8 +27,8 @@
 #include <math.h>
 
 #include "v3.h"
-#include "oquam/Helix.h"
-#include "oquam/print.h"
+#include "Helix.h"
+#include "print.h"
 
 namespace romi {
 

@@ -22,15 +22,14 @@
 
  */
 
-#ifndef _OQUAM_SMOOTH_PATH_H_
-#define _OQUAM_SMOOTH_PATH_H_
+#ifndef _OQUAM_SMOOTHPATH_H_
+#define _OQUAM_SMOOTHPATH_H_
 
 #include <vector>
+#include <v3.h>
 
-#include "v3.h"
-
-#include "oquam/Section.h"
-#include "oquam/ATDC.h"
+#include "Section.h"
+#include "ATDC.h"
 
 namespace romi {
         
@@ -221,4 +220,4 @@ namespace romi {
         };
 }
 
-#endif // _OQUAM_SMOOTH_PATH_H_
+#endif // _OQUAM_SMOOTHPATH_H_

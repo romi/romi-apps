@@ -26,8 +26,8 @@
 #define _OQUAM_PLOTTER_H_
 
 #include <rcom/MemBuffer.h>
-#include "api/CNCRange.h"
-#include "oquam/SmoothPath.h"
+#include <api/CNCRange.h>
+#include "SmoothPath.h"
 
 namespace romi {
 

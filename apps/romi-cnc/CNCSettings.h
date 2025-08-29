@@ -21,17 +21,17 @@
   <http://www.gnu.org/licenses/>.
 
  */
-#ifndef ROMI_OQUAMSETTINGS_H
-#define ROMI_OQUAMSETTINGS_H
+#ifndef ROMI_CNCSETTINGS_H
+#define ROMI_CNCSETTINGS_H
 
-#include "v3.h"
+#include <v3.h>
 #include <api/CNCRange.h>
 #include <api/Axis.h>
-#include "oquam/ICNCController.h"
+#include "ICNCController.h"
 
 namespace romi {
         
-        class OquamSettings
+        class CNCSettings
         {
         public:
                 Axis axis_[3];
@@ -48,7 +48,7 @@ namespace romi {
                 AxisIndex homing_axes_[3];
                 int16_t homing_speeds_[3];
                 
-                OquamSettings(Axis *axis,
+                CNCSettings(Axis *axis,
                               const double *vmax,
                               const double *amax,
                               const double *scale_meters_to_steps, 
@@ -63,4 +63,4 @@ namespace romi {
         };
 }
 
-#endif // ROMI_OQUAMSETTINGS_H
+#endif // ROMI_CNCSETTINGS_H

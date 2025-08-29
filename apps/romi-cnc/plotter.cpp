@@ -21,8 +21,8 @@
   <http://www.gnu.org/licenses/>.
 
 */
-#include "v3.h"
-#include "oquam/plotter.h"
+#include <v3.h>
+#include "plotter.h"
 
 namespace romi {
 

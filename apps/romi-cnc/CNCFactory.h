@@ -28,10 +28,9 @@
 #include <memory>
 #include <RomiSerialClient.h>
 #include <RSerial.h>
-
-#include "configuration/IOptions.h"
-#include "oquam/ICNCController.h"
+#include <configuration/IOptions.h>
 #include <json.hpp>
+#include "ICNCController.h"
 
 namespace romi {
 

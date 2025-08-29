@@ -26,9 +26,8 @@
 #define _OQUAM_HELIX_H_
 
 #include <vector>
-
-#include "v3.h"
-#include "oquam/Section.h"
+#include <v3.h>
+#include "Section.h"
 
 namespace romi {
 

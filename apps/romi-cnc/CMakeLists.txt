@@ -2,43 +2,58 @@ cmake_minimum_required(VERSION 3.10)
 project(romi-cnc)
 
 set(SOURCES
-  main.cpp
   CNCFactory.cpp
   CNCFactory.h
   CNCOptions.cpp
   CNCOptions.h
   CNCAdaptor.h
   CNCAdaptor.cpp
-  oquam/ATDC.h
-  oquam/FakeCNCController.h
-  oquam/Helix.h
-  oquam/ICNCController.h
-  oquam/is_valid.h
-  oquam/Oquam.h
-  oquam/OquamSettings.h
-  oquam/plotter.h
-  oquam/print.h
-  oquam/Section.h
-  oquam/SmoothPath.h
-  oquam/StepperController.h
-  oquam/StepperSettings.h
-  oquam/ATDC.cpp
-  oquam/Helix.cpp
-  oquam/is_valid.cpp
-  oquam/Oquam.cpp
-  oquam/OquamSettings.cpp
-  oquam/plotter.cpp
-  oquam/print.cpp
-  oquam/Section.cpp
-  oquam/SmoothPath.cpp
-  oquam/StepperController.cpp
-  oquam/StepperSettings.cpp
+  ATDC.h
+  ATDC.cpp
+  FakeCNCController.h
+  Helix.h
+  Helix.cpp
+  ICNCController.h
+  is_valid.h
+  is_valid.cpp
+  CNC.h
+  CNC.cpp
+  CNCSettings.h
+  CNCSettings.cpp
+  plotter.h
+  plotter.cpp
+  print.h
+  print.cpp
+  Section.h
+  Section.cpp
+  SmoothPath.h
+  SmoothPath.cpp
+  StepperController.h
+  StepperController.cpp
+  StepperSettings.h
+  StepperSettings.cpp
   )
 
-add_executable(romi-cnc ${SOURCES})
-target_link_libraries(romi-cnc romi rcom romiserial)
+add_library(cnc SHARED ${SOURCES})
+set_target_properties(cnc PROPERTIES LINKER_LANGUAGE CXX)
+
+target_include_directories(cnc
+        PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        )
+
+target_link_libraries(cnc
+        romi
+        romiserial
+        rcom
+        ${libcamera_LINK_LIBRARIES}
+        )
+
+
+add_executable(romi-cnc main.cpp)
+target_link_libraries(romi-cnc cnc romi rcom romiserial)
 target_include_directories(romi-cnc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-#add_subdirectory(test)
+add_subdirectory(test)
 
 

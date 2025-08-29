@@ -46,8 +46,8 @@
 
 #include <romi_config.h>
 
-#include "oquam/Oquam.h"
-#include "oquam/StepperSettings.h"
+#include "Oquam.h"
+#include "StepperSettings.h"
 #include "CNCOptions.h"
 #include "CNCFactory.h"
 #include "CNCAdaptor.h"

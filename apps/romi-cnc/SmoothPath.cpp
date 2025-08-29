@@ -24,8 +24,8 @@
 #include <stdexcept>
 #include <algorithm>
 #include <cmath>
-#include "v3.h"
-#include "oquam/SmoothPath.h"
+#include <v3.h>
+#include "SmoothPath.h"
 
 namespace romi {
 

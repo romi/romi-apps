@@ -29,7 +29,7 @@
 
 #include "v3.h"
 
-#include "oquam/ATDC.h"
+#include "ATDC.h"
 
 namespace romi {
 

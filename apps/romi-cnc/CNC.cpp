@@ -28,16 +28,16 @@
 #include <algorithm>
 
 #include "api/IAxis.h"
-#include "oquam/plotter.h"
-#include "oquam/print.h"
-#include "oquam/is_valid.h"
-#include "oquam/Oquam.h"
-#include "oquam/Helix.h"
+#include "plotter.h"
+#include "print.h"
+#include "is_valid.h"
+#include "CNC.h"
+#include "Helix.h"
 
 namespace romi {
         
-        Oquam::Oquam(ICNCController& controller,
-                     OquamSettings& settings,
+        CNC::CNC(ICNCController& controller,
+                     CNCSettings& settings,
                      ISession& session)
                 : controller_(controller),
                   settings_(settings),
@@ -49,32 +49,32 @@ namespace romi {
                 if (!controller_.set_homing_axes(settings_.homing_axes_[0],
                                                  settings_.homing_axes_[1],
                                                  settings_.homing_axes_[2])) {
-                        throw std::runtime_error("Oquam: set_homing_axes failed");
+                        throw std::runtime_error("CNC: set_homing_axes failed");
                 }
 
                 if (!controller_.set_homing_speeds(settings_.homing_speeds_[0],
                                                    settings_.homing_speeds_[1],
                                                    settings_.homing_speeds_[2])) {
-                        throw std::runtime_error("Oquam: set_homing_speeds failed");
+                        throw std::runtime_error("CNC: set_homing_speeds failed");
                 }
 
                 // FIXME: also for other two axes!!!
                 if (!controller_.set_homing_mode(settings_.axis_[0].homing_mode())) {
-                        throw std::runtime_error("Oquam: set_homing_mode failed");
+                        throw std::runtime_error("CNC: set_homing_mode failed");
                 }
 
                 if (!spindle(0.0)) {
-                        throw std::runtime_error("Oquam: failed to stop spindle");
+                        throw std::runtime_error("CNC: failed to stop spindle");
                 }
         }
 
-        bool Oquam::get_range(CNCRange &range)
+        bool CNC::get_range(CNCRange &range)
         {
                 range = settings_.range_;
                 return true;
         }
 
-        bool Oquam::get_axes(std::vector<std::unique_ptr<IAxis>>& axes)
+        bool CNC::get_axes(std::vector<std::unique_ptr<IAxis>>& axes)
         {
                 axes.push_back(std::make_unique<Axis>(settings_.axis_[0]));
                 axes.push_back(std::make_unique<Axis>(settings_.axis_[1]));
@@ -82,17 +82,17 @@ namespace romi {
                 return true;
         }
         
-        bool Oquam::get_position(int32_t *position) 
+        bool CNC::get_position(int32_t *position) 
         {
                 return controller_.get_position(position);
         }
 
-        bool Oquam::synchronize(double timeout_seconds)
+        bool CNC::synchronize(double timeout_seconds)
         {
                 return controller_.synchronize(timeout_seconds);                
         }
         
-        bool Oquam::get_position(v3& position)
+        bool CNC::get_position(v3& position)
         {
                 int32_t p[3];
                 bool success = get_position(p);
@@ -112,17 +112,17 @@ namespace romi {
                 return success;
         }
 
-        v3 Oquam::assert_get_position() 
+        v3 CNC::assert_get_position() 
         {
                 v3 position;
                 if (!get_position(position)) {
-                        r_err("Oquam:: get_position failed!");
+                        r_err("CNC:: get_position failed!");
                         throw std::runtime_error("get_position failed");
                 }
                 return position;
         }
 
-        // bool Oquam::moveat(int16_t speed_x, int16_t speed_y, int16_t speed_z)
+        // bool CNC::moveat(int16_t speed_x, int16_t speed_y, int16_t speed_z)
         // {
         //     SynchronizedCodeBlock synchronize(mutex_);
         //     position_changed_ = true;
@@ -130,27 +130,27 @@ namespace romi {
         //     return controller_.moveat(speed_x, speed_y, speed_z);
         // }
 
-        bool Oquam::moveto(double x, double y, double z, double relative_speed, bool sync)
+        bool CNC::moveto(double x, double y, double z, double relative_speed, bool sync)
         {
                 SynchronizedCodeBlock synchronize(mutex_);
                 position_changed_ = true;
-                store_script_ = false;
+                store_script_ = true;
                 return moveto_synchronized(x, y, z, relative_speed, sync);
         }
 
-        bool Oquam::moveto_synchronized(double x, double y, double z,
+        bool CNC::moveto_synchronized(double x, double y, double z,
                                         double rel_speed, bool sync)
         {
                 bool success = false;
                 try {
                         success = do_moveto(x, y, z, rel_speed, sync);
                 } catch (std::runtime_error& re) {
-                        r_err("Oquam::moveto_synchronized: %s", re.what());
+                        r_err("CNC::moveto_synchronized: %s", re.what());
                 }
                 return success;
         }
 
-        bool Oquam::do_moveto(double x, double y, double z, double rel_speed, bool sync)
+        bool CNC::do_moveto(double x, double y, double z, double rel_speed, bool sync)
         {
                 Path path;
                 v3 p = moveto_determine_xyz(x, y, z);
@@ -158,7 +158,7 @@ namespace romi {
                 return travel_synchronized(path, rel_speed, sync);
         }
         
-        v3 Oquam::moveto_determine_xyz(double x, double y, double z)
+        v3 CNC::moveto_determine_xyz(double x, double y, double z)
         {
                 v3 p = assert_get_position();
                 if (x != UNCHANGED)
@@ -170,7 +170,7 @@ namespace romi {
                 return p;
         }
         
-        bool Oquam::is_zero(int16_t *params)
+        bool CNC::is_zero(int16_t *params)
         {
                 return (params[0] == 0)
                         || ((params[1] == 0)
@@ -178,24 +178,24 @@ namespace romi {
                             && (params[3] == 0.0));
         }
         
-        bool Oquam::spindle(double speed)
+        bool CNC::spindle(double speed)
         {
-                r_info("Oquam::spindle %f", speed);
+                r_info("CNC::spindle %f", speed);
                 position_changed_ = true;
                 return controller_.spindle(speed);
         }
 
-        uint8_t Oquam::count_relays()
+        uint8_t CNC::count_relays()
         {
                 return 1;
         }
 
-        bool Oquam::set_relay(uint8_t index, bool value)
+        bool CNC::set_relay(uint8_t index, bool value)
         {
-                r_info("Oquam::relay[%d] %s", (int) index, value? "on" : "off");
+                r_info("CNC::relay[%d] %s", (int) index, value? "on" : "off");
                 if (index != 0) {
-                        r_info("Oquam::set_relay: index out of bounds: %d", (int) index);
-                        throw std::runtime_error("Oquam::set_relay: index out of bounds");
+                        r_info("CNC::set_relay: index out of bounds: %d", (int) index);
+                        throw std::runtime_error("CNC::set_relay: index out of bounds");
                 }
                 bool result = false;
                 if (value)
@@ -205,7 +205,7 @@ namespace romi {
                 return result;
         }
         
-        bool Oquam::homing()
+        bool CNC::homing()
         {
                 bool homing_result = true;
                 SynchronizedCodeBlock synchronize(mutex_);
@@ -216,7 +216,7 @@ namespace romi {
                 return homing_result;
         }
 
-        bool Oquam::travel(Path &path, double relative_speed, bool sync)
+        bool CNC::travel(Path &path, double relative_speed, bool sync)
         {
                 SynchronizedCodeBlock synchronize(mutex_);
                 position_changed_ = true;
@@ -224,7 +224,7 @@ namespace romi {
                 return travel_synchronized(path, relative_speed, sync);
         }
         
-        bool Oquam::travel_synchronized(Path &path, double relative_speed, bool sync) 
+        bool CNC::travel_synchronized(Path &path, double relative_speed, bool sync) 
         {
                 bool success = false;
                 
@@ -233,25 +233,25 @@ namespace romi {
                         success = true;
                         
                 } catch (std::runtime_error& e) {
-                        r_debug("Oquam::travel_synchronized: error: %s", e.what());
+                        r_debug("CNC::travel_synchronized: error: %s", e.what());
                 }
                 
                 return success;
         }
 
-        void Oquam::assert_relative_speed(double relative_speed) 
+        void CNC::assert_relative_speed(double relative_speed) 
         {
                 if (relative_speed <= 0.0 || relative_speed > 1.0) {
-                        r_err("Oquam: invalid relative speed: %f", relative_speed);
-                        throw std::runtime_error("Oquam: invalid relative speed");
+                        r_err("CNC: invalid relative speed: %f", relative_speed);
+                        throw std::runtime_error("CNC: invalid relative speed");
                 }
         }
         
-        void Oquam::assert_in_range(v3 p) 
+        void CNC::assert_in_range(v3 p) 
         {
                 if (!settings_.range_.is_inside(p)) { 
                         double e = settings_.range_.error(p);
-                        r_warn("Oquam: Point[%d]: out of bounds: "
+                        r_warn("CNC: Point[%d]: out of bounds: "
                                "(%0.6f, %0.6f, %0.6f)"
                                ", range (%0.6f, %0.6f, %0.6f), "
                                "error %.6f",
@@ -266,7 +266,7 @@ namespace romi {
                 }
         }
         
-        void Oquam::do_travel(Path &path, double relative_speed, bool sync) 
+        void CNC::do_travel(Path &path, double relative_speed, bool sync) 
         {
                 assert_relative_speed(relative_speed); 
                 
@@ -289,7 +289,7 @@ namespace romi {
                 }
         }
 
-        void Oquam::convert_path_to_script(Path &path, double speed, SmoothPath& script) 
+        void CNC::convert_path_to_script(Path &path, double speed, SmoothPath& script) 
         {
                 for (size_t i = 0; i < path.size(); i++) {
                         assert_in_range(path[i]); 
@@ -297,7 +297,7 @@ namespace romi {
                 }
         }
 
-        void Oquam::convert_script(SmoothPath& script, v3& vmax) 
+        void CNC::convert_script(SmoothPath& script, v3& vmax) 
         {
                 script.convert(vmax.values(),
                                settings_.amax_.values(),
@@ -306,7 +306,7 @@ namespace romi {
                                settings_.path_max_slice_duration_); 
         }
 
-        void Oquam::store_script(SmoothPath& script) 
+        void CNC::store_script(SmoothPath& script) 
         {
                 if (store_script_) {
                         store_script_svg(script);
@@ -315,7 +315,7 @@ namespace romi {
                 }
         }
 
-        void Oquam::store_script_svg(SmoothPath &script)
+        void CNC::store_script_svg(SmoothPath &script)
         {
                 rcom::MemBuffer svg = plot_to_mem(script, settings_.range_,
                                             settings_.vmax_.values(),
@@ -323,28 +323,28 @@ namespace romi {
                 if (svg.size() > 0) {
                         session_.store_svg("oquam.svg", svg.tostring());
                 } else {
-                        r_warn("Oquam::store_script: plot failed");
+                        r_warn("CNC::store_script: plot failed");
                 }
         }
 
-        void Oquam::store_script_json(SmoothPath &script)
+        void CNC::store_script_json(SmoothPath &script)
         {
                 rcom::MemBuffer text;
                 print(script, text);
                 session_.store_txt("oquam.json",text.tostring());
         }
 
-        void Oquam::check_script(SmoothPath& script, v3& vmax) 
+        void CNC::check_script(SmoothPath& script, v3& vmax) 
         {
                 if (!is_valid(script, 
                               settings_.range_, vmax.values(),
                               settings_.amax_.values())) {
-                        r_err("Oquam::convert_script: generated script is invalid");
+                        r_err("CNC::convert_script: generated script is invalid");
                         throw std::runtime_error("is_valid(script) failed");
                 }
         }
         
-        void Oquam::execute_script(SmoothPath& script) 
+        void CNC::execute_script(SmoothPath& script) 
         {
                 if (script.count_slices() > 0) {
                         Section& section = script.get_slice(0);
@@ -358,7 +358,7 @@ namespace romi {
                 }
         }
 
-        void Oquam::execute_move(Section& section, int32_t *pos_steps)
+        void CNC::execute_move(Section& section, int32_t *pos_steps)
         {
                 int32_t p1[3];
                 
@@ -381,15 +381,15 @@ namespace romi {
                 }
         }
         
-        void Oquam::assert_move(int16_t *params)
+        void CNC::assert_move(int16_t *params)
         {
                 if (!controller_.move(params[0], params[1], params[2], params[3])) {
-                        r_err("Oquam: move failed");
-                        throw std::runtime_error("Oquam: move failed");
+                        r_err("CNC: move failed");
+                        throw std::runtime_error("CNC: move failed");
                 }
         }
 
-        void Oquam::convert_position_to_steps(const double *position, int32_t *steps) 
+        void CNC::convert_position_to_steps(const double *position, int32_t *steps) 
         {
                 double *scale = settings_.scale_meters_to_steps_;
                 steps[0] = (int32_t) (position[0] * scale[0]);
@@ -397,66 +397,66 @@ namespace romi {
                 steps[2] = (int32_t) (position[2] * scale[2]);
         }
 
-        void Oquam::wait_end_of_script(SmoothPath& script) 
+        void CNC::wait_end_of_script(SmoothPath& script) 
         {
                 double duration = script.get_duration();
                 double timeout = 60.0 + 1.5 * duration;
                 assert_synchronize(timeout);
         }
 
-        void Oquam::assert_synchronize(double timeout)
+        void CNC::assert_synchronize(double timeout)
         {
                 if (!controller_.synchronize(timeout)) {
-                        r_err("Oquam: synchronize failed");
-                        throw std::runtime_error("Oquam: synchronize failed");
+                        r_err("CNC: synchronize failed");
+                        throw std::runtime_error("CNC: synchronize failed");
                 }
         }
 
-        bool Oquam::pause_activity()
+        bool CNC::pause_activity()
         {
                 return controller_.pause_activity();
         }
         
-        bool Oquam::continue_activity()
+        bool CNC::continue_activity()
         {
                 return controller_.continue_activity();
         }
         
-        bool Oquam::reset_activity()
+        bool CNC::reset_activity()
         {
                 return controller_.reset_activity();
         }
 
-        bool Oquam::enable_driver()
+        bool CNC::enable_driver()
         {
                 SynchronizedCodeBlock synchronize(mutex_);
                 return controller_.enable();
         }
 
-        bool Oquam::disable_driver()
+        bool CNC::disable_driver()
         {
                 SynchronizedCodeBlock synchronize(mutex_);
                 return controller_.disable();
         }
 
-        bool Oquam::power_up()
+        bool CNC::power_up()
         {
                 //return enable_driver() && homing();
                 return enable_driver();
         }
         
-        bool Oquam::power_down()
+        bool CNC::power_down()
         {
                 return disable_driver();
         }
         
-        bool Oquam::is_powered_up()
+        bool CNC::is_powered_up()
         {
                 SynchronizedCodeBlock synchronize(mutex_);
                 return controller_.is_enabled();
         }
 
-        bool Oquam::helix(double xc, double yc, double alpha, double z,
+        bool CNC::helix(double xc, double yc, double alpha, double z,
                           double relative_speed, bool sync)
         {
                 SynchronizedCodeBlock synchronize(mutex_);
@@ -465,7 +465,7 @@ namespace romi {
                 return helix_synchronized(xc, yc, alpha, z, relative_speed, sync);
         }
 
-        bool Oquam::helix_synchronized(double xc, double yc, double alpha, double z,
+        bool CNC::helix_synchronized(double xc, double yc, double alpha, double z,
                                        double relative_speed, bool sync)
         {
                 bool success = false;
@@ -475,13 +475,13 @@ namespace romi {
                         success = true;
                         
                 } catch (std::runtime_error& e) {
-                        r_debug("Oquam::helix_synchronized: error: %s", e.what());
+                        r_debug("CNC::helix_synchronized: error: %s", e.what());
                 }
                 
                 return success;
         }
         
-        void Oquam::do_helix(double xc, double yc, double alpha, double z,
+        void CNC::do_helix(double xc, double yc, double alpha, double z,
                              double relative_speed, bool sync)
         {
                 assert_relative_speed(relative_speed);

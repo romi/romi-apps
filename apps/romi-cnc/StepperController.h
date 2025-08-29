@@ -21,15 +21,13 @@
   <http://www.gnu.org/licenses/>.
 
  */
-#ifndef __OQUAM_OQUAM_STEPPER_H_
-#define __OQUAM_OQUAM_STEPPER_H_
-
+#ifndef __OQUAM_OQUAMSTEPPER_H_
+#define __OQUAM_OQUAMSTEPPER_H_
 
 #include <RomiSerialClient.h> 
 #include <RSerial.h>
-
-#include "oquam/ICNCController.h" 
-#include "api/ActivityHelper.h"
+#include <api/ActivityHelper.h>
+#include "ICNCController.h" 
 
 
 namespace romi {
@@ -91,4 +89,4 @@ namespace romi {
         };
 }
 
-#endif // __OQUAM_OQUAM_STEPPER_H
+#endif // __OQUAM_OQUAMSTEPPER_H

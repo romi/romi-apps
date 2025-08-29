@@ -22,10 +22,10 @@
 
  */
 #include <stdexcept>
-#include <oquam/FakeCNCController.h>
-#include <oquam/StepperController.h>
 #include <util/Logger.h>
 #include <util/RomiSerialLog.h>
+#include "FakeCNCController.h"
+#include "StepperController.h"
 #include "CNCOptions.h"
 #include "CNCFactory.h"
 

@@ -24,7 +24,7 @@
 #ifndef _OQUAM_FAKE_CNC_CONTROLLER_HPP_
 #define _OQUAM_FAKE_CNC_CONTROLLER_HPP_
 
-#include "oquam/ICNCController.h"
+#include "ICNCController.h"
 
 namespace romi {
 
