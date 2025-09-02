@@ -29,7 +29,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
 
 # Options.
 #Build tests by default. We want run tests whether we are developing or building a release. I mean... why wouldn't you? :)
-option(BUILD_TESTS "Build all tests." OFF)
+option(BUILD_TESTS "Build all tests." ON)
 option(BUILD_COVERAGE "Build coverage." OFF)
 
 # Build the developer example applications. These cannot be built with Coverage enabled.

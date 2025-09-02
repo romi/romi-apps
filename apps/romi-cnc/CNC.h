@@ -51,8 +51,8 @@ namespace romi {
         public:
                 
                 CNC(ICNCController& controller,
-                      CNCSettings& settings,
-                      ISession& session);
+                    CNCSettings& settings,
+                    ISession& session);
 
                 CNC(const CNC&) = delete;
                 CNC& operator=(const CNC&) = delete;
@@ -102,17 +102,16 @@ namespace romi {
                 void check_script(SmoothPath& script, v3& vmax);
                 void execute_script(SmoothPath& script);
                 void execute_move(Section& section, int32_t *pos_steps);
+                void execute_block(Block& block);
                 void wait_end_of_script(SmoothPath& script); 
                 bool get_position(int32_t *position); 
                 v3 assert_get_position(); 
                 void assert_relative_speed(double relative_speed); 
                 void assert_in_range(v3 p);
-
                 bool is_zero(int16_t *params);
                 void assert_move(int16_t *params);
                 void assert_synchronize(double timeout);
                 void convert_position_to_steps(const double *position, int32_t *steps);
-
                 bool enable_driver();
                 bool disable_driver();
                 bool helix_synchronized(double xc, double yc, double alpha, double z,

@@ -596,11 +596,11 @@ namespace romi {
         {
                 double duration = script.get_duration();
                 if (duration > 0) {
-                        print_segments(script);
-                        print_atdc(script);
+                        //print_segments(script);
+                        //print_atdc(script);
                         print_slices(script, duration, vmax_);
-                        print_speeds(script, duration, vmax_);
-                        print_accelerations(script, duration, amax);
+                        //print_speeds(script, duration, vmax_);
+                        //print_accelerations(script, duration, amax);
                 }
         }
 

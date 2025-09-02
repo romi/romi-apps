@@ -125,6 +125,13 @@ namespace romi {
                         return x_[index];
                 }
                 
+                const double& operator[](int index) const {
+                        if (index < 0 || index > 2) {
+                                throw std::runtime_error("Index out of bound");
+                        }
+                        return x_[index];
+                }
+                
                 //
                 v3& operator=(double v) {
                         set(v);

@@ -50,7 +50,7 @@ namespace romi {
                 if (path_max_slice_duration_ > 32.0)
                         path_max_slice_duration_ = 32.0;
                 
-                vcopy(scale_meters_to_steps_, scale_meters_to_steps);
+                scale_meters_to_steps_ = scale_meters_to_steps;
                 
                 init_range();
                 init_homing_axes();

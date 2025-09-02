@@ -57,7 +57,8 @@ namespace romi {
         USBCamera::~USBCamera()
         {
                 _done = true;
-                if (_thread.joinable()) _thread.join();
+                if (_thread.joinable())
+                        _thread.join();
 
                 if (_camera)
                         delete_camera(_camera);

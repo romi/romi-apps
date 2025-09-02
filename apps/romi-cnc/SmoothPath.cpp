@@ -49,20 +49,21 @@ namespace romi {
 
         
         SmoothPath::SmoothPath(v3 start_position)
-                : _moves(),
-                  _segments(),
-                  _atdc(),
-                  _slices(),
-                  _start_position(),
-                  _current_position()
+                : moves_(),
+                  segments_(),
+                  atdc_(),
+                  slices_(),
+                  blocks_(),
+                  start_position_(),
+                  current_position_()
         {
-                _start_position = start_position;
+                start_position_ = start_position;
                 set_current_position(start_position);
         }
 
         void SmoothPath::set_current_position(v3 p)
         {
-                _current_position = p;
+                current_position_ = p;
         }
 
         void SmoothPath::moveto(double x, double y, double z, double v)
@@ -71,7 +72,7 @@ namespace romi {
                         r_warn("script_moveto: speed must be positive");
                         throw std::runtime_error("SmoothPath::moveto: invalid speed");
                 }
-                _moves.emplace_back(x, y, z, v);
+                moves_.emplace_back(x, y, z, v);
         }
 
         void SmoothPath::moveto(v3 p, double v)
@@ -80,11 +81,12 @@ namespace romi {
                         r_warn("script_moveto: speed must be positive");
                         throw std::runtime_error("SmoothPath::moveto: invalid speed");
                 }
-                _moves.emplace_back(p, v);
+                moves_.emplace_back(p, v);
         }
 
         void SmoothPath::convert(const double *vmax, const double *amax, double deviation,
-                                 double slice_duration, double max_slice_duration)
+                                 double slice_duration, double max_slice_duration,
+                                 const v3& meter_to_steps)
         {
                 assert_vmax(vmax);
                 assert_amax(amax);
@@ -96,6 +98,7 @@ namespace romi {
                         check_max_speeds(vmax);
                         convert_segments_to_atdc(deviation, vmax, amax);
                         slice(slice_duration, max_slice_duration);
+                        convert_to_blocks(meter_to_steps);
                 }
         }
 
@@ -164,9 +167,9 @@ namespace romi {
         
         void SmoothPath::convert_moves_to_segments()
         {
-                for (size_t i = 0; i < _moves.size(); i++) {
-                        Move& move = _moves[i];
-                        v3 d = move.p - _current_position;
+                for (size_t i = 0; i < moves_.size(); i++) {
+                        Move& move = moves_[i];
+                        v3 d = move.p - current_position_;
                         
                         /* If the displacement is less then 0.1 mm,
                          * skip it. */
@@ -182,12 +185,12 @@ namespace romi {
                 Segment segment;
                 init_segment_positions(segment, move);
                 init_segment_speed(segment, move);
-                _segments.push_back(segment);
+                segments_.push_back(segment);
         }
 
         void SmoothPath::init_segment_positions(Segment& segment, Move& move)
         {
-                vcopy(segment.p0, _current_position.values()); 
+                vcopy(segment.p0, current_position_.values()); 
                 vcopy(segment.p1, move.p.values()); 
         }
 
@@ -209,7 +212,7 @@ namespace romi {
         void SmoothPath::check_max_speed(size_t index, const double *vmax)
         {
                 double s = 1.0;
-                Segment& segment = _segments[index];
+                Segment& segment = segments_[index];
                 
                 for (int i = 0; i < 3; i++) {
                         if (segment.v[i] != 0.0)
@@ -231,8 +234,8 @@ namespace romi {
 
         void SmoothPath::create_atdc()
         {
-                for (size_t i = 0; i < _segments.size(); i++) {
-                        _atdc.push_back(ATDC());
+                for (size_t i = 0; i < segments_.size(); i++) {
+                        atdc_.push_back(ATDC());
                 }
         }        
 
@@ -241,12 +244,12 @@ namespace romi {
                 /* The entry points (p0) of the accelerate sections of
                  * the ATDC are set by compute_curve(), except for the
                  * first one. That one is set explicitly here. */
-                vcopy(_atdc[0].accelerate.p0, _start_position.values());                
+                vcopy(atdc_[0].accelerate.p0, start_position_.values());                
         }
 
         void SmoothPath::compute_curves_and_speeds(double deviation, const double *amax)
         {
-                for (size_t i = 0; i < _segments.size(); i++) {
+                for (size_t i = 0; i < segments_.size(); i++) {
                         
                         // r_debug("compute_curves_and_speeds: %d", i);
                         // if (i == 12) 
@@ -288,8 +291,8 @@ namespace romi {
 
         void SmoothPath::no_curve(size_t index)
         {
-                Segment& s = _segments[index];
-                ATDC& t = _atdc[index];
+                Segment& s = segments_[index];
+                ATDC& t = atdc_[index];
                 t.curve.zero();
                 vcopy(t.curve.p0, s.p1);
                 vcopy(t.curve.p1, s.p1);
@@ -302,8 +305,8 @@ namespace romi {
                 double w0[3];
                 double w1[3];
 
-                Segment& s0 = _segments[index];
-                Segment& s1 = _segments[index+1];
+                Segment& s0 = segments_[index];
+                Segment& s1 = segments_[index+1];
                 
                 w = get_curve_speed_magnitude(s0, s1);
                 get_curve_speed_vector(s0, w, w0);
@@ -457,7 +460,7 @@ namespace romi {
                 compute_curve_exit_point(s1, distance, p1);
                 smul(a, ey, am);
                 
-                ATDC& t0 = _atdc[index];
+                ATDC& t0 = atdc_[index];
                 t0.curve.set(duration, 0, p0, p1, w0, w1, a);
         }
         
@@ -611,7 +614,7 @@ namespace romi {
         bool SmoothPath::update_speeds_if_needed(size_t index, const double *amax)
         {
                 bool must_backpropagate = false;
-                ATDC& t = _atdc[index];
+                ATDC& t = atdc_[index];
 
                 /* Compare the speeds at the start of the segments and at the
                    entry of the curve. Check whether there is enough space to
@@ -771,8 +774,8 @@ namespace romi {
                 
                 bool changed = false;
                 if (has_next_atdc(index)) {
-                        ATDC& t0 = _atdc[index];
-                        ATDC& t1 = _atdc[index+1];
+                        ATDC& t0 = atdc_[index];
+                        ATDC& t1 = atdc_[index+1];
                         double v1 = vnorm(t0.curve.v0);
                         double v0_next = vnorm(t1.accelerate.v0);
                         if (v1 != v0_next) {
@@ -812,8 +815,8 @@ namespace romi {
         void SmoothPath::initialize_next_acceleration(size_t index)
         {
                 if (has_next_atdc(index)) {
-                        ATDC& t0 = _atdc[index];
-                        ATDC& t1 = _atdc[index+1];
+                        ATDC& t0 = atdc_[index];
+                        ATDC& t1 = atdc_[index+1];
                         vcopy(t1.accelerate.v0, t0.curve.v1);
                         vcopy(t1.accelerate.p0, t0.curve.p1);
                 }
@@ -821,7 +824,7 @@ namespace romi {
         
         void SmoothPath::compute_accelerations(const double *amax)
         {
-                for (size_t i = 0; i < _segments.size(); i++) {
+                for (size_t i = 0; i < segments_.size(); i++) {
                         compute_accelerations(i, amax);
                 }
         }
@@ -834,8 +837,8 @@ namespace romi {
                 double target_speed[3];
                 double arrival_speed[3];
                 
-                Segment& s0 = _segments[index];
-                ATDC& t0 = _atdc[index];
+                Segment& s0 = segments_[index];
+                ATDC& t0 = atdc_[index];
                 
                 // Make copies because the sections may get
                 // reinitialized.
@@ -855,8 +858,8 @@ namespace romi {
         {
                 double at = 0.0;
                 for (size_t i = 0; i < count_atdc(); i++) {
-                        _atdc[i].update_start_times(at);
-                        at = _atdc[i].get_end_time();
+                        atdc_[i].update_start_times(at);
+                        at = atdc_[i].get_end_time();
                 }
         }
 
@@ -868,20 +871,20 @@ namespace romi {
 
         void SmoothPath::slice(ATDC& atdc, double period, double max_slice_duration)
         {
-                atdc.accelerate.slice(_slices, period, max_slice_duration);
-                atdc.travel.slice(_slices, period, max_slice_duration);
-                atdc.decelerate.slice(_slices, period, max_slice_duration);
-                atdc.curve.slice(_slices, period, max_slice_duration);
+                atdc.accelerate.slice(slices_, period, max_slice_duration);
+                atdc.travel.slice(slices_, period, max_slice_duration);
+                atdc.decelerate.slice(slices_, period, max_slice_duration);
+                atdc.curve.slice(slices_, period, max_slice_duration);
         }
 
         bool SmoothPath::has_next_segment(size_t index)
         {
-                return index < _segments.size() - 1;
+                return index < segments_.size() - 1;
         }
 
         bool SmoothPath::has_next_atdc(size_t index)
         {
-                return index < _atdc.size() - 1;
+                return index < atdc_.size() - 1;
         }
 
         double SmoothPath::get_duration()
@@ -889,13 +892,58 @@ namespace romi {
                 double duration = 0.0;
                 if (count_atdc() > 0) {
                         size_t last = count_atdc() -1;
-                        duration = _atdc[last].get_end_time();
+                        duration = atdc_[last].get_end_time();
                 }
                 return duration;
         }
 
         v3 SmoothPath::get_start_position()
         {
-                return _start_position;
+                return start_position_;
+        }
+
+        void SmoothPath::convert_to_blocks(const v3& scale)
+        {
+                if (count_slices() > 0) {
+                        Section& section = get_slice(0);
+                
+                        // Initialize the start position
+                        convert_to_steps(section.p0, scale, current_steps_);
+                        
+                        for (size_t k = 0; k < count_slices(); k++) {
+                                add_block(get_slice(k), scale);
+                        }
+                }
+        }
+
+        void SmoothPath::convert_to_steps(const double *position,
+                                          const v3& scale,
+                                          int32_t *steps) 
+        {
+                steps[0] = (int32_t) (position[0] * scale[0]);
+                steps[1] = (int32_t) (position[1] * scale[1]);
+                steps[2] = (int32_t) (position[2] * scale[2]);
+        }
+
+        void SmoothPath::add_block(Section& section, const v3& scale)
+        {
+                int32_t p1[3];
+                int16_t params[4];
+                
+                convert_to_steps(section.p1, scale, p1); 
+                
+                params[0] = (int16_t) (1000.0 * section.duration);
+                params[1] = (int16_t) (p1[0] - current_steps_[0]);
+                params[2] = (int16_t) (p1[1] - current_steps_[1]);
+                params[3] = (int16_t) (p1[2] - current_steps_[2]);
+                
+                if (!is_zero(params)) {
+                        blocks_.emplace_back(params);                        
+                }
+                
+                // Update the current position
+                current_steps_[0] = p1[0];
+                current_steps_[1] = p1[1];
+                current_steps_[2] = p1[2];
         }
 }

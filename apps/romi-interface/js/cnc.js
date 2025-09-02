@@ -40,6 +40,7 @@ class CNC
         this.id = id;
         this.controller = controller;
         this.viewer = viewer;
+        viewer.setCNC(this); // FIME
         this.axes = [];
         this.position = [0, 0, 0];
         this.controller.callWhenConnected(this);
@@ -66,7 +67,7 @@ class CNC
         this.controller.invoke(this, 'cnc-get-position');
     }
 
-    moveto(x, y, z) {
+    moveto(x, y, z, speed) {
 	console.log("moveto " + x + " " + y + " " + z);
         this.position.x = x;
         this.position.y = y;
@@ -74,7 +75,7 @@ class CNC
         var params = { 'x': this.position.x,
                        'y': this.position.y,
                        'z': this.position.z,
-                       'speed': 1 };
+                       'speed': speed };
         this.controller.invoke(this, 'cnc-moveto', params);
     }
 
@@ -116,6 +117,7 @@ class CNC
 class CNCViewer
 {
     constructor() {
+        this.cnc = undefined;
         this.root = undefined;
         this.element = undefined;
         this.posView = [];
@@ -128,6 +130,10 @@ class CNCViewer
         }
     }
 
+    setCNC(cnc) {
+        this.cnc = cnc; // FIXME: I don't like this...
+    }
+    
     update(cnc) {
         console.log('CNCViewer: update');
         if (!this.element) {
@@ -164,14 +170,18 @@ class CNCViewer
     
     callMoveto() {
         console.log('CNCViewer: callMoveto');
-        var position = [0, 0, 0];
+        var pos = [0, 0, 0];
         for (let i = 0; i < this.posView.length; i++) {
             console.log('CNCViewer: ' + this.posView);
             console.log('CNCViewer: ' + this.posView[i]);
             console.log('CNCViewer: ' + this.posView[i].getValue());
-            position = parseFloat(this.posView[i].getValue());
+            console.log('CNCViewer: ' + parseFloat(this.posView[i].getValue()));
+            pos[i] = parseFloat(this.posView[i].getValue());
         }
-        console.log("moveto (" + position[0] + "," + position[1] + "," + position[2] + ")");
+        console.log("moveto (" + pos[0] + "," + pos[1] + "," + pos[2] + ")");
+        if (this.cnc) {
+            this.cnc.moveto(pos[0], pos[1], pos[2], 0.3);
+        }
     }
 
     callHoming() {

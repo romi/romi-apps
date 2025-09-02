@@ -82,30 +82,47 @@ namespace romi {
 
         };
         
+        struct Block {
+                int16_t dt;
+                int16_t dx;
+                int16_t dy;
+                int16_t dz;
+
+                Block() : dt(0), dx(0), dy(0), dz(0) {}
+                Block(int16_t p[4]) : dt(p[0]), dx(p[1]), dy(p[2]), dz(p[3]) {}
+        };
+
+        
         class SmoothPath
         {
         protected:
                 
                 /* The list of moves given by the user. */
-                std::vector<Move> _moves;
+                std::vector<Move> moves_;
                 
                 /* The list of segments is an intermediate
                  * representation of the move actions to facilitate to
                  * computation of the ADTC below. */
-                std::vector<Segment> _segments;
+                std::vector<Segment> segments_;
                 
                 /* The list of move actions rewitten as a list of
                  * Accelerate-Travel-Decelerate-Curve sections
                  * (ATDC). */
-                std::vector<ATDC> _atdc;
+                std::vector<ATDC> atdc_;
 
                 /* The smooth curve described by the list of ATDCs is
                  * sliced into a long list of short sections with
-                 * constant speeds. */
-                std::vector<Section> _slices;
-                
-                v3 _start_position;
-                v3 _current_position;
+                 * constant acceleration. */
+                std::vector<Section> slices_;
+
+                /* The slices are converted into a list of blocks with
+                 * constant speeds.
+                 */
+                std::vector<Block> blocks_;
+
+                v3 start_position_;
+                v3 current_position_;
+                int32_t current_steps_[3];
                 
         public:
                                 
@@ -122,38 +139,47 @@ namespace romi {
                              const double *amax,
                              double deviation,
                              double slice_duration,
-                             double max_slice_duration);
+                             double max_slice_duration,
+                             const v3& meter_to_steps);
 
                 size_t count_moves() {
-                        return _moves.size();
+                        return moves_.size();
                 }
                 
                 Move& get_move(size_t index) {
-                        return _moves[index];
+                        return moves_[index];
                 }
 
                 size_t count_segments() {
-                        return _segments.size();
+                        return segments_.size();
                 }
                 
                 Segment& get_segment(size_t index) {
-                        return _segments[index];
+                        return segments_[index];
                 }
 
                 size_t count_atdc() {
-                        return _atdc.size();
+                        return atdc_.size();
                 }
                 
                 ATDC& get_atdc(size_t index) {
-                        return _atdc[index];
+                        return atdc_[index];
                 }
 
                 size_t count_slices() {
-                        return _slices.size();
+                        return slices_.size();
                 }
                 
                 Section& get_slice(size_t index) {
-                        return _slices[index];
+                        return slices_[index];
+                }
+
+                size_t count_blocks() {
+                        return blocks_.size();
+                }
+                
+                Block& get_block(size_t index) {
+                        return blocks_[index];
                 }
 
                 double get_duration();
@@ -217,6 +243,19 @@ namespace romi {
                 void assert_slice_duration(double duration, double max_duration);
                 bool has_next_segment(size_t index);
                 bool has_next_atdc(size_t index);
+
+                void convert_to_blocks(const v3& scale);
+                void convert_to_steps(const double *position,
+                                      const v3& scale,
+                                      int32_t *steps); 
+                void add_block(Section& section, const v3& scale);
+
+                bool is_zero(int16_t *params) {
+                        return (params[0] == 0)
+                                || ((params[1] == 0)
+                                    && (params[2] == 0)
+                                    && (params[3] == 0.0));
+                }
         };
 }
 

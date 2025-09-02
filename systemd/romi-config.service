@@ -4,6 +4,7 @@ ConditionPathExists=/home/romi/romi-apps/build/bin/romi-config
 After=network.target
 After=systemd-user-sessions.service
 After=network-online.target
+# After=rcom-registry.service
 
 [Service]
 User=romi

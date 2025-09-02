@@ -37,8 +37,8 @@
 namespace romi {
         
         CNC::CNC(ICNCController& controller,
-                     CNCSettings& settings,
-                     ISession& session)
+                 CNCSettings& settings,
+                 ISession& session)
                 : controller_(controller),
                   settings_(settings),
                   session_(session),
@@ -100,12 +100,12 @@ namespace romi {
                         double x = p[0];
                         double y = p[1];
                         double z = p[2];
-                        if (settings_.scale_meters_to_steps_[0] != 0.0)
-                                x /= settings_.scale_meters_to_steps_[0];
-                        if (settings_.scale_meters_to_steps_[1] != 0.0)
-                                y /= settings_.scale_meters_to_steps_[1];
-                        if (settings_.scale_meters_to_steps_[2] != 0.0)
-                                z /= settings_.scale_meters_to_steps_[2];
+                        if (settings_.scale_meters_to_steps_.x() != 0.0)
+                                x /= settings_.scale_meters_to_steps_.x();
+                        if (settings_.scale_meters_to_steps_.y() != 0.0)
+                                y /= settings_.scale_meters_to_steps_.y();
+                        if (settings_.scale_meters_to_steps_.z() != 0.0)
+                                z /= settings_.scale_meters_to_steps_.z();
                         position.set(x, y, z);
                 }
                 //else std::cout<<"get_position failed"<<std::endl; //test
@@ -303,7 +303,8 @@ namespace romi {
                                settings_.amax_.values(),
                                settings_.path_max_deviation_,
                                settings_.path_slice_duration_,
-                               settings_.path_max_slice_duration_); 
+                               settings_.path_max_slice_duration_,
+                               settings_.scale_meters_to_steps_); 
         }
 
         void CNC::store_script(SmoothPath& script) 
@@ -321,7 +322,7 @@ namespace romi {
                                             settings_.vmax_.values(),
                                             settings_.amax_.values());
                 if (svg.size() > 0) {
-                        session_.store_svg("oquam.svg", svg.tostring());
+                        session_.store_svg("cnc.svg", svg.tostring());
                 } else {
                         r_warn("CNC::store_script: plot failed");
                 }
@@ -331,7 +332,7 @@ namespace romi {
         {
                 rcom::MemBuffer text;
                 print(script, text);
-                session_.store_txt("oquam.json",text.tostring());
+                session_.store_txt("cnc.json",text.tostring());
         }
 
         void CNC::check_script(SmoothPath& script, v3& vmax) 
@@ -346,55 +347,17 @@ namespace romi {
         
         void CNC::execute_script(SmoothPath& script) 
         {
-                if (script.count_slices() > 0) {
-                        Section& section = script.get_slice(0);
-                
-                        // Initialize the start position
-                        int32_t pos_steps[3];
-                        convert_position_to_steps(section.p0, pos_steps); 
-                        for (size_t k = 0; k < script.count_slices(); k++) {
-                                execute_move(script.get_slice(k), pos_steps);
-                        }
+                for (size_t k = 0; k < script.count_blocks(); k++) {
+                        execute_block(script.get_block(k));
                 }
         }
 
-        void CNC::execute_move(Section& section, int32_t *pos_steps)
+        void CNC::execute_block(Block& block)
         {
-                int32_t p1[3];
-                
-                convert_position_to_steps(section.p1, p1); 
-
-                int16_t params[4];
-                params[0] = (int16_t) (1000.0 * section.duration);
-                params[1] = (int16_t) (p1[0] - pos_steps[0]);
-                params[2] = (int16_t) (p1[1] - pos_steps[1]);
-                params[3] = (int16_t) (p1[2] - pos_steps[2]);
-                
-                if (!is_zero(params)) {
-                        
-                        assert_move(params);
-                        
-                        // Update the current position
-                        pos_steps[0] = p1[0];
-                        pos_steps[1] = p1[1];
-                        pos_steps[2] = p1[2];
-                }
-        }
-        
-        void CNC::assert_move(int16_t *params)
-        {
-                if (!controller_.move(params[0], params[1], params[2], params[3])) {
+                if (!controller_.move(block.dt, block.dx, block.dy, block.dz)) {
                         r_err("CNC: move failed");
                         throw std::runtime_error("CNC: move failed");
                 }
-        }
-
-        void CNC::convert_position_to_steps(const double *position, int32_t *steps) 
-        {
-                double *scale = settings_.scale_meters_to_steps_;
-                steps[0] = (int32_t) (position[0] * scale[0]);
-                steps[1] = (int32_t) (position[1] * scale[1]);
-                steps[2] = (int32_t) (position[2] * scale[2]);
         }
 
         void CNC::wait_end_of_script(SmoothPath& script) 
@@ -480,6 +443,8 @@ namespace romi {
                 
                 return success;
         }
+
+        //
         
         void CNC::do_helix(double xc, double yc, double alpha, double z,
                              double relative_speed, bool sync)
@@ -515,6 +480,45 @@ namespace romi {
                         double duration = helix.get_duration();
                         double timeout = 10.0 + 1.5 * duration;
                         assert_synchronize(timeout);
+                }
+        }
+
+        void CNC::convert_position_to_steps(const double *position, int32_t *steps) 
+        {
+                const double *scale = settings_.scale_meters_to_steps_.values();
+                steps[0] = (int32_t) (position[0] * scale[0]);
+                steps[1] = (int32_t) (position[1] * scale[1]);
+                steps[2] = (int32_t) (position[2] * scale[2]);
+        }
+
+        void CNC::execute_move(Section& section, int32_t *pos_steps)
+        {
+                int32_t p1[3];
+                
+                convert_position_to_steps(section.p1, p1); 
+
+                int16_t params[4];
+                params[0] = (int16_t) (1000.0 * section.duration);
+                params[1] = (int16_t) (p1[0] - pos_steps[0]);
+                params[2] = (int16_t) (p1[1] - pos_steps[1]);
+                params[3] = (int16_t) (p1[2] - pos_steps[2]);
+                
+                if (!is_zero(params)) {
+                        
+                        assert_move(params);
+                        
+                        // Update the current position
+                        pos_steps[0] = p1[0];
+                        pos_steps[1] = p1[1];
+                        pos_steps[2] = p1[2];
+                }
+        }
+        
+        void CNC::assert_move(int16_t *params)
+        {
+                if (!controller_.move(params[0], params[1], params[2], params[3])) {
+                        r_err("CNC: move failed");
+                        throw std::runtime_error("CNC: move failed");
                 }
         }
 }
