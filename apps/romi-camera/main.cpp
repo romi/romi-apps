@@ -42,14 +42,11 @@
 #include <rpc/RemoteConfig.h>
 #include <romi_config.h>
 
-// Session
-// #include <api/DeviceData.h>
-// #include <api/DummyLocationProvider.h>
-// #include <api/Session.h>
-
 #include "CameraInfoIO.h"
 #include "CameraFactory.h"
 #include "CameraAdaptor.h"
+#include "GpioStatusIndicator.h"
+#include "FakeStatusIndicator.h"
 
 static bool quit = false;
 static void set_quit(int sig, siginfo_t *info, void *ucontext);
@@ -115,6 +112,8 @@ int main(int argc, char **argv)
                         throw;
                 }
 
+                romi::GpioStatusIndicator status_indicator(6, 12);
+                
                 // Camera
                 r_debug("romi-camera: Initializing camera");
                 std::unique_ptr<romi::ICamera> camera;

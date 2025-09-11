@@ -21,8 +21,12 @@ set(SOURCES
   ExternalCamera.cpp
   FakeCamera.h
   FakeCamera.cpp
+  FakeCameraMonitor.h
   FileCamera.h
   FileCamera.cpp
+  GpioStatusIndicator.h
+  GpioStatusIndicator.cpp
+  ICameraStatusIndicator.h
   LibCamera.h
   LibCamera.cpp
   SimpleRadialDistortion.h        
