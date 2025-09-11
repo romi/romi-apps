@@ -48,7 +48,8 @@ class CNC
         this.axes = [];
         this.position = [0, 0, 0];
         this.controller.callWhenConnected(this);
-        this.is_powered = false;
+        this.isPoweredUp = false;
+	this.interval_id = setInterval(() => { this.updateStatus(); }, 1000);
     }
 
     getId() {
@@ -60,6 +61,11 @@ class CNC
         this.initAxesAndPosition();
     }  
 
+    updateStatus() {
+	this.requestPosition();
+	this.requestIsPoweredUp();
+    }
+    
     initAxesAndPosition() {
         this.requestAxes();
     }
@@ -70,6 +76,10 @@ class CNC
 
     requestPosition() {
         this.controller.invoke(this, 'cnc-get-position');
+    }
+
+    requestIsPoweredUp() {
+        this.controller.invoke(this, 'is-powered-up');
     }
 
     moveto(x, y, z, speed) {
@@ -95,6 +105,9 @@ class CNC
         } else if (response.method == "cnc-get-position") {
             this.setPosition(response.result);
             this.viewer.update(this);
+        } else if (response.method == "is-powered-up") {
+            this.setPoweredUp(response.result);
+            this.viewer.update(this);
         } else {
             console.log('CNC: Unknown method: ' + response.method);
         }
@@ -115,10 +128,15 @@ class CNC
     }  
 
     setPosition(result) {
+	console.log("position: " + JSON.stringify(result));
         this.position.x = result['x'];
         this.position.y = result['y'];
         this.position.z = result['z'];
-        console.log('Position: ' + result);
+    }  
+
+    setPoweredUp(result) {
+        this.isPoweredUp = result['powered-up'];
+	console.log("powered up: " + this.isPoweredUp);
     }  
 }  
 
@@ -195,6 +213,10 @@ class CNCViewer
     callHoming() {
         console.log('CNCViewer: callHoming');
     }
+
+    callPowerUpDown() {
+        console.log('CNCViewer: callPowerUpDown');
+    }
     
     makePositionView(cnc) {
         console.log('CNCViewer: makePositionView');
@@ -254,8 +276,12 @@ class CNCViewer
         var element = document.createElement("div");
         element.className = "button-panel";
         
-        var button = new Button((e) => { this.callHoming(); }, "", 'Homing');
+        var button = new Button((e) => { this.callPowerUpDown(); }, "button-spacer", 'Power');
         element.appendChild(button.element);
+	
+        button = new Button((e) => { this.callHoming(); }, "", 'Homing');
+        element.appendChild(button.element);
+	
         return element;
     }
 }

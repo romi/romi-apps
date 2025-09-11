@@ -26,6 +26,10 @@ class ImageViewer
         this.reader.readAsDataURL(data);
     }
 
+    clearImage() {
+        this.element.src = "assets/white.png";
+    }
+
     attach(root) {
         var img = document.createElement('img');
         img.className = this.classname;
@@ -68,9 +72,12 @@ class RemoteCamera
                 this.viewer.displayImage(buffer);
             } catch (error) {
                 //var str = (typeof buffer === 'string');
+                this.viewer.clearImage();
                 console.error(error);
             }
-        }
+        } else {
+            this.viewer.clearImage();
+	}
         if (this.continuousUpdate) {
             this.tryGrab();
         }
