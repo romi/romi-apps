@@ -62,7 +62,8 @@ class RemoteCamera
     }  
 
     handleBinaryMessage(buffer) {
-        if (buffer) {
+        var is_string = (typeof buffer === 'string');
+        if (buffer && !is_string) {
             try {
                 this.viewer.displayImage(buffer);
             } catch (error) {
