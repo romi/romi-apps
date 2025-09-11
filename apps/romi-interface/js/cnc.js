@@ -16,6 +16,10 @@ class Range
         this.min = min,
         this.max = max;
     }
+
+    length() {
+        return this.max - this.min;
+    }
 }
 
 class Axis
@@ -44,6 +48,7 @@ class CNC
         this.axes = [];
         this.position = [0, 0, 0];
         this.controller.callWhenConnected(this);
+        this.is_powered = false;
     }
 
     getId() {
@@ -102,7 +107,10 @@ class CNC
     setAxes(result) {
         console.log("TODO: CNC.setAxis: result=" + JSON.stringify(result));
         for (let i = 0; i < result.length; i++) {
-            this.axes.push(new Axis(result[i]));
+            let axis = result[i];
+            if (axis.range.length() > 0) { 
+                this.axes.push(new Axis(result[i]));
+            }
         }
     }  
 
