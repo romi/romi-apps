@@ -107,9 +107,9 @@ class CNC
     setAxes(result) {
         console.log("TODO: CNC.setAxis: result=" + JSON.stringify(result));
         for (let i = 0; i < result.length; i++) {
-            let axis = result[i];
+            let axis = new Axis(result[i]);
             if (axis.range.length() > 0) { 
-                this.axes.push(new Axis(result[i]));
+                this.axes.push(axis);
             }
         }
     }  
