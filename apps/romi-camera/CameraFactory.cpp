@@ -37,18 +37,20 @@ namespace romi {
 
         std::unique_ptr<ICamera> CameraFactory::create(
                 rcom::ISystem&,
-                std::shared_ptr<ICameraInfoIO>& io)
+                std::shared_ptr<ICameraInfoIO>& io,
+                ICameraStatusIndicator& indicator)
         {
                 r_debug("CameraFactory::create");
                 
                 auto info = io->load();
-                auto camera = make_camera(info->get_settings());
+                auto camera = make_camera(info->get_settings(), indicator);
                 auto manager = std::make_unique<CameraConfigManager>(io, camera);
 
                 return manager;
         }
 
-        std::unique_ptr<ICamera> CameraFactory::make_camera(ICameraSettings& settings)
+        std::unique_ptr<ICamera> CameraFactory::make_camera(ICameraSettings& settings,
+                                                            ICameraStatusIndicator& indicator)
         {
                 r_debug("CameraFactory::make_camera");
                 
@@ -65,7 +67,7 @@ namespace romi {
                         return make_usb_camera(settings);
 
                 else if (settings.type() == "libcamera")
-                        return make_libcamera(settings);
+                        return make_libcamera(settings, indicator);
 
                 else {
                         throw std::runtime_error("Unknown camera type");
@@ -122,7 +124,8 @@ namespace romi {
                 return camera;
         }
 
-        std::unique_ptr<ICamera> CameraFactory::make_libcamera(ICameraSettings& settings)
+        std::unique_ptr<ICamera> CameraFactory::make_libcamera(ICameraSettings& settings,
+                                                               ICameraStatusIndicator& indicator)
         {
                 r_debug("CameraFactory::make_libcamera");
 
@@ -130,7 +133,7 @@ namespace romi {
                 size_t height = (size_t) settings.get_value(ICameraSettings::kHeight);
                 
                 std::unique_ptr<ICamera> camera
-                        = std::make_unique<LibCamera>(width, height);
+                        = std::make_unique<LibCamera>(indicator, width, height);
                 return camera;
         }
 }

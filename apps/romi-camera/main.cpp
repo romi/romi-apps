@@ -118,7 +118,7 @@ int main(int argc, char **argv)
                 r_debug("romi-camera: Initializing camera");
                 std::unique_ptr<romi::ICamera> camera;
                 try {
-                        camera = romi::CameraFactory::create(system, info_io);
+                        camera = romi::CameraFactory::create(system, info_io, status_indicator);
                         
                 } catch (std::exception& e) {
                         r_debug("romi-camera: Failed to create the camera");

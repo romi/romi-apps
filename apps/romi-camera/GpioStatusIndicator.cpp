@@ -158,8 +158,50 @@ namespace romi {
                 }
         }
 
+        void GpioStatusIndicator::blink(int pin, int period)
+        {
+                if (pin == red_pin_) {
+                        clr(green_pin_);
+                } else {
+                        clr(red_pin_);
+                }
+                write(pin, pwm_count_ < period/2);
+                if (++pwm_count_ >= period) {
+                        pwm_count_ = 0;
+                }
+        }
+
+        void GpioStatusIndicator::light(int pin)
+        {
+                pwm_count_ = 0;
+                if (pin == red_pin_) {
+                        clr(green_pin_);
+                        set(red_pin_);
+                } else {
+                        clr(red_pin_);
+                        set(green_pin_);
+                }
+        }
+        
         void GpioStatusIndicator::update()
         {
-                std::cout << "update" << std::endl;
+                switch (status_) {
+                case kInitializing:
+                        blink(green_pin_, 2);
+                        break;
+                case kPoweredDown:
+                        blink(green_pin_, 8);
+                        break;
+                case kPoweredUp:
+                        light(green_pin_);
+                        break;
+                case kGrabbing:
+                        blink(red_pin_, 2);
+                        break;
+                default:
+                case kError:
+                        light(red_pin_);
+                        break;
+                }
         }
 }

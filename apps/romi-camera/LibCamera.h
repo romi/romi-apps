@@ -34,6 +34,7 @@
 #include <libcamera/libcamera.h>
 #include <api/ICamera.h>
 #include <util/ImageIO.h>
+#include "ICameraStatusIndicator.h"
 
 namespace romi {
         
@@ -72,6 +73,7 @@ namespace romi {
                 static constexpr const char *ClassName = "libcamera";
                 
         protected:
+                ICameraStatusIndicator& indicator_;
                 std::unique_ptr<libcamera::CameraManager> manager_;
                 std::shared_ptr<libcamera::Camera> camera_;
                 libcamera::FrameBufferAllocator *allocator_;
@@ -99,7 +101,7 @@ namespace romi {
                 size_t buffer_size_;
                 size_t image_size_;
                 
-                explicit LibCamera(size_t width, size_t height);
+                explicit LibCamera(ICameraStatusIndicator& indicator, size_t width, size_t height);
                 ~LibCamera() override;
         
                 bool grab(Image &image) override;

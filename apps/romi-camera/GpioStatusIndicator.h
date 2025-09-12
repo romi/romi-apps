@@ -83,9 +83,10 @@ namespace romi {
                 void write(int pin, bool high);
                 bool map();
                 void unmap();
-
                 void run();
                 void update();
+                void blink(int pin, int period);
+                void light(int pin);
 
         public:
                 GpioStatusIndicator(int red_pin, int green_pin);

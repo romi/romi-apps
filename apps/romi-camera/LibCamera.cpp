@@ -57,8 +57,9 @@ namespace romi {
         }
 
 
-        LibCamera::LibCamera(size_t width, size_t height)
-                : manager_(),
+        LibCamera::LibCamera(ICameraStatusIndicator& indicator, size_t width, size_t height)
+                : indicator_(indicator),
+                  manager_(),
                   camera_(),
                   allocator_(nullptr),
                   stream_(nullptr),
@@ -80,6 +81,7 @@ namespace romi {
         {
                 width_ = width;
                 height_ = height;
+                indicator_.set(ICameraStatusIndicator::kPoweredDown);
         }
 
         LibCamera::~LibCamera()
@@ -96,11 +98,13 @@ namespace romi {
                 bool result = false;
                 if (running_) {
                         std::unique_lock<std::mutex> lock(cv_mutex_);
+                        indicator_.set(ICameraStatusIndicator::kGrabbing);
                         send_request();
                         // wait_request_completed();
                         cv_.wait(lock, [this]{ return request_completed_; });
                         image = image_;
                         result = true;
+                        indicator_.set(ICameraStatusIndicator::kPoweredUp);
                 } else {
                         r_info("LibCamera::grab: Not powered up");
                         throw std::runtime_error("Not powered up");
@@ -115,11 +119,13 @@ namespace romi {
                 r_debug("LibCamera::grab_jpeg");
                 if (running_) {
                         std::unique_lock<std::mutex> lock(cv_mutex_);
+                        indicator_.set(ICameraStatusIndicator::kGrabbing);
                         send_request();
                         //wait_request_completed();
                         cv_.wait(lock, [this]{ return request_completed_; });
                         //r_debug("LibCamera::grab_jpeg: request completed: jpeg size: %d", (int) jpeg_.size());
                         //r_debug("LibCamera::grab_jpeg DONE");
+                        indicator_.set(ICameraStatusIndicator::kPoweredUp);
                         return jpeg_;
                 } else {
                         r_info("LibCamera::grab: Not powered up");
@@ -137,6 +143,7 @@ namespace romi {
                         init_camera();
                 }
                 //r_debug("LibCamera::power_up DONE");
+                indicator_.set(ICameraStatusIndicator::kPoweredUp);
                 return true; 
         }
         
@@ -149,6 +156,7 @@ namespace romi {
                         running_ = false;
                         release_camera();
                 }
+                indicator_.set(ICameraStatusIndicator::kPoweredDown);
                 return true;
         }
         

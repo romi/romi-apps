@@ -30,6 +30,7 @@
 #include <rcom/ILog.h>
 #include <api/ICamera.h>
 #include "ICameraInfoIO.h"
+#include "ICameraStatusIndicator.h"
 
 namespace romi {
         
@@ -37,7 +38,8 @@ namespace romi {
         {
         protected:
                 static std::unique_ptr<ICamera> make_camera(
-                        ICameraSettings& settings);
+                        ICameraSettings& settings,
+                        ICameraStatusIndicator& indicator);
                 static std::unique_ptr<ICamera> make_fake_camera(
                         ICameraSettings& settings);
                 static std::unique_ptr<ICamera> make_file_camera(
@@ -47,14 +49,16 @@ namespace romi {
                 static std::unique_ptr<ICamera> make_usb_camera(
                         ICameraSettings& settings);
                 static std::unique_ptr<ICamera> make_libcamera(
-                        ICameraSettings& settings);
+                        ICameraSettings& settings,
+                        ICameraStatusIndicator& indicator);
                 
         public:
                 virtual ~CameraFactory() = default;
 
                 static std::unique_ptr<ICamera> create(
                         rcom::ISystem& linux,
-                        std::shared_ptr<ICameraInfoIO>& io);
+                        std::shared_ptr<ICameraInfoIO>& io,
+                        ICameraStatusIndicator& indicator);
         };
 }
 
