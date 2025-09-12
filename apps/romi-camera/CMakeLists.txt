@@ -21,7 +21,7 @@ set(SOURCES
   ExternalCamera.cpp
   FakeCamera.h
   FakeCamera.cpp
-  FakeCameraMonitor.h
+  FakeStatusIndicator.h
   FileCamera.h
   FileCamera.cpp
   GpioStatusIndicator.h
