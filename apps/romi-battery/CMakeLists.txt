@@ -5,6 +5,8 @@ set(SOURCES
   main.cpp
   BatteryAdaptor.h
   BatteryAdaptor.cpp
+  BatteryStatusIndicator.cpp
+  BatteryStatusIndicator.h
   IBattery.h
   IBatteryMonitor.h
   INA219BatteryMonitor.h

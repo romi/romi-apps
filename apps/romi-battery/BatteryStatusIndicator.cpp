@@ -22,34 +22,37 @@
 
  */
 
-#include "CameraStatusIndicator.h"
+#include "BatteryStatusIndicator.h"
 
 namespace romi {
 
-        CameraStatusIndicator::CameraStatusIndicator(int red_pin, int green_pin)
+        BatteryStatusIndicator::BatteryStatusIndicator(int red_pin, int green_pin)
                 : GpioStatusIndicator(red_pin, green_pin),
                   status_(kInitializing)
         {
         }
         
-        void CameraStatusIndicator::set(CameraStatus status)
+        void BatteryStatusIndicator::set(BatteryStatus status)
         {
                 status_ = status;
         }
         
-        void CameraStatusIndicator::update()
+        void BatteryStatusIndicator::update()
         {
                 switch (status_) {
                 case kInitializing:
                         blink(green_pin_, 2);
                         break;
-                case kPoweredDown:
+                case kDischarging:
+                        blink(red_pin_, 8);
+                        break;
+                case kCharging:
                         blink(green_pin_, 8);
                         break;
-                case kPoweredUp:
+                case kCharged:
                         light(green_pin_);
                         break;
-                case kGrabbing:
+                case kLow:
                         blink(red_pin_, 2);
                         break;
                 default:

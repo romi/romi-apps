@@ -112,6 +112,7 @@ int main(int argc, char **argv)
                         throw;
                 }
 
+                // RPi pins 31 & 32
                 romi::CameraStatusIndicator status_indicator(6, 12);
                 
                 // Camera

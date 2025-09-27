@@ -8,9 +8,11 @@ namespace romi {
         using SynchonizedCodeBlock = std::lock_guard<std::mutex>;
         
         LithiumBattery::LithiumBattery(IBatteryMonitor& monitor,
+                                       IBatteryStatusIndicator& status,
                                        double voltage,
                                        double capacity)
                 : monitor_(monitor),
+                  status_(status),
                   nominal_voltage_(voltage),
                   capacity_charge_(capacity),
                   capacity_energy_(0),
@@ -67,9 +69,14 @@ namespace romi {
         {
                 return ((voltage_ > 4.15) &&
                         ((current_ > -0.001)
-                         && (current_ < 0.001))) ;
+                         && (current_ < 0.001)));
         }
 
+        bool LithiumBattery::is_low_locked()
+        {
+                return (voltage_ < 3.5);
+        }
+        
         double LithiumBattery::get_voltage()
         {
                 SynchonizedCodeBlock synchonized(mutex_);
@@ -104,6 +111,7 @@ namespace romi {
                 update_charge();
                 update_energy();
                 set_capacity_if_charged();
+                update_status();
                 print();
                 reset_perhaps();
         }
@@ -163,6 +171,19 @@ namespace romi {
                                 energy_ = capacity_energy_;
                         if (energy_ < 0)
                                 energy_ = 0;
+                }
+        }
+        
+        void LithiumBattery::update_status()
+        {
+                if (is_charged_locked()) {
+                        status_.set(IBatteryStatusIndicator::kCharged);
+                } else if (is_charging_locked()) {
+                        status_.set(IBatteryStatusIndicator::kCharging);
+                } else if (is_low_locked()) {
+                        status_.set(IBatteryStatusIndicator::kLow);
+                } else if (is_low_locked()) {
+                        status_.set(IBatteryStatusIndicator::kDischarging);
                 }
         }
         

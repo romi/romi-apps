@@ -2,6 +2,7 @@
 
 #include <thread>
 #include <mutex>
+#include "IBatteryStatusIndicator.h"
 #include "IBatteryMonitor.h"
 #include "IBattery.h"
 
@@ -11,6 +12,7 @@ namespace romi {
         {
         protected:
                 IBatteryMonitor& monitor_;
+                IBatteryStatusIndicator& status_;
                 double nominal_voltage_;
                 double capacity_charge_;
                 double capacity_energy_;
@@ -35,15 +37,20 @@ namespace romi {
                 void measure();
                 void update_charge();
                 void update_energy();
+                void update_status();
                 void print();
                 void reset_perhaps();
                 void set_capacity_if_charged();
                 bool is_charging_locked();
                 bool is_charged_locked();
+                bool is_low_locked();
 
         public:
                 // capatity in mAh
-                LithiumBattery(IBatteryMonitor& monitor, double voltage, double capacity);
+                LithiumBattery(IBatteryMonitor& monitor,
+                               IBatteryStatusIndicator& status,
+                               double voltage,
+                               double capacity);
                 virtual ~LithiumBattery() override;
 
                 bool is_charging() override;

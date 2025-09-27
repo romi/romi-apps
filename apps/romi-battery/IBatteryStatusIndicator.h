@@ -22,27 +22,26 @@
 
  */
 
-#ifndef ROMI_CAMERASTATUSINDICATOR_H
-#define ROMI_CAMERASTATUSINDICATOR_H
-
-#include <atomic>
-#include <util/GpioStatusIndicator.h>
-#include "ICameraStatusIndicator.h"
+#ifndef ROMI_IBATTERYSTATUSINDICATOR_H
+#define ROMI_IBATTERYSTATUSINDICATOR_H
 
 namespace romi {
-                
-        class CameraStatusIndicator : public ICameraStatusIndicator, public GpioStatusIndicator
-        {
-        protected:
-                std::atomic<CameraStatus> status_;
 
+        class IBatteryStatusIndicator
+        {
         public:
-                CameraStatusIndicator(int red_pin, int green_pin);
-                ~CameraStatusIndicator() override = default;
+                enum BatteryStatus {
+                        kInitializing,
+                        kDischarging,
+                        kCharging,
+                        kCharged,
+                        kLow,
+                        kError
+                };
                 
-                void set(CameraStatus status) override;
-                void update() override;
+                virtual ~IBatteryStatusIndicator() = default;
+                virtual void set(BatteryStatus status) = 0;
         };
 }
 
-#endif
+#endif // ROMI_IBATTERYSTATUSINDICATOR_H
