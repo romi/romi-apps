@@ -15,6 +15,8 @@ set(SOURCES
   CameraInfoIO.cpp
   CameraIntrinsics.h
   CameraIntrinsics.cpp
+  CameraStatusIndicator.h
+  CameraStatusIndicator.cpp
   CameraConfigManager.h
   CameraConfigManager.cpp
   ExternalCamera.h

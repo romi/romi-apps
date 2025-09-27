@@ -45,7 +45,7 @@
 #include "CameraInfoIO.h"
 #include "CameraFactory.h"
 #include "CameraAdaptor.h"
-#include "GpioStatusIndicator.h"
+#include "CameraStatusIndicator.h"
 #include "FakeStatusIndicator.h"
 
 static bool quit = false;
@@ -112,7 +112,7 @@ int main(int argc, char **argv)
                         throw;
                 }
 
-                romi::GpioStatusIndicator status_indicator(6, 12);
+                romi::CameraStatusIndicator status_indicator(6, 12);
                 
                 // Camera
                 r_debug("romi-camera: Initializing camera");

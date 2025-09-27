@@ -28,8 +28,6 @@
 #include <atomic>
 #include <thread>
 #include <cstdint>
-#include "ICameraStatusIndicator.h"
-
 
 /*
   Controls 2 GPIO pins on Raspberry Pi Zero 2 (Linux) without external libraries.
@@ -56,7 +54,7 @@
 namespace romi {
 
                 
-        class GpioStatusIndicator : public ICameraStatusIndicator
+        class GpioStatusIndicator
         {
         protected:
                 enum { kInput = 0, kOutput = 1 };
@@ -67,7 +65,6 @@ namespace romi {
                 static constexpr uint32_t kSet0 = 7;    // 0x1C
                 static constexpr uint32_t kClr0 = 10;   // 0x28
                 
-                std::atomic<CameraStatus> status_;
                 int red_pin_;
                 int green_pin_;
                 int pwm_count_;
@@ -84,14 +81,14 @@ namespace romi {
                 bool map();
                 void unmap();
                 void run();
-                void update();
                 void blink(int pin, int period);
                 void light(int pin);
 
         public:
                 GpioStatusIndicator(int red_pin, int green_pin);
-                virtual ~GpioStatusIndicator() override;
-                void set(CameraStatus status) override;
+                virtual ~GpioStatusIndicator();
+
+                virtual void update() = 0;
         };
 }
 

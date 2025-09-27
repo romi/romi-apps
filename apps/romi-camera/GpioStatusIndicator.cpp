@@ -35,8 +35,7 @@
 namespace romi {
 
         GpioStatusIndicator::GpioStatusIndicator(int red_pin, int green_pin)
-                : status_(kInitializing),
-                  red_pin_(red_pin),
+                : red_pin_(red_pin),
                   green_pin_(green_pin),
                   pwm_count_(false),
                   gpio_(nullptr),
@@ -73,12 +72,7 @@ namespace romi {
                 clr(green_pin_);
                 unmap();
         }
-        
-        void GpioStatusIndicator::set(CameraStatus status)
-        {
-                status_ = status;
-        }
-        
+                
         void GpioStatusIndicator::assure_pin(int pin)
         {
                 if (pin < 0 || pin > 53) {
@@ -180,28 +174,6 @@ namespace romi {
                 } else {
                         clr(red_pin_);
                         set(green_pin_);
-                }
-        }
-        
-        void GpioStatusIndicator::update()
-        {
-                switch (status_) {
-                case kInitializing:
-                        blink(green_pin_, 2);
-                        break;
-                case kPoweredDown:
-                        blink(green_pin_, 8);
-                        break;
-                case kPoweredUp:
-                        light(green_pin_);
-                        break;
-                case kGrabbing:
-                        blink(red_pin_, 2);
-                        break;
-                default:
-                case kError:
-                        light(red_pin_);
-                        break;
                 }
         }
 }
