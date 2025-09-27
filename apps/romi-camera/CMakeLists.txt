@@ -26,8 +26,6 @@ set(SOURCES
   FakeStatusIndicator.h
   FileCamera.h
   FileCamera.cpp
-  GpioStatusIndicator.h
-  GpioStatusIndicator.cpp
   ICameraStatusIndicator.h
   LibCamera.h
   LibCamera.cpp

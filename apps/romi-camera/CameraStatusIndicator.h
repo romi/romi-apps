@@ -26,10 +26,8 @@
 #define ROMI_CAMERASTATUSINDICATOR_H
 
 #include <atomic>
-#include <thread>
-#include <cstdint>
+#include <util/GpioStatusIndicator.h>
 #include "ICameraStatusIndicator.h"
-#include "GpioStatusIndicator.h"
 
 namespace romi {
                 
