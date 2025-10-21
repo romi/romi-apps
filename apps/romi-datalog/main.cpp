@@ -28,18 +28,14 @@
 #include <rcom/Linux.h>
 #include <rcom/RegistryServer.h>
 #include <rcom/RcomServer.h>
-#include <rcom/RcomClient.h>
 #include <rcom/RcomMessageHandler.h>
 #include <configuration/RomiOptions.h>
 #include <rpc/RcomLog.h>
-#include <rpc/RemoteDataLog.h>
 #include <util/ClockAccessor.h>
 #include <util/Logger.h>
 
-#include "LithiumBattery.h"
-#include "BatteryAdaptor.h"
-#include "BatteryStatusIndicator.h"
-#include "INA219BatteryMonitor.h"
+#include "DataLog.h"
+#include "DataLogAdaptor.h"
 
 static bool quit = false;
 static void set_quit(int sig, siginfo_t *info, void *ucontext);
@@ -47,7 +43,6 @@ static void quit_on_control_c();
 
 int main(int argc, char **argv)
 {
-
         try {
                 std::shared_ptr<romi::IClock> clock = std::make_shared<romi::Clock>();
                 romi::ClockAccessor::SetInstance(clock);
@@ -69,28 +64,17 @@ int main(int argc, char **argv)
                 }
 
                 // Topic
-                std::string topic = "battery";
-                std::string type = "battery";
+                std::string topic = "datalog";
+                std::string type = "datalog";
                 if (options.is_set(romi::RomiOptions::kTopic)) {
                         topic = options.get_value(romi::RomiOptions::kTopic);
                 }
                 
                 log_set_application(topic);
-
-                // datalog
-                auto client = rcom::RcomClient::create("datalog", 10.0, log, system);
-                romi::RemoteDataLog datalog(topic, client);
-
-                // Monitor
-                romi::INA219BatteryMonitor monitor;
-                monitor.begin();
-
-                // RPi pins 35 & 36
-                romi::BatteryStatusIndicator status_indicator(19, 16); 
         
-                romi::LithiumBattery battery(monitor, status_indicator,
-                                             datalog, 3.7, 1600.0);
-                romi::BatteryAdaptor adaptor(battery);
+                std::string path("datalog.csv");
+                romi::DataLog datalog(path);
+                romi::DataLogAdaptor adaptor(datalog);
                 rcom::RcomMessageHandler listener(adaptor);
                 auto server = rcom::RcomServer::create(topic, type, listener,
                                                                log, system);

@@ -9,10 +9,12 @@ namespace romi {
         
         LithiumBattery::LithiumBattery(IBatteryMonitor& monitor,
                                        IBatteryStatusIndicator& status,
+                                       IDataLog& datalog,
                                        double voltage,
                                        double capacity)
                 : monitor_(monitor),
                   status_(status),
+                  datalog_(datalog),
                   nominal_voltage_(voltage),
                   capacity_charge_(capacity),
                   capacity_energy_(0),
@@ -107,13 +109,27 @@ namespace romi {
         void LithiumBattery::updated_locked()
         {
                 SynchonizedCodeBlock synchonized(mutex_);
+                double now = ClockAccessor::GetInstance()->time();
                 measure();
                 update_charge();
                 update_energy();
                 set_capacity_if_charged();
                 update_status();
-                print();
+                if (do_print()) {
+                        print(now);
+                        log(now);
+                }
                 reset_perhaps();
+        }
+
+        bool LithiumBattery::do_print()
+        {
+                bool result = false;
+                if (++info_count_ >= 6) {
+                        result = true;
+                        info_count_ = 0;
+                }
+                return result;
         }
         
         void LithiumBattery::measure()
@@ -187,18 +203,26 @@ namespace romi {
                 }
         }
         
-        void LithiumBattery::print()
+        void LithiumBattery::log(double time)
         {
-                if (info_count_++ == 60) {
-                        r_info("Battery: %.3f A, %.2f V, "
-                               "%.1f mAh, %.2f Wh, "
-                               "%s, %s",
-                               current_, voltage_,
-                               charge_, energy_,
-                               is_charging_locked()? "charging" : "discharging",
-                               is_charged_locked()? "charged" : "...");
-                        info_count_ = 0;
-                }
+                datalog_.store(time, "current", current_);
+                datalog_.store(time, "voltage", voltage_);
+                datalog_.store(time, "charge", charge_);
+                datalog_.store(time, "energy", energy_);
+                datalog_.store(time, "charging", is_charging_locked()? 1.0 : 0.0);
+                datalog_.store(time, "charged", is_charged_locked()? 1.0 : 0.0);
+                
+        }
+        
+        void LithiumBattery::print(double time)
+        {
+                r_info("Battery: %.3f A, %.2f V, "
+                       "%.1f mAh, %.2f Wh, "
+                       "%s, %s",
+                       current_, voltage_,
+                       charge_, energy_,
+                       is_charging_locked()? "charging" : "discharging",
+                       is_charged_locked()? "charged" : "...");
         }
         
         void LithiumBattery::set_capacity_if_charged()

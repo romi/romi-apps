@@ -84,12 +84,17 @@ set(SOURCES
   include/rpc/MethodsCNC.h
   include/rpc/MethodsCamera.h
   include/rpc/MethodsConfig.h
+  include/rpc/MethodsDataLog.h
   include/rpc/MethodsPowerDevice.h
+  include/rpc/RemoteCamera.h
+  include/rpc/RemoteCNC.h
   include/rpc/RemoteConfig.h
+  include/rpc/RemoteDataLog.h
 
   src/rpc/RemoteCamera.cpp
   src/rpc/RemoteCNC.cpp
   src/rpc/RemoteConfig.cpp
+  src/rpc/RemoteDataLog.cpp
 )
 
 add_library(romi SHARED ${SOURCES})
