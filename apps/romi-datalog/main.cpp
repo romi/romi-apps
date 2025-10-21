@@ -51,6 +51,13 @@ int main(int argc, char **argv)
                 
                 // Options
                 romi::RomiOptions options;
+
+                romi::Option file_option = {
+                        "file", true, "datalog.csv",
+                        "Specify the output file" };
+                
+                options.add_option(file_option);
+                        
                 options.parse(argc, argv);
                 if (options.is_help_requested()) {
                         options.print_usage();
@@ -72,7 +79,7 @@ int main(int argc, char **argv)
                 
                 log_set_application(topic);
         
-                std::string path("datalog.csv");
+                std::string path(options.get_value("file"));
                 romi::DataLog datalog(path);
                 romi::DataLogAdaptor adaptor(datalog);
                 rcom::RcomMessageHandler listener(adaptor);
