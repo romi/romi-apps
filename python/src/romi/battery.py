@@ -6,7 +6,7 @@ import argparse
 class Battery():
 
     @staticmethod
-    def create(topic, registry_ip = None):
+    def create(topic = 'battery', registry_ip = None):
         client = RcomWSClient(topic, topic, registry_ip)
         return Battery(client)
    

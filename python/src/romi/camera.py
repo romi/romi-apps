@@ -8,7 +8,7 @@ import argparse
 class Camera():
 
     @staticmethod
-    def create(topic, registry_ip = None):
+    def create(topic = 'camera', registry_ip = None):
         client = RcomWSClient(topic, topic, registry_ip)
         return Camera(client)
    

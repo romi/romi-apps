@@ -5,7 +5,7 @@ from rcom.rcom_client import RcomWSClient
 class CNC():
 
     @staticmethod
-    def create(topic, id = None, registry_ip = None):
+    def create(topic = 'cnc', id = None, registry_ip = None):
         client = RcomWSClient(topic, id, registry_ip)
         return CNC(client)
         
