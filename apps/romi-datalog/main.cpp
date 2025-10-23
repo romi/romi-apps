@@ -37,6 +37,7 @@
 #include "MultiDataLog.h"
 #include "FileDataLog.h"
 #include "MQTTDataLog.h"
+//#include "RcomDataLog.h"
 #include "DataLogAdaptor.h"
 
 static bool quit = false;
@@ -87,6 +88,9 @@ int main(int argc, char **argv)
                         = std::make_unique<romi::FileDataLog>(topic, path);
                 std::unique_ptr<romi::IDataLog> mqttdatalog
                         = std::make_unique<romi::MQTTDataLog>(topic);
+                // std::unique_ptr<romi::IDataLog> rcomdatalog
+                //         = std::make_unique<romi::RcomDataLog>(topic, log, system);
+                        
                 romi::MultiDataLog datalog;
                 datalog.add(filedatalog);
                 datalog.add(mqttdatalog);
@@ -94,8 +98,8 @@ int main(int argc, char **argv)
                 romi::DataLogAdaptor adaptor(datalog);
                 rcom::RcomMessageHandler listener(adaptor);
                 auto server = rcom::RcomServer::create(topic, type, listener,
-                                                               log, system);
-
+                                                       log, system);
+                
                 datalog.store(clock->time(), "running", 1);
                 
                 quit_on_control_c();

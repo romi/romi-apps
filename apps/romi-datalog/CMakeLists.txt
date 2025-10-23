@@ -3,6 +3,8 @@ project(romi-datalog)
 
 set(SOURCES
   main.cpp
+  DataStore.h
+  DataStore.cpp
   FileDataLog.h
   FileDataLog.cpp
   DataLogAdaptor.h
@@ -11,6 +13,8 @@ set(SOURCES
   MultiDataLog.cpp
   MQTTDataLog.h
   MQTTDataLog.cpp
+#  RcomDataLog.h
+#  RcomDataLog.cpp
   )
 
 add_executable(romi-datalog ${SOURCES})

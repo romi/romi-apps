@@ -27,33 +27,13 @@
 
 #include <stdio.h>
 #include <string>
-#include <map>
-#include <vector>
 #include <thread>
-#include <mutex>
 #include <atomic>
 #include <filesystem>
-//#include <rcom/MessageHub.h>
-//#include <rcom/IMessageListener.h>
+#include "DataStore.h"
 #include <api/IDataLog.h>
 
 namespace romi {
-
-        struct DataLogEntry
-        {
-                double time_;
-                uint32_t topic_index_;
-                uint32_t name_index_;
-                double value_;
-
-                DataLogEntry(double time, uint32_t topic_index,
-                             uint32_t name_index, double value)
-                        : time_(time),
-                          topic_index_(topic_index),
-                          name_index_(name_index),
-                          value_(value) {
-                }
-        };
 
         class FileDataLog : public IDataLog
         {
@@ -62,16 +42,10 @@ namespace romi {
                 static const size_t kCacheSize = 100;
                 
                 std::string topic_;
-                std::map<std::string, uint32_t> name_to_index_;
-                std::map<uint32_t, std::string> index_to_name_;
-                std::vector<DataLogEntry> entries_;
-                std::mutex mutex_vector_;
-                std::mutex mutex_map_;
+                DataStore datastore_;
                 FILE *fp_;
                 std::unique_ptr<std::thread> thread_;
                 std::atomic<bool> quitting_;
-                //std::unique_ptr<rcom::IMessageHub> hub_;
-                //rcom::MemBuffer message_;
                 double last_handle_events_;
                 
                 uint32_t get_index(const std::string& name);
@@ -81,13 +55,6 @@ namespace romi {
                 void write_entry_to_storage(DataLogEntry& entry);
                 const std::string& get_name(uint32_t index);
                 void copy_entries(std::vector<DataLogEntry>& entries);
-                void store_in_queue(double time, const std::string& topic,
-                                    const std::string& name, double value);
-                //void transmit_entries(std::vector<DataLogEntry>& entries);
-                //void append_entries(std::vector<DataLogEntry>& entries);
-                //void append_entry(DataLogEntry& entry);
-                //void handle_events(double time);
-                //void try_create_hub();
                 
                 FileDataLog(const FileDataLog& other) = delete;
                 FileDataLog& operator=(const FileDataLog& other) = delete;
@@ -102,7 +69,6 @@ namespace romi {
                 void store(double time, const std::string& topic,
                            const std::string& name, double value) override;
                 void store(double time, const std::string& name, double value) override;
-                // void store(const std::string& name, double value) override;
         };
 }
 

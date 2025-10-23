@@ -27,30 +27,20 @@
 #include "FileDataLog.h"
 
 namespace romi {
-
-        using SynchronizedCodeBlock = std::lock_guard<std::mutex>;
         
         FileDataLog::FileDataLog(const std::string& topic,
                                  const std::string& path)
                 : topic_(topic),
-                  name_to_index_(),
-                  index_to_name_(),
-                  entries_(),
-                  mutex_vector_(),
-                  mutex_map_(),
+                  datastore_(),
                   fp_(nullptr),
                   thread_(nullptr),
-                  quitting_(false) //,
-                  //hub_(),
-                  //message_(),
-                  //last_handle_events_(0.0)
+                  quitting_(false)
         {
                 fp_ = fopen(path.c_str(), "a");
                 if (fp_ == nullptr) {
                         r_err("FileDataLog: can't open file %s", path.c_str());
                         throw std::runtime_error("FileDataLog: can't open file");
                 }
-                //try_create_hub();
                 thread_ = std::make_unique<std::thread>([this]() {
                                 this->write_entries_to_storage_in_background();
                         });
@@ -70,69 +60,16 @@ namespace romi {
                 }
                 fclose(fp_);
         }
-
-        // void FileDataLog::try_create_hub()
-        // {
-        //         try {
-        //                 hub_ = rcom::MessageHub::create("datalog");
-
-        //         } catch (const std::runtime_error& re) {
-        //                 r_err("Failed to create the message hub: %s", re.what());
-        //                 hub_ = nullptr;
-        //         }
-        // }
-        
-        // void FileDataLog::store(const std::string& name, double value)
-        // {
-        //         auto clock = romi::ClockAccessor::GetInstance();
-        //         store(clock->time(), name, value);
-        // }
         
         void FileDataLog::store(double time, const std::string& topic,
-                            const std::string& name, double value)
+                                const std::string& name, double value)
         {
-                SynchronizedCodeBlock synchronize(mutex_vector_);
-                store_in_queue(time, topic, name, value);
-                // handle_events(time);
+                datastore_.store(time, topic, name, value);
         }
         
         void FileDataLog::store(double time, const std::string& name, double value)
         {
                 store(time, topic_, name, value);
-        }
-        
-        void FileDataLog::store_in_queue(double time, const std::string& topic,
-                                     const std::string& name, double value)
-        {
-                uint32_t t_index = get_index(topic);
-                uint32_t n_index = get_index(name);
-                entries_.emplace_back(time, t_index, n_index, value);
-        }
-        
-        // void FileDataLog::handle_events(double time)
-        // {
-        //         if (hub_ != nullptr
-        //             && time - last_handle_events_ >= 1.0) {
-        //                 last_handle_events_ = time;
-        //                 hub_->handle_events();
-        //         }
-        // }
-
-        uint32_t FileDataLog::get_index(const std::string& name)
-        {
-                SynchronizedCodeBlock synchronize(mutex_map_);
-                uint32_t index;
-                std::map<std::string,uint32_t>::iterator it;
-                
-                it = name_to_index_.find(name);
-                if (it != name_to_index_.end()) {
-                        index = it->second;
-                } else {
-                        index = (uint32_t) name_to_index_.size();
-                        name_to_index_.insert(std::pair<std::string,uint32_t>(name, index));
-                        index_to_name_.insert(std::pair<uint32_t,std::string>(index, name));
-                }
-                return index;
         }
         
         void FileDataLog::write_entries_to_storage_in_background()
@@ -152,24 +89,14 @@ namespace romi {
         {
                 try {
                         std::vector<DataLogEntry> entries;
-                        copy_entries(entries);
+                        datastore_.copy(entries);
                         if (entries.size() > 0) {
                                 write_entries_to_storage(entries);
-                                //transmit_entries(entries);
                         }
 
                 } catch (const std::runtime_error& e) {
                         r_err("FileDataLog: failed to store the data: %s", e.what());
                 }
-        }
-        
-        void FileDataLog::copy_entries(std::vector<DataLogEntry>& entries)
-        {
-                // The maximum time that store() can get blocked is
-                // the time required to make this copy.
-                SynchronizedCodeBlock synchronize(mutex_vector_);
-                entries = entries_;
-                entries_.clear();
         }
         
         void FileDataLog::write_entries_to_storage(std::vector<DataLogEntry>& entries)
@@ -181,51 +108,11 @@ namespace romi {
         
         void FileDataLog::write_entry_to_storage(DataLogEntry& entry)
         {
-                const std::string& topic = get_name(entry.topic_index_);
-                const std::string& name = get_name(entry.name_index_);
+                const std::string& topic = datastore_.get_name(entry.topic_index_);
+                const std::string& name = datastore_.get_name(entry.name_index_);
                 fprintf(fp_, "%f,%s,%s,%f\n",
                         entry.time_, topic.c_str(),
                         name.c_str(), entry.value_); 
-        }
-        
-        // void FileDataLog::transmit_entries(std::vector<DataLogEntry>& entries)
-        // {
-        //         if (hub_ != nullptr
-        //             && hub_->count_links() > 0) {
-        //                 message_.clear();
-        //                 append_entries(entries);
-        //                 hub_->broadcast(message_, rcom::kTextMessage, nullptr);
-        //         }
-        // }
-        
-        // void FileDataLog::append_entries(std::vector<DataLogEntry>& entries)
-        // {
-        //         message_.printf("[");
-        //         for (size_t i = 0; i < entries.size() - 1; i++) {
-        //                 append_entry(entries[i]);
-        //                 message_.printf(",");
-        //         }
-        //         append_entry(entries[entries.size() - 1]);
-        //         message_.printf("]");
-        // }
-        
-        // void FileDataLog::append_entry(DataLogEntry& entry)
-        // {
-        //         const std::string& name = get_name(entry.index_);
-        //         message_.printf("[%f,\"%s\",%f]", entry.time_, name.c_str(), entry.value_);
-        // }
-
-        const std::string& FileDataLog::get_name(uint32_t index)
-        {
-                SynchronizedCodeBlock synchronize(mutex_map_);
-                std::map<uint32_t,std::string>::iterator it;
-                
-                it = index_to_name_.find(index);
-                if (it == index_to_name_.end()) {
-                        r_err("FileDataLog: Couldn't find name for index %u", index);
-                        throw std::runtime_error("FileDataLog: couldn't find name");
-                } 
-                return it->second;                
         }
 }
 
