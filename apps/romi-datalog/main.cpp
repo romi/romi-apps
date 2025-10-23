@@ -86,14 +86,14 @@ int main(int argc, char **argv)
 
                 std::unique_ptr<romi::IDataLog> filedatalog
                         = std::make_unique<romi::FileDataLog>(path);
-                std::unique_ptr<romi::IDataLog> mqttdatalog
-                        = std::make_unique<romi::MQTTDataLog>("cablebot");
+                // std::unique_ptr<romi::IDataLog> mqttdatalog
+                //         = std::make_unique<romi::MQTTDataLog>("cablebot");
                 // std::unique_ptr<romi::IDataLog> rcomdatalog
                 //         = std::make_unique<romi::RcomDataLog>(topic, log, system);
                         
                 romi::MultiDataLog datalog;
                 datalog.add(filedatalog);
-                datalog.add(mqttdatalog);
+                // datalog.add(mqttdatalog);
                 
                 romi::DataLogAdaptor adaptor(datalog);
                 rcom::RcomMessageHandler listener(adaptor);
