@@ -34,7 +34,9 @@
 #include <util/ClockAccessor.h>
 #include <util/Logger.h>
 
-#include "DataLog.h"
+#include "MultiDataLog.h"
+#include "FileDataLog.h"
+#include "MQTTDataLog.h"
 #include "DataLogAdaptor.h"
 
 static bool quit = false;
@@ -80,11 +82,21 @@ int main(int argc, char **argv)
                 log_set_application(topic);
         
                 std::string path(options.get_value("file"));
-                romi::DataLog datalog(path);
+
+                std::unique_ptr<romi::IDataLog> filedatalog
+                        = std::make_unique<romi::FileDataLog>(topic, path);
+                std::unique_ptr<romi::IDataLog> mqttdatalog
+                        = std::make_unique<romi::MQTTDataLog>(topic);
+                romi::MultiDataLog datalog;
+                datalog.add(filedatalog);
+                datalog.add(mqttdatalog);
+                
                 romi::DataLogAdaptor adaptor(datalog);
                 rcom::RcomMessageHandler listener(adaptor);
                 auto server = rcom::RcomServer::create(topic, type, listener,
                                                                log, system);
+
+                datalog.store(clock->time(), "start", 1);
                 
                 quit_on_control_c();
         
@@ -92,6 +104,8 @@ int main(int argc, char **argv)
                         server->handle_events();
                         clock->sleep(0.001);
                 }
+
+                datalog.store(clock->time(), "start", 0);
                 
         } catch (std::exception& e) {
                 r_err("RomiBattery: caught exception: %s", e.what());

@@ -22,8 +22,8 @@
 
  */
 
-#ifndef __ROMI_DATALOG_H
-#define __ROMI_DATALOG_H
+#ifndef __ROMI_FILEDATALOG_H
+#define __ROMI_FILEDATALOG_H
 
 #include <stdio.h>
 #include <string>
@@ -55,12 +55,13 @@ namespace romi {
                 }
         };
 
-        class DataLog : public IDataLog
+        class FileDataLog : public IDataLog
         {
         protected:
 
                 static const size_t kCacheSize = 100;
                 
+                std::string topic_;
                 std::map<std::string, uint32_t> name_to_index_;
                 std::map<uint32_t, std::string> index_to_name_;
                 std::vector<DataLogEntry> entries_;
@@ -88,13 +89,16 @@ namespace romi {
                 //void handle_events(double time);
                 //void try_create_hub();
                 
-                DataLog(const DataLog& other) = delete;
-                DataLog& operator=(const DataLog& other) = delete;
+                FileDataLog(const FileDataLog& other) = delete;
+                FileDataLog& operator=(const FileDataLog& other) = delete;
         
         public:
-                DataLog(const std::string& filepath);
-                DataLog(const std::filesystem::path& filepath);
-                ~DataLog() override;
+                FileDataLog(const std::string& topic,
+                            const std::string& filepath);
+                FileDataLog(const std::string& topic,
+                            const std::filesystem::path& filepath);
+                ~FileDataLog() override;
+                
                 void store(double time, const std::string& topic,
                            const std::string& name, double value) override;
                 void store(double time, const std::string& name, double value) override;
@@ -102,4 +106,4 @@ namespace romi {
         };
 }
 
-#endif // __ROMI_DATALOG_H
+#endif // __ROMI_FILEDATALOG_H

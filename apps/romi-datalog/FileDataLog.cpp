@@ -24,14 +24,16 @@
 #include <thread>
 #include <util/ClockAccessor.h>
 #include <util/Logger.h>
-#include "DataLog.h"
+#include "FileDataLog.h"
 
 namespace romi {
 
         using SynchronizedCodeBlock = std::lock_guard<std::mutex>;
         
-        DataLog::DataLog(const std::string& path)
-                : name_to_index_(),
+        FileDataLog::FileDataLog(const std::string& topic,
+                                 const std::string& path)
+                : topic_(topic),
+                  name_to_index_(),
                   index_to_name_(),
                   entries_(),
                   mutex_vector_(),
@@ -45,8 +47,8 @@ namespace romi {
         {
                 fp_ = fopen(path.c_str(), "a");
                 if (fp_ == nullptr) {
-                        r_err("DataLog: can't open file %s", path.c_str());
-                        throw std::runtime_error("DataLog: can't open file");
+                        r_err("FileDataLog: can't open file %s", path.c_str());
+                        throw std::runtime_error("FileDataLog: can't open file");
                 }
                 //try_create_hub();
                 thread_ = std::make_unique<std::thread>([this]() {
@@ -54,12 +56,13 @@ namespace romi {
                         });
         }
         
-        DataLog::DataLog(const std::filesystem::path& filepath)
-                : DataLog(filepath.string())
+        FileDataLog::FileDataLog(const std::string& topic,
+                                 const std::filesystem::path& filepath)
+                : FileDataLog(topic, filepath.string())
         {
         }
         
-        DataLog::~DataLog()
+        FileDataLog::~FileDataLog()
         {
                 quitting_ = true;
                 if (thread_ != nullptr)
@@ -67,7 +70,7 @@ namespace romi {
                 fclose(fp_);
         }
 
-        // void DataLog::try_create_hub()
+        // void FileDataLog::try_create_hub()
         // {
         //         try {
         //                 hub_ = rcom::MessageHub::create("datalog");
@@ -78,13 +81,13 @@ namespace romi {
         //         }
         // }
         
-        // void DataLog::store(const std::string& name, double value)
+        // void FileDataLog::store(const std::string& name, double value)
         // {
         //         auto clock = romi::ClockAccessor::GetInstance();
         //         store(clock->time(), name, value);
         // }
         
-        void DataLog::store(double time, const std::string& topic,
+        void FileDataLog::store(double time, const std::string& topic,
                             const std::string& name, double value)
         {
                 SynchronizedCodeBlock synchronize(mutex_vector_);
@@ -92,12 +95,12 @@ namespace romi {
                 // handle_events(time);
         }
         
-        void DataLog::store(double time, const std::string& name, double value)
+        void FileDataLog::store(double time, const std::string& name, double value)
         {
-                store(time, "void", name, value);
+                store(time, topic_, name, value);
         }
         
-        void DataLog::store_in_queue(double time, const std::string& topic,
+        void FileDataLog::store_in_queue(double time, const std::string& topic,
                                      const std::string& name, double value)
         {
                 uint32_t t_index = get_index(topic);
@@ -105,7 +108,7 @@ namespace romi {
                 entries_.emplace_back(time, t_index, n_index, value);
         }
         
-        // void DataLog::handle_events(double time)
+        // void FileDataLog::handle_events(double time)
         // {
         //         if (hub_ != nullptr
         //             && time - last_handle_events_ >= 1.0) {
@@ -114,7 +117,7 @@ namespace romi {
         //         }
         // }
 
-        uint32_t DataLog::get_index(const std::string& name)
+        uint32_t FileDataLog::get_index(const std::string& name)
         {
                 SynchronizedCodeBlock synchronize(mutex_map_);
                 uint32_t index;
@@ -131,7 +134,7 @@ namespace romi {
                 return index;
         }
         
-        void DataLog::write_entries_to_storage_in_background()
+        void FileDataLog::write_entries_to_storage_in_background()
         {
                 auto clock = romi::ClockAccessor::GetInstance();
                 
@@ -144,7 +147,7 @@ namespace romi {
                 try_writing_entries_to_storage();
         }
                 
-        void DataLog::try_writing_entries_to_storage()
+        void FileDataLog::try_writing_entries_to_storage()
         {
                 try {
                         std::vector<DataLogEntry> entries;
@@ -155,11 +158,11 @@ namespace romi {
                         }
 
                 } catch (const std::runtime_error& e) {
-                        r_err("DataLog: failed to store the data: %s", e.what());
+                        r_err("FileDataLog: failed to store the data: %s", e.what());
                 }
         }
         
-        void DataLog::copy_entries(std::vector<DataLogEntry>& entries)
+        void FileDataLog::copy_entries(std::vector<DataLogEntry>& entries)
         {
                 // The maximum time that store() can get blocked is
                 // the time required to make this copy.
@@ -168,14 +171,14 @@ namespace romi {
                 entries_.clear();
         }
         
-        void DataLog::write_entries_to_storage(std::vector<DataLogEntry>& entries)
+        void FileDataLog::write_entries_to_storage(std::vector<DataLogEntry>& entries)
         {
                 for (auto entry: entries)
                         write_entry_to_storage(entry);
                 fflush(fp_);
         }
         
-        void DataLog::write_entry_to_storage(DataLogEntry& entry)
+        void FileDataLog::write_entry_to_storage(DataLogEntry& entry)
         {
                 const std::string& topic = get_name(entry.topic_index_);
                 const std::string& name = get_name(entry.name_index_);
@@ -184,7 +187,7 @@ namespace romi {
                         name.c_str(), entry.value_); 
         }
         
-        // void DataLog::transmit_entries(std::vector<DataLogEntry>& entries)
+        // void FileDataLog::transmit_entries(std::vector<DataLogEntry>& entries)
         // {
         //         if (hub_ != nullptr
         //             && hub_->count_links() > 0) {
@@ -194,7 +197,7 @@ namespace romi {
         //         }
         // }
         
-        // void DataLog::append_entries(std::vector<DataLogEntry>& entries)
+        // void FileDataLog::append_entries(std::vector<DataLogEntry>& entries)
         // {
         //         message_.printf("[");
         //         for (size_t i = 0; i < entries.size() - 1; i++) {
@@ -205,21 +208,21 @@ namespace romi {
         //         message_.printf("]");
         // }
         
-        // void DataLog::append_entry(DataLogEntry& entry)
+        // void FileDataLog::append_entry(DataLogEntry& entry)
         // {
         //         const std::string& name = get_name(entry.index_);
         //         message_.printf("[%f,\"%s\",%f]", entry.time_, name.c_str(), entry.value_);
         // }
 
-        const std::string& DataLog::get_name(uint32_t index)
+        const std::string& FileDataLog::get_name(uint32_t index)
         {
                 SynchronizedCodeBlock synchronize(mutex_map_);
                 std::map<uint32_t,std::string>::iterator it;
                 
                 it = index_to_name_.find(index);
                 if (it == index_to_name_.end()) {
-                        r_err("DataLog: Couldn't find name for index %u", index);
-                        throw std::runtime_error("DataLog: couldn't find name");
+                        r_err("FileDataLog: Couldn't find name for index %u", index);
+                        throw std::runtime_error("FileDataLog: couldn't find name");
                 } 
                 return it->second;                
         }
