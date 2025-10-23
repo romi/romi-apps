@@ -85,9 +85,9 @@ int main(int argc, char **argv)
                 std::string path(options.get_value("file"));
 
                 std::unique_ptr<romi::IDataLog> filedatalog
-                        = std::make_unique<romi::FileDataLog>(topic, path);
+                        = std::make_unique<romi::FileDataLog>(path);
                 std::unique_ptr<romi::IDataLog> mqttdatalog
-                        = std::make_unique<romi::MQTTDataLog>(topic);
+                        = std::make_unique<romi::MQTTDataLog>("cablebot");
                 // std::unique_ptr<romi::IDataLog> rcomdatalog
                 //         = std::make_unique<romi::RcomDataLog>(topic, log, system);
                         
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
                 auto server = rcom::RcomServer::create(topic, type, listener,
                                                        log, system);
                 
-                datalog.store(clock->time(), "running", 1);
+                datalog.store(clock->time(), topic, "running", 1);
                 
                 quit_on_control_c();
         
@@ -109,7 +109,7 @@ int main(int argc, char **argv)
                         clock->sleep(0.001);
                 }
 
-                datalog.store(clock->time(), "running", 0);
+                datalog.store(clock->time(), topic, "running", 0);
                 r_err("RomiBattery: Quitting");
                 
         } catch (std::exception& e) {

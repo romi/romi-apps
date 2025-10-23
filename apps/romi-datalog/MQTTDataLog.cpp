@@ -34,8 +34,8 @@
 
 namespace romi {
 
-        MQTTDataLog::MQTTDataLog(const std::string& topic)
-                : topic_(topic),
+        MQTTDataLog::MQTTDataLog(const std::string& device)
+                : device_(device),
                   mosq_(nullptr),
                   connected_(false),
                   thread_(nullptr),
@@ -119,7 +119,7 @@ namespace romi {
 
                 char mqtt_topic[256];
                 snprintf(mqtt_topic, sizeof(mqtt_topic) - 1,
-                         "romi/cablebot/%s/%s", topic.c_str(), name.c_str());
+                         "romi/%s/%s/%s", device_.c_str(), topic.c_str(), name.c_str());
                 mqtt_topic[255] = 0;
 
                 // romi/<device-id>/<node-topic>/<name> {'time'=time,'value'=value}
@@ -132,11 +132,6 @@ namespace romi {
                 } else {
                         r_err("MQTTDataLog: Publish failed: %s", mosquitto_strerror(ret));
                 }
-        }
-        
-        void MQTTDataLog::store(double time, const std::string& name, double value)
-        {
-                store(time, topic_, name, value);
         }
 
         void MQTTDataLog::create_cafile()

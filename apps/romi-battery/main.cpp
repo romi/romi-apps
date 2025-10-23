@@ -77,9 +77,9 @@ int main(int argc, char **argv)
                 
                 log_set_application(topic);
 
-                // datalog
+                // Datalog
                 auto client = rcom::RcomClient::create("datalog", 10.0, log, system);
-                romi::RemoteDataLog datalog(topic, client);
+                romi::RemoteDataLog datalog(client);
 
                 // Monitor
                 romi::INA219BatteryMonitor monitor;
@@ -89,7 +89,7 @@ int main(int argc, char **argv)
                 romi::BatteryStatusIndicator status_indicator(19, 16); 
         
                 romi::LithiumBattery battery(monitor, status_indicator,
-                                             datalog, 3.7, 1600.0);
+                                             datalog, topic, 3.7, 1600.0);
                 romi::BatteryAdaptor adaptor(battery);
                 rcom::RcomMessageHandler listener(adaptor);
                 auto server = rcom::RcomServer::create(topic, type, listener,

@@ -36,17 +36,10 @@ namespace romi {
         }
         
         void MultiDataLog::store(double time, const std::string& topic,
-                            const std::string& name, double value)
+                                 const std::string& name, double value)
         {
                 for (std::unique_ptr<IDataLog>& log: logs_) { 
                         log->store(time, topic, name, value);
-                }
-        }
-        
-        void MultiDataLog::store(double time, const std::string& name, double value)
-        {
-                for (std::unique_ptr<IDataLog>& log: logs_) { 
-                        log->store(time, name, value);
                 }
         }
 }

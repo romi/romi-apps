@@ -28,16 +28,9 @@
 
 namespace romi {
 
-        RemoteDataLog::RemoteDataLog(const std::string& topic,
-                                     std::unique_ptr<rcom::IRPCClient>& rpc_client)
-                : RemoteStub(rpc_client),
-                  topic_(topic)
+        RemoteDataLog::RemoteDataLog(std::unique_ptr<rcom::IRPCClient>& rpc_client)
+                : RemoteStub(rpc_client)
         {
-        }
-
-        void RemoteDataLog::store(double time, const std::string& name, double value)
-        {
-                store(time, topic_, name, value);
         }
         
         void RemoteDataLog::store(double time, const std::string& topic,

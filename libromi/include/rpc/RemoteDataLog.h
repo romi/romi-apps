@@ -33,18 +33,10 @@ namespace romi {
         class RemoteDataLog : public IDataLog, public rcom::RemoteStub
         {
         public:
-                //static constexpr const char *ClassName = "remote-datalog";
-
-        protected:
-                std::string topic_;
-                
-        public:
-                explicit RemoteDataLog(const std::string& topic,
-                                       std::unique_ptr<rcom::IRPCClient>& rpc_client);
+                explicit RemoteDataLog(std::unique_ptr<rcom::IRPCClient>& rpc_client);
                 ~RemoteDataLog() override = default;
                 void store(double time, const std::string& topic,
                            const std::string& name, double value) override;
-                void store(double time, const std::string& name, double value) override;
         };
 }
 

@@ -22,8 +22,8 @@
 
  */
 
-#ifndef __ROMI_ROMI_OPTIONS_H
-#define __ROMI_ROMI_OPTIONS_H
+#ifndef __ROMI_ROMIOPTIONS_H
+#define __ROMI_ROMIOPTIONS_H
 
 #include "configuration/GetOpt.h"
 
@@ -46,5 +46,5 @@ namespace romi {
         };
 }
 
-#endif // __ROMI_ROMI_OPTIONS_H
+#endif // __ROMI_ROMIOPTIONS_H
 

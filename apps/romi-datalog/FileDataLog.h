@@ -41,7 +41,6 @@ namespace romi {
 
                 static const size_t kCacheSize = 100;
                 
-                std::string topic_;
                 DataStore datastore_;
                 FILE *fp_;
                 std::unique_ptr<std::thread> thread_;
@@ -60,15 +59,12 @@ namespace romi {
                 FileDataLog& operator=(const FileDataLog& other) = delete;
         
         public:
-                FileDataLog(const std::string& topic,
-                            const std::string& filepath);
-                FileDataLog(const std::string& topic,
-                            const std::filesystem::path& filepath);
+                FileDataLog(const std::string& filepath);
+                FileDataLog(const std::filesystem::path& filepath);
                 ~FileDataLog() override;
                 
                 void store(double time, const std::string& topic,
                            const std::string& name, double value) override;
-                void store(double time, const std::string& name, double value) override;
         };
 }
 

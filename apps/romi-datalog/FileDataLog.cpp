@@ -28,10 +28,8 @@
 
 namespace romi {
         
-        FileDataLog::FileDataLog(const std::string& topic,
-                                 const std::string& path)
-                : topic_(topic),
-                  datastore_(),
+        FileDataLog::FileDataLog(const std::string& path)
+                : datastore_(),
                   fp_(nullptr),
                   thread_(nullptr),
                   quitting_(false)
@@ -46,9 +44,8 @@ namespace romi {
                         });
         }
         
-        FileDataLog::FileDataLog(const std::string& topic,
-                                 const std::filesystem::path& filepath)
-                : FileDataLog(topic, filepath.string())
+        FileDataLog::FileDataLog(const std::filesystem::path& filepath)
+                : FileDataLog(filepath.string())
         {
         }
         
@@ -65,11 +62,6 @@ namespace romi {
                                 const std::string& name, double value)
         {
                 datastore_.store(time, topic, name, value);
-        }
-        
-        void FileDataLog::store(double time, const std::string& name, double value)
-        {
-                store(time, topic_, name, value);
         }
         
         void FileDataLog::write_entries_to_storage_in_background()

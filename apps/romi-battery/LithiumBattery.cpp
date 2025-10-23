@@ -10,11 +10,13 @@ namespace romi {
         LithiumBattery::LithiumBattery(IBatteryMonitor& monitor,
                                        IBatteryStatusIndicator& status,
                                        IDataLog& datalog,
+                                       const std::string& topic,
                                        double voltage,
                                        double capacity)
                 : monitor_(monitor),
                   status_(status),
                   datalog_(datalog),
+                  topic_(topic),
                   nominal_voltage_(voltage),
                   capacity_charge_(capacity),
                   capacity_energy_(0),
@@ -205,13 +207,12 @@ namespace romi {
         
         void LithiumBattery::log(double time)
         {
-                datalog_.store(time, "current", current_);
-                datalog_.store(time, "voltage", voltage_);
-                datalog_.store(time, "charge", charge_);
-                datalog_.store(time, "energy", energy_);
-                datalog_.store(time, "charging", is_charging_locked()? 1.0 : 0.0);
-                datalog_.store(time, "charged", is_charged_locked()? 1.0 : 0.0);
-                
+                datalog_.store(time, topic_, "current", current_);
+                datalog_.store(time, topic_, "voltage", voltage_);
+                datalog_.store(time, topic_, "charge", charge_);
+                datalog_.store(time, topic_, "energy", energy_);
+                datalog_.store(time, topic_, "charging", is_charging_locked()? 1.0 : 0.0);
+                datalog_.store(time, topic_, "charged", is_charged_locked()? 1.0 : 0.0);
         }
         
         void LithiumBattery::print(double time)

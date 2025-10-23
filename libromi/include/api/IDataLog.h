@@ -32,10 +32,8 @@ namespace romi {
         class IDataLog {
         public:
                 virtual ~IDataLog() = default;
-                virtual void store(double time, const std::string& name, double value) = 0;
                 virtual void store(double time, const std::string& topic,
                                    const std::string& name, double value) = 0;
-                // virtual void store(const std::string& name, double value) = 0;
         };
 }
 

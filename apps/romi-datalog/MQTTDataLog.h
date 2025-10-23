@@ -40,10 +40,9 @@ namespace romi {
                 static constexpr const char * kHost = "test.mosquitto.org";
                 static const int kPort = 8883;
                 static const int kKeepAlive = 60;
-                static constexpr const char *kTopic = "test/topic";
                 static constexpr const char *kCAFile = "/tmp/crt.pem";
 
-                std::string topic_;
+                std::string device_;
                 struct mosquitto *mosq_;
                 bool connected_;
                 std::unique_ptr<std::thread> thread_;
@@ -56,12 +55,11 @@ namespace romi {
                 void check_network_events();
                 
         public:
-                MQTTDataLog(const std::string& topic);
+                MQTTDataLog(const std::string& device);
                 ~MQTTDataLog() override;
 
                 void store(double time, const std::string& topic,
                            const std::string& name, double value) override;
-                void store(double time, const std::string& name, double value) override;
         };
 }
 

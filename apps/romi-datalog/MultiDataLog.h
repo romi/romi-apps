@@ -46,7 +46,6 @@ namespace romi {
                 void add(std::unique_ptr<IDataLog>& log);
                 void store(double time, const std::string& topic,
                            const std::string& name, double value) override;
-                void store(double time, const std::string& name, double value) override;
         };
 }
 

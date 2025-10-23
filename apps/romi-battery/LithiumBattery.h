@@ -15,6 +15,7 @@ namespace romi {
                 IBatteryMonitor& monitor_;
                 IBatteryStatusIndicator& status_;
                 IDataLog& datalog_;
+                std::string topic_;
                 double nominal_voltage_;
                 double capacity_charge_;
                 double capacity_energy_;
@@ -54,6 +55,7 @@ namespace romi {
                 LithiumBattery(IBatteryMonitor& monitor,
                                IBatteryStatusIndicator& status,
                                IDataLog& datalog,
+                               const std::string& topic,
                                double voltage,
                                double capacity);
                 virtual ~LithiumBattery() override;
