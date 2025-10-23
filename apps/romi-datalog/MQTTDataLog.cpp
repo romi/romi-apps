@@ -95,13 +95,17 @@ namespace romi {
         {
                 auto clock = romi::ClockAccessor::GetInstance();
                 
-                while (!quitting_) {
-                        int ret = mosquitto_loop(mosq_, 0, 1);
-                        if (ret != MOSQ_ERR_SUCCESS) {
-                                r_err("MQTTDataLog: loop failed: %s",
-                                      mosquitto_strerror(ret));
+                try {
+                        while (!quitting_) {
+                                int ret = mosquitto_loop(mosq_, 0, 1);
+                                if (ret != MOSQ_ERR_SUCCESS) {
+                                        r_err("MQTTDataLog: loop failed: %s",
+                                              mosquitto_strerror(ret));
+                                }
+                                clock->sleep(0.1);
                         }
-                        clock->sleep(0.1);
+                } catch (...) {
+                        r_err("MQTTDataLog::check_network_events: caught exception");
                 }
         }
         
@@ -109,15 +113,22 @@ namespace romi {
                                 const std::string& name, double value)
         {
                 char msg[256];
-                snprintf(msg, sizeof(msg) - 1, "%.3f,%s,%s,%.6f",
-                         time, topic.c_str(), name.c_str(), value);
+                snprintf(msg, sizeof(msg) - 1,
+                         "{\"time\"=%.3f,\"value\"=%.3f}", time, value);
                 msg[255] = 0;
+
+                char mqtt_topic[256];
+                snprintf(mqtt_topic, sizeof(mqtt_topic) - 1,
+                         "romi/cablebot/%s/%s", topic.c_str(), name.c_str());
+                mqtt_topic[255] = 0;
+
+                // romi/<device-id>/<node-topic>/<name> {'time'=time,'value'=value}
                 
-                int ret = mosquitto_publish(mosq_, nullptr, kTopic,
+                int ret = mosquitto_publish(mosq_, nullptr, mqtt_topic,
                                             (int) strlen(msg), msg,
                                             0, false);
                 if (ret == MOSQ_ERR_SUCCESS) {
-                        r_debug("MQTTDataLog: '%s' -> %s", msg, kTopic);
+                        r_debug("MQTTDataLog: %s -> %s", msg, mqtt_topic);
                 } else {
                         r_err("MQTTDataLog: Publish failed: %s", mosquitto_strerror(ret));
                 }

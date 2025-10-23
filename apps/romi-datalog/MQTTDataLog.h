@@ -40,7 +40,7 @@ namespace romi {
                 static constexpr const char * kHost = "test.mosquitto.org";
                 static const int kPort = 8883;
                 static const int kKeepAlive = 60;
-                static constexpr const char *kTopic = "romi/topic";
+                static constexpr const char *kTopic = "test/topic";
                 static constexpr const char *kCAFile = "/tmp/crt.pem";
 
                 std::string topic_;

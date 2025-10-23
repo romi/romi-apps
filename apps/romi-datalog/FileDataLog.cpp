@@ -63,10 +63,11 @@ namespace romi {
         }
         
         FileDataLog::~FileDataLog()
-        {
+        { 
                 quitting_ = true;
-                if (thread_ != nullptr)
+                if (thread_ != nullptr) {
                         thread_->join();
+                }
                 fclose(fp_);
         }
 

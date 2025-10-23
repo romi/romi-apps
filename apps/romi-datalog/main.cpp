@@ -96,7 +96,7 @@ int main(int argc, char **argv)
                 auto server = rcom::RcomServer::create(topic, type, listener,
                                                                log, system);
 
-                datalog.store(clock->time(), "start", 1);
+                datalog.store(clock->time(), "running", 1);
                 
                 quit_on_control_c();
         
@@ -105,7 +105,8 @@ int main(int argc, char **argv)
                         clock->sleep(0.001);
                 }
 
-                datalog.store(clock->time(), "start", 0);
+                datalog.store(clock->time(), "running", 0);
+                r_err("RomiBattery: Quitting");
                 
         } catch (std::exception& e) {
                 r_err("RomiBattery: caught exception: %s", e.what());
@@ -118,6 +119,8 @@ static void set_quit(int sig, siginfo_t *info, void *ucontext)
         (void) sig;
         (void) info;
         (void) ucontext;
+
+        r_err("RomiBattery: Control-C");
         quit = true;
 }
 
@@ -125,7 +128,7 @@ static void quit_on_control_c()
 {
         struct sigaction act;
         memset(&act, 0, sizeof(struct sigaction));
-
+        
         act.sa_flags = SA_SIGINFO;
         act.sa_sigaction = set_quit;
         if (sigaction(SIGINT, &act, nullptr) != 0) {
