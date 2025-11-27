@@ -22,8 +22,8 @@
 
  */
 
-#ifndef ROMI_LIBCAMERA_H
-#define ROMI_LIBCAMERA_H
+#ifndef ROMI_TESTLIBCAMERA_H
+#define ROMI_TESTLIBCAMERA_H
 
 #include <string>
 #include <stdexcept>
@@ -32,9 +32,8 @@
 #include <condition_variable>
 #include <unordered_map>
 #include <libcamera/libcamera.h>
-#include <api/ICamera.h>
 #include <util/ImageIO.h>
-#include "ICameraStatusIndicator.h"
+#include <rcom/MemBuffer.h>
 
 namespace romi {
         
@@ -67,13 +66,12 @@ namespace romi {
                 }
         };
         
-        class LibCamera : public ICamera
+        class TestLibCamera
         {
         public:
                 static constexpr const char *ClassName = "libcamera";
                 
         protected:
-                ICameraStatusIndicator& indicator_;
                 std::unique_ptr<libcamera::CameraManager> manager_;
                 std::shared_ptr<libcamera::Camera> camera_;
                 libcamera::FrameBufferAllocator *allocator_;
@@ -89,7 +87,6 @@ namespace romi {
                 bool image_requested_;
                 bool request_completed_;
                 std::atomic<bool> running_;
-                Image image_;
                 rcom::MemBuffer jpeg_;
                 std::unordered_map<MmapKey, const uint8_t *,
                                    MmapKeyHasher, MmapKeyEquals> map_;
@@ -102,22 +99,14 @@ namespace romi {
                 size_t buffer_size_;
                 size_t image_size_;
                 
-                explicit LibCamera(ICameraStatusIndicator& indicator, size_t width, size_t height);
-                ~LibCamera() override;
+                explicit TestLibCamera(size_t width, size_t height);
+                ~TestLibCamera();
         
-                bool grab(Image &image) override;
-                rcom::MemBuffer& grab_jpeg() override;
-                nlohmann::json get_camera_info() override;
+                rcom::MemBuffer& grab_jpeg();
                 
-                bool set_value(const std::string& name, double value) override;
-                bool select_option(const std::string& name,
-                                   const std::string& value) override;
-                const ICameraSettings& get_settings() override;
-
                 // Power device interface
-                bool power_up() override;
-                bool power_down() override;
-                bool is_powered_up() override;
+                bool power_up();
+                bool power_down();
 
         protected:
                 void assert_format();
@@ -128,4 +117,4 @@ namespace romi {
         };
 }
 
-#endif // ROMI_LIBCAMERA_H
+#endif // ROMI_TESTLIBCAMERA_H

@@ -30,9 +30,8 @@
 #include <time.h>                                
 #include <stdlib.h>
 #include <jpeglib.h>
-#include <util/FileUtils.h>
 #include <util/Logger.h>
-#include "LibCamera.h"
+#include "TestLibCamera.h"
 
 namespace romi {
 
@@ -56,23 +55,21 @@ namespace romi {
                 }
         }
 
-
-        LibCamera::LibCamera(ICameraStatusIndicator& indicator, size_t width, size_t height)
-                : indicator_(indicator),
-                  manager_(),
+        TestLibCamera::TestLibCamera(size_t width, size_t height)
+                : manager_(),
                   camera_(),
                   allocator_(nullptr),
                   stream_(nullptr),
                   requests_(),
                   //pixel_format_(libcamera::formats::RGB888),
                   pixel_format_(libcamera::formats::BGR888),
+		  stride_(0),
                   api_mutex_(),
                   cv_mutex_(),
                   cv_(),
                   image_requested_(false),
                   request_completed_(false),
                   running_(false),
-                  image_(),
                   jpeg_(),
                   map_(),
                   buffer_(nullptr),
@@ -82,125 +79,61 @@ namespace romi {
                 width_ = width;
                 height_ = height;
 		stride_ = width_ * 3; // By default
-                indicator_.set(ICameraStatusIndicator::kPoweredDown);
         }
 
-        LibCamera::~LibCamera()
+        TestLibCamera::~TestLibCamera()
         {
                 power_down();
         }
 
         // API
 
-        bool LibCamera::grab(Image &image)
+        rcom::MemBuffer& TestLibCamera::grab_jpeg()
         {
                 SynchronizedCodeBlock sync(api_mutex_);
-                r_debug("LibCamera::grab");
-                bool result = false;
+                r_debug("TestLibCamera::grab_jpeg");
                 if (running_) {
                         std::unique_lock<std::mutex> lock(cv_mutex_);
-                        indicator_.set(ICameraStatusIndicator::kGrabbing);
-                        send_request();
-                        // wait_request_completed();
-                        cv_.wait(lock, [this]{ return request_completed_; });
-                        image = image_;
-                        result = true;
-                        indicator_.set(ICameraStatusIndicator::kPoweredUp);
-                } else {
-                        r_info("LibCamera::grab: Not powered up");
-                        throw std::runtime_error("Not powered up");
-                }
-                //r_debug("LibCamera::grab DONE");
-                return result;
-        }
-
-        rcom::MemBuffer& LibCamera::grab_jpeg()
-        {
-                SynchronizedCodeBlock sync(api_mutex_);
-                r_debug("LibCamera::grab_jpeg");
-                if (running_) {
-                        std::unique_lock<std::mutex> lock(cv_mutex_);
-                        indicator_.set(ICameraStatusIndicator::kGrabbing);
                         send_request();
                         //wait_request_completed();
                         cv_.wait(lock, [this]{ return request_completed_; });
-                        //r_debug("LibCamera::grab_jpeg: request completed: jpeg size: %d", (int) jpeg_.size());
-                        //r_debug("LibCamera::grab_jpeg DONE");
-                        indicator_.set(ICameraStatusIndicator::kPoweredUp);
+                        //r_debug("TestLibCamera::grab_jpeg: request completed: jpeg size: %d", (int) jpeg_.size());
+                        //r_debug("TestLibCamera::grab_jpeg DONE");
                         return jpeg_;
                 } else {
-                        r_info("LibCamera::grab: Not powered up");
-                        //r_debug("LibCamera::grab_jpeg DONE");
+                        r_info("TestLibCamera::grab: Not powered up");
+                        //r_debug("TestLibCamera::grab_jpeg DONE");
                         throw std::runtime_error("Not powered up");
                 }
         }
 
-        bool LibCamera::power_up()
+        bool TestLibCamera::power_up()
         {
                 SynchronizedCodeBlock sync(api_mutex_);
-                r_debug("LibCamera::power_up");
+                r_debug("TestLibCamera::power_up");
                 if (!running_) {
                         running_ = true;
                         init_camera();
                 }
-                //r_debug("LibCamera::power_up DONE");
-                indicator_.set(ICameraStatusIndicator::kPoweredUp);
+                //r_debug("TestLibCamera::power_up DONE");
                 return true; 
         }
         
-        bool LibCamera::power_down()
+        bool TestLibCamera::power_down()
         {
                 SynchronizedCodeBlock sync(api_mutex_);
-                r_debug("LibCamera::power_down");
+                r_debug("TestLibCamera::power_down");
                 if (running_) {
-                        //r_debug("LibCamera::power_down running");
+                        //r_debug("TestLibCamera::power_down running");
                         running_ = false;
                         release_camera();
                 }
-                indicator_.set(ICameraStatusIndicator::kPoweredDown);
                 return true;
-        }
-        
-        bool LibCamera::is_powered_up()
-        {
-                SynchronizedCodeBlock sync(api_mutex_);
-                return running_;
-        }
-        
-        bool LibCamera::set_value(const std::string& name, double value)
-        {
-                r_debug("LibCamera: set_value('%s', %f): NOT IMPLEMENTED",
-                        name.c_str(), value);
-                SynchronizedCodeBlock sync(api_mutex_);
-                return true;
-        }
-        
-        bool LibCamera::select_option(const std::string& name,
-                                       const std::string& value)
-        {
-                r_debug("CameraConfigManager: set_option('%s', '%s'): NOT IMPLEMENTED",
-                        name.c_str(), value.c_str());
-                SynchronizedCodeBlock sync(api_mutex_);
-                return true;
-        }
-
-        const ICameraSettings& LibCamera::get_settings()
-        {
-                SynchronizedCodeBlock sync(api_mutex_);
-                r_err("LibCamera::get_settings: not implemented");
-                throw std::runtime_error("LibCamera::get_settings: not implemented");
-        }
-
-        nlohmann::json LibCamera::get_camera_info()
-        {
-                SynchronizedCodeBlock sync(api_mutex_);
-                r_err("LibCamera::get_camera_info: not implemented");
-                throw std::runtime_error("LibCamera::get_camera_info: not implemented");
         }
 
         //
         
-        void LibCamera::init_camera()
+        void TestLibCamera::init_camera()
         {
                 manager_ = std::make_unique<libcamera::CameraManager>();
                 manager_->start();
@@ -208,7 +141,7 @@ namespace romi {
                 auto cameras = manager_->cameras();
                 if (cameras.empty()) {
                         manager_->stop();
-                        throw std::runtime_error("LibCamera: No cameras were "
+                        throw std::runtime_error("TestLibCamera: No cameras were "
                                                  "identified on the system.");
                 }
 
@@ -226,11 +159,14 @@ namespace romi {
                 streamConfig.size.width = (unsigned int) width_;
                 streamConfig.size.height = (unsigned int) height_;
                 streamConfig.pixelFormat = pixel_format_;
-        
+
+                std::cout << "streamConfig.stride: " << streamConfig.stride << std::endl;
+
+		
                 libcamera::CameraConfiguration::Status status = config->validate();
                 if (status == libcamera::CameraConfiguration::Status::Invalid) {
                         manager_->stop();
-                        throw std::runtime_error("LibCamera: Failed to validate "
+                        throw std::runtime_error("TestLibCamera: Failed to validate "
                                                  "the stream configuration.");
                 } else if (status == libcamera::CameraConfiguration::Status::Adjusted) {
                         std::cout << "The stream configuration was adjusted." << std::endl;
@@ -248,19 +184,19 @@ namespace romi {
 
                 if (streamConfig.size.width != width_
                     || streamConfig.size.height != height_) {
-                        throw std::runtime_error("LibCamera: Invalid width or height.");
+                        throw std::runtime_error("TestLibCamera: Invalid width or height.");
                 }
                 
                 width_ = streamConfig.size.width;
                 height_ = streamConfig.size.height;
-                stride_ = streamConfig.stride;
-
+		stride_ = streamConfig.stride;
+		
                 // Jpeg buffer
                 buffer_size_ = width_ * height_ * 3;
                 buffer_ = (uint8_t *) malloc(buffer_size_);
                 if (buffer_ == nullptr) {
-                        r_err("LibCamera: malloc failed. size: %d", (int) buffer_size_);
-                        throw std::runtime_error("LibCamera: malloc failed");
+                        r_err("TestLibCamera: malloc failed. size: %d", (int) buffer_size_);
+                        throw std::runtime_error("TestLibCamera: malloc failed");
                 }
                 
                 camera_->configure(config.get());
@@ -271,7 +207,7 @@ namespace romi {
                 int ret = allocator_->allocate(stream_);
                 if (ret < 0) {
                         manager_->stop();
-                        throw std::runtime_error("LibCamera: Can't allocate buffers");
+                        throw std::runtime_error("TestLibCamera: Can't allocate buffers");
                 }
                 
                 const std::vector<std::unique_ptr<libcamera::FrameBuffer>>& buffers
@@ -283,7 +219,7 @@ namespace romi {
                         std::unique_ptr<libcamera::Request> request = camera_->createRequest();
                         if (!request) {
                                 manager_->stop();
-                                throw std::runtime_error("LibCamera: Can't create request");
+                                throw std::runtime_error("TestLibCamera: Can't create request");
                         }
 
                         const std::unique_ptr<libcamera::FrameBuffer> &buffer = buffers[i];
@@ -291,7 +227,7 @@ namespace romi {
                         if (ret < 0) {
                                 if (ret < 0) {
                                         manager_->stop();
-                                        throw std::runtime_error("LibCamera: Can't set buffer for request");
+                                        throw std::runtime_error("TestLibCamera: Can't set buffer for request");
                                 }
                         }
 
@@ -304,12 +240,12 @@ namespace romi {
                         requests_.push_back(std::move(request));
                 }
 
-                camera_->requestCompleted.connect(this, &LibCamera::request_complete);
+                camera_->requestCompleted.connect(this, &TestLibCamera::request_complete);
 
                 r_info("camera_->start()");
                 if (camera_->start() != 0) {
                         release_camera();
-                        throw std::runtime_error("LibCamera: camera->start failed");
+                        throw std::runtime_error("TestLibCamera: camera->start failed");
                 }
                         
                 for (std::unique_ptr<libcamera::Request> &request : requests_) {
@@ -317,7 +253,7 @@ namespace romi {
                 }
         }
 
-        void LibCamera::release_camera()
+        void TestLibCamera::release_camera()
         {
                 camera_->stop();
                 allocator_->free(stream_);
@@ -339,29 +275,29 @@ namespace romi {
                 manager_.reset();
         }
 
-        void LibCamera::assert_format()
+        void TestLibCamera::assert_format()
         {
                 if (pixel_format_ == libcamera::formats::RGB888) {
-                        r_info("LibCamera: RGB888 format");
+                        r_info("TestLibCamera: RGB888 format");
                 } else if (pixel_format_ == libcamera::formats::BGR888) {
-                        r_info("LibCamera: BGR888 format");
+                        r_info("TestLibCamera: BGR888 format");
                 } else if (pixel_format_ == libcamera::formats::MJPEG) {
-                        r_info("LibCamera: MJPEG format");                        
+                        r_info("TestLibCamera: MJPEG format");                        
                 } else {
-                        throw std::runtime_error("LibCamera: Unsupported format");
+                        throw std::runtime_error("TestLibCamera: Unsupported format");
                 }
         }
 
-        void LibCamera::send_request()
+        void TestLibCamera::send_request()
         {
                 request_completed_ = false;
                 image_requested_ = true;
         }
 
-        void LibCamera::request_complete(libcamera::Request *request)
+        void TestLibCamera::request_complete(libcamera::Request *request)
         {
                 if (request->status() == libcamera::Request::RequestCancelled) {
-                        r_debug("LibCamera::request_complete DONE (cancelled)");
+                        r_debug("TestLibCamera::request_complete DONE (cancelled)");
                         return;
                 }
                 
@@ -383,9 +319,29 @@ namespace romi {
                 if (0) print_fps();
         }
 
-        void LibCamera::process_request_buffer(libcamera::Request *request)
+        void TestLibCamera::process_request_buffer(libcamera::Request *request)
         {
-                // const libcamera::ControlList &requestMetadata = request->metadata();
+		/*
+		  GS Camera:
+		  
+		  ExposureTime = 66651
+		  ColourGains = [ 1.827997, 4.266054 ]
+		  AnalogueGain = 9.332543
+		  FrameDuration = 66725
+		  Lux = 9.230788
+		  AeState = 2
+		  DigitalGain = 1.006130
+		  ColourTemperature = 2445
+		  SensorBlackLevels = [ 3840, 3840, 3840, 3840 ]
+		  FocusFoM = 1575
+		  ColourCorrectionMatrix = [ 1.950781, -0.575667, -0.375113, -0.469078, 1.867868, -0.398791, 0.078772, -1.138487, 2.059715 ]
+		  ScalerCrop = (0, 0)/1456x1088
+		  FrameWallClock = 1764191123542183424
+		  SensorTimestamp = 10834765298000
+		*/
+	  
+		// const libcamera::ControlList &requestMetadata = request->metadata();
+		
                 // for (const auto &ctrl : requestMetadata) {
                 //         const libcamera::ControlId *id = libcamera::controls::controls.at(ctrl.first);
                 //         const libcamera::ControlValue &value = ctrl.second;
@@ -395,12 +351,12 @@ namespace romi {
                 // }
                 
                 auto buffers = request->buffers();
-                
+
                 for (auto bufferPair : buffers) {
                         libcamera::FrameBuffer *buffer = bufferPair.second;
-                
-                        for (const libcamera::FrameBuffer::Plane &plane : buffer->planes()) {
 
+                        for (const libcamera::FrameBuffer::Plane &plane : buffer->planes()) {
+				
                                 int mmapFlags = PROT_READ;
                                 size_t dmabufLength = 0;
                                 
@@ -409,7 +365,7 @@ namespace romi {
                                 dmabufLength = lseek(fd, 0, SEEK_END);
                                 if (plane.offset > dmabufLength ||
                                     plane.offset + plane.length > dmabufLength) {
-                                        r_err("LibCamera: plane is out of buffer: "
+                                        r_err("TestLibCamera: plane is out of buffer: "
                                               "buffer length=%d, plane offset=%d, "
                                               "plane length=%d", 
                                               (int) dmabufLength, (int) plane.offset,
@@ -428,7 +384,7 @@ namespace romi {
                                                                  mmapFlags, MAP_SHARED,
                                                                  fd, 0);
                                         if (map_address == MAP_FAILED) {
-                                                r_err("LibCamera: Failed to mmap plane: %s",
+                                                r_err("TestLibCamera: Failed to mmap plane: %s",
                                                       strerror(errno));
                                                 return;
                                         }
@@ -437,6 +393,11 @@ namespace romi {
                                         map_[key] = data;
                                 }
 
+				std::cout << "Plane length " << plane.length << ", "
+					  << "RGB length " << (3 * width_ * height_)
+					  << std::endl;
+
+                                //uint8_t *rgb = (uint8_t *) malloc(3 * width_ * height_);
                                 convert_to_jpeg(data);
 
                                 jpeg_.clear();
@@ -449,13 +410,13 @@ namespace romi {
 
         typedef struct _jpeg_my_dest_mgr_t {
                 struct jpeg_destination_mgr mgr;
-                LibCamera *camera;
+                TestLibCamera *camera;
         } jpeg_my_dest_mgr_t;
 
         static void jpeg_bufferinit(j_compress_ptr cinfo)
         {
                 jpeg_my_dest_mgr_t* my_mgr = (jpeg_my_dest_mgr_t*) cinfo->dest;
-                LibCamera *camera = my_mgr->camera;
+                TestLibCamera *camera = my_mgr->camera;
 
                 cinfo->dest->next_output_byte = camera->buffer_;
                 cinfo->dest->free_in_buffer = camera->buffer_size_;
@@ -469,11 +430,11 @@ namespace romi {
         static void jpeg_bufferterminate(j_compress_ptr cinfo)
         {
                 jpeg_my_dest_mgr_t* my_mgr = (jpeg_my_dest_mgr_t*) cinfo->dest;
-                LibCamera *camera = my_mgr->camera;
+                TestLibCamera *camera = my_mgr->camera;
                 camera->image_size_ = camera->buffer_size_ - cinfo->dest->free_in_buffer;
         }
 
-        void LibCamera::convert_to_jpeg(const uint8_t *data)
+        void TestLibCamera::convert_to_jpeg(const uint8_t *data)
         {
                 struct jpeg_compress_struct cinfo;
                 struct jpeg_error_mgr jerr;
@@ -494,7 +455,7 @@ namespace romi {
                 my_mgr = (jpeg_my_dest_mgr_t*) cinfo.dest;
                 my_mgr->camera = this;
 
-                cinfo.image_width = (JDIMENSION) width_;	
+                cinfo.image_width = (JDIMENSION) width_;
                 cinfo.image_height = (JDIMENSION) height_;
                 cinfo.input_components = 3;
                 cinfo.in_color_space = JCS_RGB;
@@ -506,6 +467,7 @@ namespace romi {
 
                 // feed data
                 while (cinfo.next_scanline < cinfo.image_height) {
+                        //row_pointer[0] = (JSAMPROW) &data[cinfo.next_scanline * cinfo.image_width
                         row_pointer[0] = (JSAMPROW) &data[cinfo.next_scanline * stride_];
                         jpeg_write_scanlines(&cinfo, row_pointer, 1);
                 }
@@ -515,3 +477,23 @@ namespace romi {
         }
 }
 
+
+#include <iostream>
+#include <fstream>
+#include <unistd.h>
+
+int main()
+{
+        romi::TestLibCamera camera(1456, 1088);
+        camera.power_up();
+        for (int i = 0; i < 10; i++) {
+                camera.grab_jpeg();
+		usleep(100*1000);
+        }
+        rcom::MemBuffer& image = camera.grab_jpeg();
+        auto data = image.data();
+
+        std::ofstream ofs("test.jpg", std::ios::binary);
+        ofs.write(reinterpret_cast<const char*>(data.data()), data.size());
+        camera.power_down();
+}
