@@ -39,3 +39,6 @@ set(SOURCES
 
 add_executable(romi-camera ${SOURCES})
 target_link_libraries(romi-camera romi rcom jpeg)
+
+add_executable(testlibcamera TestLibCamera.cpp)
+target_link_libraries(testlibcamera romi rcom jpeg)
