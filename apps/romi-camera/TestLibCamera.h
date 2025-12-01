@@ -29,6 +29,7 @@
 #include <stdexcept>
 #include <atomic>
 #include <mutex>
+#include <queue>
 #include <condition_variable>
 #include <unordered_map>
 #include <libcamera/libcamera.h>
@@ -36,6 +37,66 @@
 #include <rcom/MemBuffer.h>
 
 namespace romi {
+
+	struct Frame
+	{
+		std::size_t index_;
+		std::vector<std::uint8_t> data_;
+		std::uint64_t timestamp_;
+		
+
+		Frame(std::size_t index,
+		      std::uint64_t timestamp,
+		      const std::uint8_t* buffer,
+		      std::size_t length)
+			: index_(index),
+			  data_(buffer, buffer + length),
+			  timestamp_(timestamp)
+			{
+			}
+	};
+	
+	class FrameQueue
+	{
+	public:
+		void push(std::shared_ptr<Frame> frame) {
+			{
+				std::lock_guard<std::mutex> lock(mutex_);
+				queue_.push(std::move(frame));
+			}
+			cond_.notify_one();
+		}
+
+		// Pop (blocking). 
+		std::shared_ptr<Frame> pop() {
+			std::unique_lock<std::mutex> lock(mutex_);
+			cond_.wait(lock, [&]{ return !queue_.empty(); });
+
+			auto frame = queue_.front();
+			queue_.pop();
+			return frame;
+		}
+
+		// Non-blocking try_pop
+		std::shared_ptr<Frame> try_pop() {
+			std::lock_guard<std::mutex> lock(mutex_);
+			if (queue_.empty())
+				return nullptr;
+
+			auto frame = queue_.front();
+			queue_.pop();
+			return frame;
+		}
+
+		size_t size() {
+			return queue_.size();
+		}
+		
+	private:
+		std::queue<std::shared_ptr<Frame>> queue_;
+		std::mutex mutex_;
+		std::condition_variable cond_;
+	};
         
         struct MmapKey
         {
@@ -90,14 +151,21 @@ namespace romi {
                 rcom::MemBuffer jpeg_;
                 std::unordered_map<MmapKey, const uint8_t *,
                                    MmapKeyHasher, MmapKeyEquals> map_;
-
+	public: // Fixme: needed for JPEG compression
+                uint8_t *buffer_;
+                size_t buffer_size_;
+                size_t image_size_;
+	protected:
+                bool recording_;
+		size_t frame_count_;
+		FrameQueue queue_;
+		bool quitting_;
+                std::unique_ptr<std::thread> thread_;
+		 
                 void init_camera();
                 void release_camera();
                 
         public:
-                uint8_t *buffer_;
-                size_t buffer_size_;
-                size_t image_size_;
                 
                 explicit TestLibCamera(size_t width, size_t height);
                 ~TestLibCamera();
@@ -108,12 +176,16 @@ namespace romi {
                 bool power_up();
                 bool power_down();
 
+		void start_recording();
+                void stop_recording();
+
         protected:
                 void assert_format();
                 void send_request();
                 void request_complete(libcamera::Request *request);
                 void process_request_buffer(libcamera::Request *request);
                 void convert_to_jpeg(const uint8_t *data);
+                void store_frames_to_disk();
         };
 }
 

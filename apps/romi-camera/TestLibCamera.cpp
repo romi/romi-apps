@@ -39,7 +39,7 @@ namespace romi {
 
         static uint32_t count_ = 0;
         static double start_time_ = 0.0;
-
+	
         void print_fps()
         {
                 count_++;
@@ -74,16 +74,33 @@ namespace romi {
                   map_(),
                   buffer_(nullptr),
                   buffer_size_(0),
-                  image_size_(0)
+                  image_size_(0),
+		  recording_(false),
+		  frame_count_(0),
+		  queue_(),
+		  quitting_(false),
+		  thread_()
         {
                 width_ = width;
                 height_ = height;
 		stride_ = width_ * 3; // By default
-        }
+
+		thread_ = std::make_unique<std::thread>([this]() {
+			this->store_frames_to_disk();
+		});
+	}
 
         TestLibCamera::~TestLibCamera()
         {
+		quitting_ = true;
+		r_debug("*** join ***");
+		thread_->join();
+		r_debug("*** join: done ***");
                 power_down();
+                if (buffer_) {
+                        free(buffer_);
+                        buffer_ = nullptr;
+                }
         }
 
         // API
@@ -162,7 +179,7 @@ namespace romi {
 
                 std::cout << "streamConfig.stride: " << streamConfig.stride << std::endl;
 
-		
+		  
                 libcamera::CameraConfiguration::Status status = config->validate();
                 if (status == libcamera::CameraConfiguration::Status::Invalid) {
                         manager_->stop();
@@ -242,8 +259,15 @@ namespace romi {
 
                 camera_->requestCompleted.connect(this, &TestLibCamera::request_complete);
 
+		////
+		auto camcontrols = std::unique_ptr<libcamera::ControlList>(new libcamera::ControlList());
+		camcontrols->set(libcamera::controls::FrameDurationLimits,
+				 libcamera::Span<const std::int64_t, 2>({16600, 16600}));
+		////
+		
                 r_info("camera_->start()");
-                if (camera_->start() != 0) {
+                if (camera_->start(camcontrols.get()) != 0) {
+			//if (camera_->start() != 0) {
                         release_camera();
                         throw std::runtime_error("TestLibCamera: camera->start failed");
                 }
@@ -260,10 +284,6 @@ namespace romi {
                 delete allocator_;
                 camera_->release();
                 camera_.reset();
-                if (buffer_) {
-                        free(buffer_);
-                        buffer_ = nullptr;
-                }
                 for (auto& it: map_) {
                         MmapKey key = it.first;
                         const uint8_t *data = it.second;
@@ -303,7 +323,7 @@ namespace romi {
                 
                 {
                         std::unique_lock<std::mutex> lock(cv_mutex_);
-                        if (image_requested_) {
+                        if (image_requested_ || recording_) {
                                 process_request_buffer(request);
                                 request_completed_ = true;
                                 image_requested_ = false;
@@ -316,7 +336,7 @@ namespace romi {
                         camera_->queueRequest(request);
                 }
                 
-                if (0) print_fps();
+                print_fps();
         }
 
         void TestLibCamera::process_request_buffer(libcamera::Request *request)
@@ -355,6 +375,9 @@ namespace romi {
                 for (auto bufferPair : buffers) {
                         libcamera::FrameBuffer *buffer = bufferPair.second;
 
+			const libcamera::FrameMetadata &metadata = buffer->metadata();
+			uint64_t timestamp = metadata.timestamp;
+			
                         for (const libcamera::FrameBuffer::Plane &plane : buffer->planes()) {
 				
                                 int mmapFlags = PROT_READ;
@@ -372,7 +395,10 @@ namespace romi {
                                               (int) plane.length);
                                         return;
                                 }
-                        
+
+				// r_debug("Plane offset: %d, Plane length: %d",
+				// 	(int) plane.offset, (int) plane.length);
+				
                                 size_t mapLength = (size_t) (plane.offset + plane.length);
                                 const uint8_t *data = nullptr;
                                 MmapKey key(fd, mapLength);
@@ -393,20 +419,63 @@ namespace romi {
                                         map_[key] = data;
                                 }
 
-				std::cout << "Plane length " << plane.length << ", "
-					  << "RGB length " << (3 * width_ * height_)
-					  << std::endl;
-
-                                //uint8_t *rgb = (uint8_t *) malloc(3 * width_ * height_);
-                                convert_to_jpeg(data);
-
+				if (recording_) {
+					auto frame = std::make_shared<Frame>(frame_count_++, timestamp,
+									     data, plane.length);
+					queue_.push(frame);
+				}
+				
+                                // convert_to_jpeg(data);
+				// if (false && recording_) {
+				// 	char filename[128];
+				// 	snprintf(filename, 128, "frame-%06ld.jpg", frame_count_++);
+				// 	r_debug("%s", filename);
+				// 	std::ofstream ofs(filename, std::ios::binary);
+				// 	ofs.write((const char*) buffer_, image_size_);
+				// }
+				
                                 jpeg_.clear();
                                 jpeg_.append(buffer_, image_size_);
-                                
-                                //munmap(map_address, mapLength);
                         }
                 }
         }
+
+	void TestLibCamera::start_recording()
+	{
+		recording_ = true;
+	}
+	
+	void TestLibCamera::stop_recording()
+	{
+		recording_ = false;
+	}
+	
+	void TestLibCamera::store_frames_to_disk()
+	{
+		while (true) {
+			
+			r_debug("Queue size: %d", (int) queue_.size());
+
+			if (quitting_ && queue_.size() == 0)
+				break;
+			
+			auto frame = queue_.try_pop();
+			if (frame) {
+
+				// r_debug("Frame size %d: %d", (int) frame->index_, (int) frame->data_.size());
+
+				convert_to_jpeg(frame->data_.data());
+				char filename[128];
+				snprintf(filename, 128, "frame-%06ld.jpg", frame->index_);
+				r_debug("%s", filename);
+				std::ofstream ofs(filename, std::ios::binary);
+				ofs.write((const char*) buffer_, image_size_);
+			} else {
+				usleep(10000);
+			}
+		}
+		r_debug("Quitting store_frames_to_disk");
+	}
 
         typedef struct _jpeg_my_dest_mgr_t {
                 struct jpeg_destination_mgr mgr;
@@ -486,14 +555,16 @@ int main()
 {
         romi::TestLibCamera camera(1456, 1088);
         camera.power_up();
-        for (int i = 0; i < 10; i++) {
-                camera.grab_jpeg();
-		usleep(100*1000);
-        }
-        rcom::MemBuffer& image = camera.grab_jpeg();
-        auto data = image.data();
 
-        std::ofstream ofs("test.jpg", std::ios::binary);
-        ofs.write(reinterpret_cast<const char*>(data.data()), data.size());
+	camera.start_recording();
+	usleep(10*1000*1000);
+	camera.stop_recording();
+	
+        // rcom::MemBuffer& image = camera.grab_jpeg();
+        // auto data = image.data();
+
+        // std::ofstream ofs("test.jpg", std::ios::binary);
+        // ofs.write(reinterpret_cast<const char*>(data.data()), data.size());
+	
         camera.power_down();
 }

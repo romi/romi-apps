@@ -27,6 +27,7 @@
 
 #include <stdexcept>
 #include <vector>
+#include <stdint.h>
 
 namespace romi {
 
