@@ -22,6 +22,7 @@
 
  */
 
+#include <chrono>
 #include <sys/mman.h>
 #include <string.h>
 #include <stdexcept>
@@ -79,22 +80,31 @@ namespace romi {
 		  frame_count_(0),
 		  queue_(),
 		  quitting_(false),
-		  thread_()
+		  thread1_(),
+		  thread2_()
         {
                 width_ = width;
                 height_ = height;
 		stride_ = width_ * 3; // By default
 
-		thread_ = std::make_unique<std::thread>([this]() {
+		thread1_ = std::make_unique<std::thread>([this]() {
 			this->store_frames_to_disk();
 		});
+		// thread2_ = std::make_unique<std::thread>([this]() {
+		// 	this->store_frames_to_disk();
+		// });
 	}
 
         TestLibCamera::~TestLibCamera()
         {
 		quitting_ = true;
 		r_debug("*** join ***");
-		thread_->join();
+		if (thread1_) {
+			thread1_->join();
+		}
+		if (thread2_) {
+			thread2_->join();
+		}
 		r_debug("*** join: done ***");
                 power_down();
                 if (buffer_) {
@@ -461,22 +471,115 @@ namespace romi {
 			
 			auto frame = queue_.try_pop();
 			if (frame) {
-
-				// r_debug("Frame size %d: %d", (int) frame->index_, (int) frame->data_.size());
-
-				convert_to_jpeg(frame->data_.data());
-				char filename[128];
-				snprintf(filename, 128, "frame-%06ld.jpg", frame->index_);
-				r_debug("%s", filename);
-				std::ofstream ofs(filename, std::ios::binary);
-				ofs.write((const char*) buffer_, image_size_);
+				save_bgr_to_jpg(frame);
+				//save_bgr_to_ppm(frame);
+				
 			} else {
 				usleep(10000);
 			}
 		}
 		r_debug("Quitting store_frames_to_disk");
 	}
+	
+	void TestLibCamera::save_bgr_to_jpg(std::shared_ptr<Frame>& frame)
+	{
+		save_bgr_to_jpg(frame->index_, frame->data_.data(),
+				width_, height_, stride_);
+	}
+	
+	void TestLibCamera::save_bgr_to_jpg(size_t index, const uint8_t* buffer,
+					    size_t width, size_t height,
+					    size_t stride)
+	{
+		char filename[128];
+		snprintf(filename, 128, "frame-%06ld.jpg", index);
+		r_debug("%s", filename);
+		save_bgr_to_jpg(filename, buffer, width, height, stride);
+	}
+	
+	void TestLibCamera::save_bgr_to_jpg(const char* filename,
+					    const uint8_t* buffer,
+					    size_t width,
+					    size_t height,
+					    size_t stride)
+	{
+		auto startTime = std::chrono::high_resolution_clock::now();
+		convert_to_jpeg(buffer);
+		auto convertTime = std::chrono::high_resolution_clock::now();
+		std::ofstream ofs(filename, std::ios::binary);
+		ofs.write((const char*) buffer_, image_size_);
+		auto saveTime = std::chrono::high_resolution_clock::now();
 
+		double t_convert = (double) std::chrono::duration_cast<std::chrono::microseconds>(convertTime - startTime).count();
+		double t_save = (double) std::chrono::duration_cast<std::chrono::microseconds>(saveTime - convertTime).count();
+		r_debug("Convert: %f, save: %f", t_convert, t_save);
+	}
+	
+	void TestLibCamera::save_bgr_to_ppm(std::shared_ptr<Frame>& frame)
+	{
+		save_bgr_to_ppm(frame->index_, frame->data_.data(),
+				width_, height_, stride_);
+	}
+	
+	void TestLibCamera::save_bgr_to_ppm(size_t index,
+					    const uint8_t* buffer,
+					    size_t width,
+					    size_t height,
+					    size_t stride)
+	{
+		char filename[128];
+		snprintf(filename, 128, "frame-%06ld.ppm", index);
+		r_debug("%s", filename);
+		save_bgr_to_ppm(filename, buffer, width, height, stride);
+	}
+	
+        void TestLibCamera::save_bgr_to_ppm(const char* filename,
+					    const uint8_t* buffer,
+					    size_t width,
+					    size_t height,
+					    size_t stride)
+        {
+                if (!buffer || !filename) {
+                        throw std::runtime_error("save_bgr_to_ppm: Invalid pointer");
+                }
+                if (width > stride) {
+                        throw std::runtime_error("save_bgr_to_ppm: Invalid stride or width");
+                }
+
+                // Open file in binary mode
+                std::ofstream out(filename, std::ios::binary);
+                if (!out.is_open()) {
+                        throw std::runtime_error("save_bgr_to_ppm: Failed to open file");
+                }
+
+		auto startTime = std::chrono::high_resolution_clock::now();
+		
+                // Convert BGR → RGB
+                const uint8_t* p;
+		size_t j = 0;
+                for (size_t y = 0; y < height; y++) {
+                        p = &buffer[y * stride];
+                        for (size_t x = 0, i = 0; x < width; x++, i += 3, j+= 3) {
+                                buffer_[j + 2] = p[i + 0];
+                                buffer_[j + 1] = p[i + 1];
+                                buffer_[j + 0] = p[i + 2];
+                        }
+                }
+
+		auto convertTime = std::chrono::high_resolution_clock::now();
+                                
+                // Write PPM header (P6 = binary RGB)
+                out << "P6\n" << width << " " << height << "\n255\n";
+		out.write((char*) buffer_, buffer_size_);
+		out.close();
+
+		auto saveTime = std::chrono::high_resolution_clock::now();
+
+		double t_convert = (double) std::chrono::duration_cast<std::chrono::microseconds>(convertTime - startTime).count();
+		double t_save = (double) std::chrono::duration_cast<std::chrono::microseconds>(saveTime - convertTime).count();
+		r_debug("Convert: %f, save: %f", t_convert, t_save);
+	}
+	
         typedef struct _jpeg_my_dest_mgr_t {
                 struct jpeg_destination_mgr mgr;
                 TestLibCamera *camera;

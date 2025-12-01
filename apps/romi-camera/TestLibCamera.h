@@ -160,7 +160,8 @@ namespace romi {
 		size_t frame_count_;
 		FrameQueue queue_;
 		bool quitting_;
-                std::unique_ptr<std::thread> thread_;
+                std::unique_ptr<std::thread> thread1_;
+                std::unique_ptr<std::thread> thread2_;
 		 
                 void init_camera();
                 void release_camera();
@@ -186,6 +187,16 @@ namespace romi {
                 void process_request_buffer(libcamera::Request *request);
                 void convert_to_jpeg(const uint8_t *data);
                 void store_frames_to_disk();
+		void save_bgr_to_ppm(std::shared_ptr<Frame>& frame);
+		void save_bgr_to_ppm(size_t index, const uint8_t* buffer,
+				     size_t width, size_t height, size_t stride);
+		void save_bgr_to_ppm(const char* filename, const uint8_t* buffer,
+				     size_t width, size_t height, size_t stride);
+		void save_bgr_to_jpg(std::shared_ptr<Frame>& frame);
+		void save_bgr_to_jpg(size_t index, const uint8_t* buffer,
+				     size_t width, size_t height, size_t stride);
+		void save_bgr_to_jpg(const char* filename, const uint8_t* buffer,
+				     size_t width, size_t height, size_t stride);
         };
 }
 
