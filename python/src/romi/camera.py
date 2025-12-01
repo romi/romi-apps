@@ -1,9 +1,19 @@
+#
+# Capture and store 10 images:
+# python camera.py
+#
+# Display iamges without storing them to a file. Run indefinitly:
+# python camera.py --show true --save false -count 0
+#
+
 import time
 import websocket
 from PIL import Image
 from io import BytesIO
 from rcom.rcom_client import RcomWSClient
 import argparse
+import cv2
+import numpy as np
 
 class Camera():
 
@@ -65,26 +75,58 @@ class FakeCamera():
         #print(f'power-down')
         pass
 
+    
+def create_display_window(window_name="Image Window"):
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+    cv2.resizeWindow(window_name, 800, 600)
+    return window_name
+
+
+def show_image_in_window(image, window_name="Image Window", wait=1):
+    np_img = np.array(image)
+    if np_img.ndim == 3 and np_img.shape[2] == 3:
+        img_to_show = cv2.cvtColor(np_img, cv2.COLOR_RGB2BGR)
+    else:
+        img_to_show = np_img
+    cv2.imshow(window_name, img_to_show)
+    cv2.waitKey(wait)
+
         
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--topic', type=str, nargs='?', default="camera",
                         help='The registry topic')
-    parser.add_argument('--file', type=str, nargs='?', default="test.jpg",
-                        help='The file for the fake camera')
+    parser.add_argument('--save', type=str, nargs='?', default="True",
+                        help='Flag to save the files')
     parser.add_argument('--registry', type=str, nargs='?', default=None,
                         help='The IP address of the registry')
     parser.add_argument('--count', type=int, nargs='?', default=10,
                         help='The number of images')
     parser.add_argument('--sleep', type=float, nargs='?', default=0.0,
                         help='The delay between images')
+    parser.add_argument('--show', type=bool, nargs='?', default=False,
+                        help='Show the images')
     args = parser.parse_args()
-    
+
+    if args.show:
+        create_display_window()
+        
     camera = Camera.create(args.topic, args.registry)
-    for i in range(args.count):
+    camera.power_up()
+
+    if args.count == 0:
+        args.count = 1000000
+
+    n = 0
+    while args.count == 0 or n < args.count:
         image = camera.grab()
         if image != None:
-            print(f"Saving {args.topic}-{i:05d}.jpg")
-            image.save(f"{args.topic}-{i:05d}.jpg")
+            if args.save:
+                print(f"Saving {args.topic}-{n:05d}.jpg")
+                image.save(f"{args.topic}-{n:05d}.jpg")
+            if args.show:
+                show_image_in_window(image)
         time.sleep(args.sleep)
+        n = n + 1
         
+    camera.power_down()
