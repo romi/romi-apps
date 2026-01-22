@@ -58,6 +58,7 @@ set(SOURCES
   include/util/DataLogAccessor.h
   include/util/FileUtils.h
   include/util/GpioStatusIndicator.h
+  include/util/Gpio.h
   include/util/IDataLog.h
   include/util/ImageIO.h
   include/util/Logger.h
@@ -73,6 +74,7 @@ set(SOURCES
   src/util/DataLogAccessor.cpp
   src/util/DataLog.cpp
   src/util/GpioStatusIndicator.cpp
+  src/util/Gpio.cpp
   src/util/FileUtils.cpp
   src/util/ImageIO.cpp
   src/util/Logger.cpp
