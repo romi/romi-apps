@@ -304,7 +304,7 @@ void RTIMU::handleGyroBias()
             if (m_gyroSampleCount == (5 * m_sampleRate)) {
                 // this could have been true already of course
                 m_settings->m_gyroBiasValid = true;
-                m_settings->saveSettings();
+                //m_settings->saveSettings(); [PH, 2026-01-31]
             }
         } else {
             m_settings->m_gyroBias.setX((1.0f - m_gyroContinuousAlpha) * m_settings->m_gyroBias.x() + m_gyroContinuousAlpha * m_imuData.gyro.x());

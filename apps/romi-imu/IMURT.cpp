@@ -1,61 +1,36 @@
-////////////////////////////////////////////////////////////////////////////
-//
-//  This file is part of RTIMULib
-//
-//  Copyright (c) 2014-2015, richards-tech, LLC
-//
-//  Permission is hereby granted, free of charge, to any person obtaining a copy of
-//  this software and associated documentation files (the "Software"), to deal in
-//  the Software without restriction, including without limitation the rights to use,
-//  copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
-//  Software, and to permit persons to whom the Software is furnished to do so,
-//  subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in all
-//  copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
-//  INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-//  PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-//  HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-//  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-//  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+/*
+  romi-rover
 
+  Copyright (C) 2019 Sony Computer Science Laboratories
+  Author(s) Peter Hanappe
 
-#include <stdexcept>
-#include <util/ClockAccessor.h>
+  romi-rover is collection of applications for the Romi Rover.
+
+  romi-rover is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see
+  <http://www.gnu.org/licenses/>.
+
+ */
 #include <util/Logger.h>
-#include "IIMU.h"
-#include "RTIMULib.h"
+#include "IMURT.h"
 
 namespace romi {
-	
-        class IMURT : public IIMU 
-        {
-	protected:
-                RTIMUSettings *settings_;
-                RTIMU *imu_;
-                RTIMU_DATA measurements_;
 
-        public:
-		IMURT();
-                virtual ~IMURT() override;
-
-                double get_preferred_update_interval() override;
-                void update() override;
-                double get_timestamp() override;
-		vector_t get_acceleration() override;
-		vector_t get_angular_velocity() override;
-		vector_t get_magnetic_field() override;
-		quaternion_t get_orientation() override;
-
-	protected:
-
-        };
-
+        using SynchronizedCodeBlock = std::lock_guard<std::mutex>;
 
         IMURT::IMURT()
-                : settings_(nullptr),
+                : mutex_(),
+                  settings_(nullptr),
                   imu_(nullptr)
         {
                 settings_ = new RTIMUSettings();
@@ -132,22 +107,26 @@ namespace romi {
                 return (double) imu_->IMUGetPollInterval() / 1000.0;
         }
 
-        void IMURT::update()
+        bool IMURT::update()
         {
-                if (!imu_->IMURead()) {
-                        r_err("IMURT::update: Failed");
-                        throw std::runtime_error("IMURT::update: Failed");
-                }                        
-                measurements_ = imu_->getIMUData();
+                SynchronizedCodeBlock synchronize(mutex_);
+                bool success = false;
+                if (imu_->IMURead()) {
+                        measurements_ = imu_->getIMUData();
+                        success = true;
+                }
+                return success;
         }
 
         double IMURT::get_timestamp() 
         {
+                SynchronizedCodeBlock synchronize(mutex_);
                 return (double) measurements_.timestamp / 1000000.0;
         }
         
         vector_t IMURT::get_acceleration()
         {
+                SynchronizedCodeBlock synchronize(mutex_);
                 if (!measurements_.accelValid) {
                         r_err("IMURT::get_acceleration: Not configured");
                         throw std::runtime_error("IMURT::get_acceleration: Not configured");
@@ -160,6 +139,7 @@ namespace romi {
         
         vector_t IMURT::get_angular_velocity()
         {
+                SynchronizedCodeBlock synchronize(mutex_);
                 if (!measurements_.gyroValid) {
                         r_err("IMURT::get_angular_velocity: Not configured");
                         throw std::runtime_error("IMURT::get_angular_velocity: Not configured");
@@ -172,6 +152,7 @@ namespace romi {
         
         vector_t IMURT::get_magnetic_field()
         {
+                SynchronizedCodeBlock synchronize(mutex_);
                 if (!measurements_.compassValid) {
                         r_err("IMURT::get_magnetic_field: Not configured");
                         throw std::runtime_error("IMURT::get_magnetic_field: Not configured");
@@ -184,6 +165,7 @@ namespace romi {
         
         quaternion_t IMURT::get_orientation()
         {
+                SynchronizedCodeBlock synchronize(mutex_);
                 if (!measurements_.fusionQPoseValid) {
                         r_err("IMURT::get_orientation: Not configured");
                         throw std::runtime_error("IMURT::get_orientation: Not configured");
@@ -194,29 +176,5 @@ namespace romi {
                                             measurements_.fusionQPose.z());
                 return r;
         }
-}
-                
-                
-int main()
-{
-        try {
-                std::shared_ptr<romi::IClock> clock = std::make_shared<romi::Clock>();
-                romi::ClockAccessor::SetInstance(clock);
-                romi::IMURT imu;
-                double interval = imu.get_preferred_update_interval();
-        
-                while (1) {
-                        romi::ClockAccessor::GetInstance()->sleep(interval);
-                        imu.update();
-                        quaternion_t q = imu.get_orientation();
-                        vector_t angles = convert_quaternion_to_euler(q);
-                        printf("%f - %f - %f\r", angles.x, angles.y, angles.z);
-                }
-                
-        } catch (std::exception& e) {
-                r_err("romi-imu: main.cpp: caught exception: %s", e.what());
-                r_err("romi-imu: main.cpp: quitting");
-        }
-        return 0;
-}
 
+}

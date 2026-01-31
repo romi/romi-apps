@@ -37,7 +37,7 @@ namespace romi {
                 virtual double get_preferred_update_interval() = 0;
 
                 // Renew the measurements.
-                virtual void update() = 0;
+                virtual bool update() = 0;
 
 		// Timestamp in seconds since epoch
                 virtual double get_timestamp() = 0;
