@@ -79,33 +79,52 @@ namespace romi {
 		  recording_(false),
 		  frame_count_(0),
 		  queue_(),
-		  quitting_(false),
-		  thread1_(),
-		  thread2_()
+                  buffer_queue_(),
+		  quitting_frame_thread_(false),
+		  frame_thread_(),
+		  quitting_buffer_thread_(false),
+		  buffer_thread_(),
+                  file_buffer_size_(0),
+                  file_buffer_current_(0),
+                  file_buffer_offset_(0),
+                  file_("test.mjpeg", std::ios::binary),
+                  file_buffer_image_count_(0)
         {
                 width_ = width;
                 height_ = height;
 		stride_ = width_ * 3; // By default
 
-		thread1_ = std::make_unique<std::thread>([this]() {
+		frame_thread_ = std::make_unique<std::thread>([this]() {
 			this->store_frames_to_disk();
 		});
-		// thread2_ = std::make_unique<std::thread>([this]() {
-		// 	this->store_frames_to_disk();
-		// });
+		buffer_thread_ = std::make_unique<std::thread>([this]() {
+			this->store_buffers_to_disk();
+		});
+                
+                file_buffer_size_ = 32 * 1024 * 1024; // 32 MB
+                file_buffer_[0] = (uint8_t *) malloc(file_buffer_size_);
+                file_buffer_[1] = (uint8_t *) malloc(file_buffer_size_);
+                if (file_buffer_[0] == nullptr || file_buffer_[1] == nullptr) {
+                        r_err("LibCamera: Not enough memory for file buffer: size=%d kB",
+                              (int) file_buffer_size_/1024);
+                        throw std::runtime_error("LibCamera: Not enough memory");
+                }
 	}
 
         TestLibCamera::~TestLibCamera()
         {
-		quitting_ = true;
-		r_debug("*** join ***");
-		if (thread1_) {
-			thread1_->join();
+		quitting_frame_thread_ = true;
+		r_debug("~TestLibCamera: *** join thread1 ***");
+		if (frame_thread_) {
+			frame_thread_->join();
 		}
-		if (thread2_) {
-			thread2_->join();
+		r_debug("~TestLibCamera: *** join thread1: done ***");
+		quitting_buffer_thread_ = true;
+		r_debug("~TestLibCamera: *** join thread2 ***");
+		if (buffer_thread_) {
+			buffer_thread_->join();
 		}
-		r_debug("*** join: done ***");
+		r_debug("~TestLibCamera: *** join thread2: done ***");
                 power_down();
                 if (buffer_) {
                         free(buffer_);
@@ -187,7 +206,7 @@ namespace romi {
                 streamConfig.size.height = (unsigned int) height_;
                 streamConfig.pixelFormat = pixel_format_;
 
-                std::cout << "streamConfig.stride: " << streamConfig.stride << std::endl;
+                //std::cout << "streamConfig.stride: " << streamConfig.stride << std::endl;
 
 		  
                 libcamera::CameraConfiguration::Status status = config->validate();
@@ -459,28 +478,56 @@ namespace romi {
 	{
 		recording_ = false;
 	}
+        
+	void TestLibCamera::store_buffers_to_disk()
+	{
+		while (true) {
+
+                        if (buffer_queue_.size() > 0)
+                                r_debug("store_buffers_to_disk: Queue size: %d",
+                                        (int) buffer_queue_.size());
+                        
+			if (quitting_buffer_thread_ && buffer_queue_.size() == 0)
+				break;
+			
+			if (buffer_queue_.size() > 0) {
+                                auto buffer = buffer_queue_.pop();
+                                store_buffer_sync(buffer.index_, buffer.length_);
+				
+			} else {
+				usleep(100000);
+			}
+		}
+                
+		r_debug("Quitting store_buffers_to_disk, offset=%d",
+                        (int) file_buffer_offset_);
+                
+                if (file_buffer_offset_ > 0) {
+                        store_buffer_sync(file_buffer_current_, file_buffer_offset_);
+                }
+	}
 	
 	void TestLibCamera::store_frames_to_disk()
 	{
 		while (true) {
-			
-			r_debug("Queue size: %d", (int) queue_.size());
 
-			if (quitting_ && queue_.size() == 0)
+                        if (queue_.size() > 0)
+                                r_debug("store_frames_to_disk: Queue size: %d",
+                                        (int) queue_.size());
+
+			if (quitting_frame_thread_ && queue_.size() == 0)
 				break;
 			
 			auto frame = queue_.try_pop();
 			if (frame) {
 				save_bgr_to_jpg(frame);
-				//save_bgr_to_ppm(frame);
 				
 			} else {
 				usleep(10000);
 			}
-		}
-		r_debug("Quitting store_frames_to_disk");
+		}                
 	}
-	
+        
 	void TestLibCamera::save_bgr_to_jpg(std::shared_ptr<Frame>& frame)
 	{
 		save_bgr_to_jpg(frame->index_, frame->data_.data(),
@@ -492,93 +539,78 @@ namespace romi {
 					    size_t stride)
 	{
 		char filename[128];
-		snprintf(filename, 128, "frame-%06ld.jpg", index);
-		r_debug("%s", filename);
+		snprintf(filename, 128, "frame-%06d.jpg", (int) index);
+		//r_debug("%s", filename);
 		save_bgr_to_jpg(filename, buffer, width, height, stride);
 	}
-	
-	void TestLibCamera::save_bgr_to_jpg(const char* filename,
+        
+	void TestLibCamera::save_bgr_to_jpg(const char* /*filename*/,
 					    const uint8_t* buffer,
 					    size_t width,
 					    size_t height,
 					    size_t stride)
 	{
-		auto startTime = std::chrono::high_resolution_clock::now();
+		//auto startTime = std::chrono::high_resolution_clock::now();
 		convert_to_jpeg(buffer);
-		auto convertTime = std::chrono::high_resolution_clock::now();
-		std::ofstream ofs(filename, std::ios::binary);
-		ofs.write((const char*) buffer_, image_size_);
-		auto saveTime = std::chrono::high_resolution_clock::now();
+		//auto convertTime = std::chrono::high_resolution_clock::now();
 
-		double t_convert = (double) std::chrono::duration_cast<std::chrono::microseconds>(convertTime - startTime).count();
-		double t_save = (double) std::chrono::duration_cast<std::chrono::microseconds>(saveTime - convertTime).count();
-		r_debug("Convert: %f, save: %f", t_convert, t_save);
+                
+                //std::ofstream ofs(filename, std::ios::binary);
+                //ofs.write((const char*) buffer_, image_size_);
+                buffer_image();
+		//auto saveTime = std::chrono::high_resolution_clock::now();
+
+		//double t_convert = (double) std::chrono::duration_cast<std::chrono::microseconds>(convertTime - startTime).count();
+		//double t_save = (double) std::chrono::duration_cast<std::chrono::microseconds>(saveTime - convertTime).count();
+		// r_debug("save_bgr_to_jpg: jpeg %.0f µs, save: %.0f µs, offset %d",
+                //         t_convert, t_save, (int) file_buffer_offset_);
 	}
-	
-	void TestLibCamera::save_bgr_to_ppm(std::shared_ptr<Frame>& frame)
+
+        void TestLibCamera::buffer_image()
 	{
-		save_bgr_to_ppm(frame->index_, frame->data_.data(),
-				width_, height_, stride_);
-	}
-	
-	void TestLibCamera::save_bgr_to_ppm(size_t index,
-					    const uint8_t* buffer,
-					    size_t width,
-					    size_t height,
-					    size_t stride)
+                size_t length = file_buffer_offset_ + image_size_;
+                if (length < file_buffer_size_) {
+                        buffer_append();
+                } else {
+                        r_debug("buffer_image: Requesting writing %d kB to file, %d images",
+                                (int) file_buffer_offset_ / 1024,
+                                (int) file_buffer_image_count_);
+                        store_buffer_async(file_buffer_current_, file_buffer_offset_);
+                        swap_buffers();
+                        buffer_append();
+                }
+        }
+
+        void TestLibCamera::buffer_append()
 	{
-		char filename[128];
-		snprintf(filename, 128, "frame-%06ld.ppm", index);
-		r_debug("%s", filename);
-		save_bgr_to_ppm(filename, buffer, width, height, stride);
-	}
-	
-        void TestLibCamera::save_bgr_to_ppm(const char* filename,
-					    const uint8_t* buffer,
-					    size_t width,
-					    size_t height,
-					    size_t stride)
-        {
-                if (!buffer || !filename) {
-                        throw std::runtime_error("save_bgr_to_ppm: Invalid pointer");
-                }
-                if (width > stride) {
-                        throw std::runtime_error("save_bgr_to_ppm: Invalid stride or width");
-                }
+                uint8_t *dst = (file_buffer_[file_buffer_current_] + file_buffer_offset_);
+                memcpy(dst, buffer_, image_size_);
+                file_buffer_offset_ += image_size_;
+                file_buffer_image_count_++;
+        }
+        
+        void TestLibCamera::swap_buffers()
+	{
+                file_buffer_current_ = 1 - file_buffer_current_;
+                file_buffer_offset_ = 0;
+                file_buffer_image_count_ = 0;
+        }
 
-                // Open file in binary mode
-                std::ofstream out(filename, std::ios::binary);
-                if (!out.is_open()) {
-                        throw std::runtime_error("save_bgr_to_ppm: Failed to open file");
-                }
-
+        void TestLibCamera::store_buffer_async(size_t index, size_t length)
+	{
+                buffer_queue_.push(index, length);
+        }
+        
+        void TestLibCamera::store_buffer_sync(size_t index, size_t length)
+	{
+                r_debug("store_buffer_sync: Writing %d kB to file", (int) length / 1024);
 		auto startTime = std::chrono::high_resolution_clock::now();
-		
-                // Convert BGR → RGB
-                const uint8_t* p;
-		size_t j = 0;
-                for (size_t y = 0; y < height; y++) {
-                        p = &buffer[y * stride];
-                        for (size_t x = 0, i = 0; x < width; x++, i += 3, j+= 3) {
-                                buffer_[j + 2] = p[i + 0];
-                                buffer_[j + 1] = p[i + 1];
-                                buffer_[j + 0] = p[i + 2];
-                        }
-                }
-
-		auto convertTime = std::chrono::high_resolution_clock::now();
-                                
-                // Write PPM header (P6 = binary RGB)
-                out << "P6\n" << width << " " << height << "\n255\n";
-		out.write((char*) buffer_, buffer_size_);
-		out.close();
-
+		file_.write((const char*) file_buffer_[index], length);                
 		auto saveTime = std::chrono::high_resolution_clock::now();
-
-		double t_convert = (double) std::chrono::duration_cast<std::chrono::microseconds>(convertTime - startTime).count();
-		double t_save = (double) std::chrono::duration_cast<std::chrono::microseconds>(saveTime - convertTime).count();
-		r_debug("Convert: %f, save: %f", t_convert, t_save);
-	}
+		double t_save = (double) std::chrono::duration_cast<std::chrono::microseconds>(saveTime - startTime).count();
+		r_debug("store_buffer_sync: Save: %f µs", t_save);
+        }
+	
 	
         typedef struct _jpeg_my_dest_mgr_t {
                 struct jpeg_destination_mgr mgr;
@@ -650,8 +682,6 @@ namespace romi {
 }
 
 
-#include <iostream>
-#include <fstream>
 #include <unistd.h>
 
 int main()
