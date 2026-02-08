@@ -24,14 +24,6 @@
 
 #pragma once
 
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <signal.h>
-#include <unistd.h>
-#include <errno.h>
-
-#include <chrono>
-#include <cstring>
 #include <string>
 
 namespace romi {
@@ -51,9 +43,11 @@ namespace romi {
                                    bool newProcessGroup = true) = 0;
                 virtual bool is_running() = 0;
                 virtual Result wait() = 0;
-                virtual bool stop(std::chrono::milliseconds timeout,
+                virtual bool stop(double timeout_seconds,
                                   bool toProcessGroup = true,
                                   int gracefulSig = SIGTERM,
                                   int forceSig = SIGKILL) = 0;
                 virtual Result last_result() const = 0;
+        };
 }
+                

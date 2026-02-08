@@ -193,7 +193,7 @@ namespace romi {
                 // Convenience: try graceful stop with SIGTERM, then
                 // SIGKILL after timeout.  Returns true if it is no
                 // longer running at the end.
-                bool stop(std::chrono::milliseconds timeout,
+                bool stop(double timeout_seconds,
                           bool toProcessGroup = true,
                           int gracefulSig = SIGTERM,
                           int forceSig = SIGKILL) override {
@@ -201,10 +201,13 @@ namespace romi {
                         if (pid_ <= 0)
                                 return true;
 
+                        auto timeout = std::chrono::milliseconds(1000.0 * timeout_seconds)
+                                
                         // Graceful
                         send_signal(gracefulSig, toProcessGroup);
 
                         auto deadline = std::chrono::steady_clock::now() + timeout;
+                        
                         while (std::chrono::steady_clock::now() < deadline) {
                                 if (!is_running()) {
                                         return true;
