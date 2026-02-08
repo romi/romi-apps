@@ -111,7 +111,7 @@ namespace romi {
                 }
 	}
 
-        TestLibCamera::~TestLibCamera()
+        testlibcamera::~TestLibCamera()
         {
 		quitting_frame_thread_ = true;
 		r_debug("~TestLibCamera: *** join thread1 ***");

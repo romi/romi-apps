@@ -33,6 +33,9 @@
 #include <rcom/RegistryServer.h>
 #include <rcom/RcomClient.h>
 #include <rcom/RcomMessageHandler.h>
+#include <rcom/MessageHub.h>
+#include <rcom/IMessageListener.h>
+#include <rcom/DummyListener.h>
 
 #include <api/Axis.h>
 #include <api/DeviceData.h>
@@ -43,6 +46,7 @@
 #include <rpc/RcomLog.h>
 #include <rpc/RemoteConfig.h>
 #include <util/ClockAccessor.h>
+#include <v3.h>
 
 #include <romi_config.h>
 
@@ -74,6 +78,96 @@ void SignalHandler(int signal)
                 r_err("Unknown signam received %d", signal);
         }
 }
+
+////
+
+class CNCBroadcast
+{
+protected:
+        romi::CNC& cnc_;
+        std::string& topic_;
+        std::string& type_;
+        romi::RcomLog& log_;
+        rcom::Linux& system_;                
+        std::unique_ptr<std::thread> thread_;
+        std::atomic<bool> quitting_;
+        rcom::MemBuffer message_;
+        rcom::DummyListener listener_;
+        std::unique_ptr<rcom::IMessageHub> hub_;
+        int count_; 
+        
+        void update();
+        void send_position();
+        void handle_listeners();
+        
+public:
+        CNCBroadcast(romi::CNC& cnc, std::string& topic, std::string& type,
+                     romi::RcomLog& log, rcom::Linux& system);
+        ~CNCBroadcast();
+
+        void run();
+};
+
+CNCBroadcast::CNCBroadcast(romi::CNC& cnc, std::string& topic, std::string& type,
+                           romi::RcomLog& log, rcom::Linux& system)
+        : cnc_(cnc),
+          topic_(topic),
+          type_(type),
+          log_(log),
+          system_(system),
+          thread_(nullptr),
+          quitting_(false),
+          message_(),
+          listener_(),
+          hub_(),
+          count_(0)
+{
+}
+
+CNCBroadcast::~CNCBroadcast()
+{
+        quitting_ = true;
+        if (thread_ != nullptr) {
+                thread_->join();
+        }
+}
+
+void CNCBroadcast::run()
+{
+        hub_ = rcom::MessageHub::create(topic_, type_, listener_, log_, system_);
+        thread_ = std::make_unique<std::thread>([this]() { this->update(); });
+}
+
+void CNCBroadcast::update()
+{
+        auto clock = romi::ClockAccessor::GetInstance();
+        while (!quitting_) {
+                send_position();
+                handle_listeners();
+                clock->sleep(0.2);
+        }
+}
+
+void CNCBroadcast::send_position()
+{
+        romi::v3 p;
+        double t = romi::ClockAccessor::GetInstance()->time();
+        cnc_.get_position(p); 
+        message_.clear();
+        message_.printf("[%.6f,%.6f,%.6f,%.6f]", t, p.x(), p.y(), p.z());
+        //printf("[%.6f,%.6f,%.6f,%.6f]\n", t, p.x(), p.y(), p.z());
+        hub_->broadcast(message_, rcom::kTextMessage, nullptr);
+}
+
+void CNCBroadcast::handle_listeners()
+{
+        if (++count_ == 5) {
+                count_ = 0;
+                hub_->handle_events();
+        }
+}
+
+////
 
 int main(int argc, char** argv)
 {
@@ -236,6 +330,17 @@ int main(int argc, char** argv)
                 romi::CNCAdaptor adaptor(cnc);
                 rcom::RcomMessageHandler listener(adaptor);
                 auto server = rcom::RcomServer::create(topic, type, listener, log, system);
+
+                // Should the application broadcast the position?
+                std::string broadcast_topic = topic + "-broadcast";
+                CNCBroadcast broadcast(cnc, broadcast_topic, type, log, system);
+                bool do_broadcast = false;
+                if (cnc_config.contains("broadcast")) {
+                        do_broadcast = cnc_config["broadcast"];
+                        if (do_broadcast) {
+                                broadcast.run();
+                        }
+                }
                 
                 while (!quit) {
                         server->handle_events();

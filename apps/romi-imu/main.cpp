@@ -99,7 +99,7 @@ int main(int argc, char **argv)
                 rcom::DummyListener dummy;
                 std::string broadcast_topic = topic + "-broadcast";
                 auto hub = rcom::MessageHub::create(broadcast_topic,
-                                                    "imu", dummy, log, system);
+                                                    type, dummy, log, system);
                 
                 quit_on_control_c();
         
