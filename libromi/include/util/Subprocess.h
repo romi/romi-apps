@@ -37,15 +37,13 @@
 #include <string>
 #include <thread>
 
+#include "util/ISubprocess.h"
+
 namespace romi {
 
-        class Subprocess {
+        class Subprocess  : publuc ISubprocess
+        {
         public:
-                struct Result {
-                        int status = 0;      // status from waitpid
-                        int exit_code = -1;  // set if exited normally
-                        int term_signal = 0; // set if terminated by signal
-                };
 
                 explicit Subprocess()
                         : cmd_(),

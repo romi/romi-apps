@@ -36,12 +36,13 @@
 
 namespace romi {
 
-        class ISubprocess {
+        class ISubprocess
+        {
         public:
                 struct Result {
-                        int status = 0;  // status from waitpid
-                        int exit_code;   // set if exited normally
-                        int term_signal; // set if terminated by signal
+                        int status = 0;      // status from waitpid
+                        int exit_code = -1;  // set if exited normally
+                        int term_signal = 0; // set if terminated by signal
                 };
 
                 virtual ~ISubprocess() = default;
