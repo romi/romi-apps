@@ -64,6 +64,8 @@ set(SOURCES
   include/util/Logger.h
   include/util/LogWriter.h
   include/util/RomiSerialLog.h
+  include/util/ISubprocess.h
+  include/util/Subprocess.h
   include/util/StringUtils.h
   include/util/stb_image.h
   include/util/stb_image_write.h
