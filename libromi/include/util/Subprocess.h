@@ -42,20 +42,14 @@ namespace romi {
         class Subprocess {
         public:
                 struct Result {
-                        int status = 0;  // status from waitpid
-                        int exit_code;       // set if exited normally
-                        int term_signal;     // set if terminated by signal
+                        int status = 0;      // status from waitpid
+                        int exit_code = -1;  // set if exited normally
+                        int term_signal = 0; // set if terminated by signal
                 };
 
-                // commandLine is executed as: /bin/sh -c
-                // "<commandLine>" If newProcessGroup=true, we create
-                // a new process group for the child so you can signal
-                // the whole group (pipelines, children) via
-                // kill(-pgid, sig).
-                explicit Subprocess(std::string commandLine,
-                                    bool newProcessGroup = true)
-                        : cmd_(commandLine),
-                        new_pgrp_(newProcessGroup)
+                explicit Subprocess()
+                        : cmd_(),
+                          new_pgrp_(true)
                 {}
 
                 // Non-copyable
@@ -72,9 +66,16 @@ namespace romi {
                         cleanup_non_blocking();
                 }
 
-                // Start the subprocess. Returns true on success;
+                // Start the subprocess. commandLine is executed as:
+                // /bin/sh -c "<commandLine>" If newProcessGroup=true,
+                // we create a new process group for the child so you
+                // can signal the whole group (pipelines, children)
+                // via kill(-pgid, sig). Returns true on success;
                 // throws on error by default.
-                void start() {
+                void start(std::string commandLine, bool newProcessGroup = true) override {
+                        cmd_ = commandLine;
+                        new_pgrp_ = newProcessGroup;
+                        
                         if (pid_ > 0) {
                                 throw std::runtime_error("Subprocess already started");
                         }
@@ -129,7 +130,7 @@ namespace romi {
                 // Returns true if process appears to still be
                 // running. If the child has exited, this will reap it
                 // and store the result internally.
-                bool is_running() {
+                bool is_running() override {
                         if (pid_ <= 0) {
                                 return false;
                         }
@@ -143,7 +144,7 @@ namespace romi {
                         }
                         if (r == pid_) {
                                 // exited
-                                last_result_ = decode_status(status);
+                                result_ = decode_status(status);
                                 pid_ = -1;
                                 return false;
                         }
@@ -164,10 +165,10 @@ namespace romi {
                 // Wait until the process exits. Returns decoded
                 // result.  If already exited, returns cached result
                 // if available.
-                Result wait() {
+                Result wait() override {
                         if (pid_ <= 0) {
-                                if (last_result_) {
-                                        return *last_result_;
+                                if (result_) {
+                                        return result_;
                                 }
                                 // Not running and no cached result: treat as "unknown".
                                 return Result{};
@@ -186,9 +187,9 @@ namespace romi {
                                                          + std::strerror(errno));
                         }
 
-                        last_result_ = decode_status(status);
+                        result_ = decode_status(status);
                         pid_ = -1;
-                        return *last_result_;
+                        return result_;
                 }
 
                 // Convenience: try graceful stop with SIGTERM, then
@@ -197,8 +198,8 @@ namespace romi {
                 bool stop(std::chrono::milliseconds timeout,
                           bool toProcessGroup = true,
                           int gracefulSig = SIGTERM,
-                          int forceSig = SIGKILL)
-                {
+                          int forceSig = SIGKILL) override {
+                        
                         if (pid_ <= 0)
                                 return true;
 
@@ -221,8 +222,8 @@ namespace romi {
                         return true;
                 }
 
-                Result last_result() const {
-                        return last_result_;
+                Result last_result() const override {
+                        return result_;
                 }
 
         private:
@@ -272,11 +273,13 @@ namespace romi {
                 }
 
                 void cleanup_non_blocking() {
-                        if (pid_ <= 0) return;
+                        if (pid_ <= 0) {
+                                return;
+                        }
                         int status = 0;
                         pid_t r = ::waitpid(pid_, &status, WNOHANG);
                         if (r == pid_) {
-                                last_result_ = decode_status(status);
+                                result_ = decode_status(status);
                                 pid_ = -1;
                         }
                         // If still running (r==0), leave it alone (caller owns lifecycle).
@@ -287,6 +290,6 @@ namespace romi {
                 bool new_pgrp_ = true;
                 pid_t pid_ = -1;
                 pid_t pgid_ = -1; // only meaningful if new_pgrp_==true
-                Result last_result_;
+                Result result_;
         };
 }
