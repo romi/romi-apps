@@ -112,6 +112,21 @@ namespace romi {
                 return io_->get();
         }
         
+        RecordingID CameraConfigManager::start_recording()
+        {
+                return camera_->start_recording();
+        }
+        
+        void CameraConfigManager::stop_recording(RecordingID id)
+        {
+                camera_->stop_recording(id);
+        }
+        
+        std::filesystem::path CameraConfigManager::get_recording(RecordingID id)
+        {
+                return camera_->get_recording(id);
+        }
+        
         bool CameraConfigManager::power_up()
         {
                 return camera_->power_up();

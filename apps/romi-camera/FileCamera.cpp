@@ -89,6 +89,19 @@ namespace romi {
                 r_err("FileCamera::get_camera_info: not implemented");
                 throw std::runtime_error("FileCamera::get_camera_info: not implemented");
         }
+        
+        RecordingID FileCamera::start_recording()
+        {
+                return "file-camera-id";
+        }
+        
+        void FileCamera::stop_recording(RecordingID id)
+        {
+        }
+        
+        std::filesystem::path FileCamera::get_recording(RecordingID id)
+        {
+        }
 
         bool FileCamera::power_up()
         {

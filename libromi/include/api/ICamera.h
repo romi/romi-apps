@@ -25,7 +25,7 @@
 #ifndef ROMI_ICAMERA_H
 #define ROMI_ICAMERA_H
 
-// #include <filesystem>
+#include <filesystem>
 #include <rcom/json.hpp>
 #include <rcom/MemBuffer.h>
 #include "api/Image.h"
@@ -34,7 +34,7 @@
 
 namespace romi {
 
-        // typedef uint32_t RecordingID;
+        typedef const std::string RecordingID;
         
         class ICamera : public IPowerDevice
         {
@@ -44,9 +44,9 @@ namespace romi {
                 virtual bool grab(Image &image) = 0;
                 virtual rcom::MemBuffer& grab_jpeg() = 0;
 
-                // virtual RecordingID start_recording() = 0;
-                // virtual void stop_recording(RecordingID id) = 0;
-                // virtual std::filesystem::path get_recording(RecordingID id) = 0;
+                virtual RecordingID start_recording() = 0;
+                virtual void stop_recording(RecordingID id) = 0;
+                virtual std::filesystem::path get_recording(RecordingID id) = 0;
                 
                 virtual nlohmann::json get_camera_info() = 0;
                 

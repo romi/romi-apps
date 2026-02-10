@@ -83,6 +83,21 @@ namespace romi {
         {
             return jpeg_;
         }
+        
+        RecordingID FakeCamera::start_recording()
+        {
+                return "fake-id";
+        }
+        
+        void FakeCamera::stop_recording(RecordingID id)
+        {
+        }
+        
+        std::filesystem::path FakeCamera::get_recording(RecordingID id)
+        {
+                r_err("FakeCamera::get_recording: not implemented");
+                throw std::runtime_error("FakeCamera::get_recording: not implemented");
+        }
 
         nlohmann::json FakeCamera::get_camera_info()
         {
