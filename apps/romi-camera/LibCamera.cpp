@@ -833,7 +833,7 @@ namespace romi {
 
         void LibCamera::store_buffer_async(size_t index, size_t length)
 	{
-                buffer_queue_.push(index, length);
+                buffer_queue_.push((int) index, length);
         }
         
         void LibCamera::store_buffer_sync(size_t index, size_t length)
