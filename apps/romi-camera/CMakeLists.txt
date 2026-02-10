@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(romi-camera)
 
-set(SOURCES
-  main.cpp
+set(CAMERA_SOURCES
   ICameraDistortion.h
   ICameraInfoIO.h
   CameraAdaptor.h
@@ -37,8 +36,11 @@ set(SOURCES
   camera_v4l.h
   )
 
-add_executable(romi-camera ${SOURCES})
+add_executable(romi-camera main.cpp ${CAMERA_SOURCES})
 target_link_libraries(romi-camera romi rcom jpeg)
 
-#add_executable(testlibcamera TestLibCamera.cpp)
-#target_link_libraries(testlibcamera romi rcom jpeg)
+add_executable(testlibcamera TestLibCamera.cpp ${CAMERA_SOURCES})
+target_link_libraries(testlibcamera romi rcom jpeg)
+
+add_executable(test_mjpeg test_mjpeg.cpp)
+target_link_libraries(test_mjpeg romi rcom jpeg)

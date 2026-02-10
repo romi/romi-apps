@@ -29,14 +29,148 @@
 #include <stdexcept>
 #include <atomic>
 #include <mutex>
+#include <queue>
 #include <condition_variable>
 #include <unordered_map>
+#include <iostream>
+#include <fstream>
 #include <libcamera/libcamera.h>
 #include <api/ICamera.h>
 #include <util/ImageIO.h>
 #include "ICameraStatusIndicator.h"
 
 namespace romi {
+
+        typedef struct FrameList_ FrameList;
+
+        struct FrameList_ {
+                FrameList *next;
+        };
+        
+	class FrameAllocator
+	{
+        protected:
+                void *memory_;
+		size_t total_length_;
+		size_t frame_length_;
+                FrameList *free_;
+		std::mutex mutex_;
+                
+                void compute_sizes(size_t count, size_t image_size);
+                void allocate_memory();
+                void chainlink_frames();
+                void clear();
+
+        public:
+		FrameAllocator();
+		~FrameAllocator();
+                
+		void init(size_t count, size_t image_size);
+                uint8_t *alloc();
+                void free(uint8_t * mem);
+	};
+
+	struct Frame
+	{
+		size_t index_;
+		uint8_t *data_;
+		double timestamp_;
+		
+		Frame(size_t index, double timestamp, uint8_t* buffer, size_t length)
+			: index_(index),
+			  data_(buffer),
+			  timestamp_(timestamp) {
+                }
+	};
+	
+	class FrameQueue
+	{
+	public:
+		void push(std::shared_ptr<Frame> frame) {
+			{
+				std::lock_guard<std::mutex> lock(mutex_);
+				queue_.push(std::move(frame));
+			}
+			cond_.notify_one();
+		}
+
+		// Pop (blocking). 
+		std::shared_ptr<Frame> pop() {
+			std::unique_lock<std::mutex> lock(mutex_);
+			cond_.wait(lock, [&]{ return !queue_.empty(); });
+
+			auto frame = queue_.front();
+			queue_.pop();
+			return frame;
+		}
+
+		// Non-blocking try_pop
+		std::shared_ptr<Frame> try_pop() {
+			std::lock_guard<std::mutex> lock(mutex_);
+			if (queue_.empty())
+				return nullptr;
+
+			auto frame = queue_.front();
+			queue_.pop();
+			return frame;
+		}
+
+		size_t size() {
+			return queue_.size();
+		}
+		
+	private:
+		std::queue<std::shared_ptr<Frame>> queue_;
+		std::mutex mutex_;
+		std::condition_variable cond_;
+	};
+        
+	struct Buffer
+	{
+		int index_;
+		size_t length_;
+
+		Buffer(int index, size_t length)
+			: index_(index),
+			  length_(length)
+			{
+			}
+	};
+	
+	class BufferQueue
+	{
+	public:
+		void push(int index, size_t length) {
+			{
+				std::lock_guard<std::mutex> lock(mutex_);
+				queue_.emplace(index, length);
+			}
+			cond_.notify_one();
+		}
+
+		// Pop (blocking). 
+		Buffer pop() {
+			std::unique_lock<std::mutex> lock(mutex_);
+			cond_.wait(lock, [&]{ return !queue_.empty(); });
+
+			auto buffer = queue_.front();
+			queue_.pop();
+			return buffer;
+		}
+
+		size_t size() {
+			std::unique_lock<std::mutex> lock(mutex_);
+                        size_t r = queue_.size();
+			return r;
+		}
+		
+	private:
+		std::queue<Buffer> queue_;
+		std::mutex mutex_;
+		std::condition_variable cond_;
+	};
+
+        ////
         
         struct MmapKey
         {
@@ -93,15 +227,29 @@ namespace romi {
                 rcom::MemBuffer jpeg_;
                 std::unordered_map<MmapKey, const uint8_t *,
                                    MmapKeyHasher, MmapKeyEquals> map_;
-
-                void init_camera();
-                void release_camera();
-                
-        public:
+	public: // Fixme: needed for JPEG compression
                 uint8_t *buffer_;
                 size_t buffer_size_;
                 size_t image_size_;
+	protected:
+                bool recording_;
+		size_t frame_count_;
+		size_t frame_skipped_;
+		FrameQueue queue_;
+		BufferQueue buffer_queue_;
+		bool quitting_frame_thread_;
+                std::unique_ptr<std::thread> frame_thread_;
+		bool quitting_buffer_thread_;
+                std::unique_ptr<std::thread> buffer_thread_;
+                uint8_t *file_buffer_[2];
+                size_t file_buffer_size_;
+                int file_buffer_current_;
+                size_t file_buffer_offset_;
+		std::ofstream file_;
+                size_t file_buffer_image_count_;
+                FrameAllocator frame_allocator_;
                 
+        public:
                 explicit LibCamera(ICameraStatusIndicator& indicator, size_t width, size_t height);
                 ~LibCamera() override;
         
@@ -119,12 +267,29 @@ namespace romi {
                 bool power_down() override;
                 bool is_powered_up() override;
 
+		void start_recording();
+                void stop_recording();
+                
         protected:
+                void init_camera();
+                void release_camera();
                 void assert_format();
                 void send_request();
                 void request_complete(libcamera::Request *request);
                 void process_request_buffer(libcamera::Request *request);
-                void convert_to_jpeg(const uint8_t *data);
+                void process_video_frame(const uint8_t *data, size_t length,
+                                         double timestamp);
+                void process_image_data(const uint8_t *data, size_t length,
+                                        double timestamp);
+                void convert_to_jpeg(const uint8_t *data, double timestamp);
+                void convert_frames_to_jpeg();
+		void convert_frame_to_jpeg(std::shared_ptr<Frame>& frame);
+                void buffer_image();
+                void buffer_append();
+                void swap_buffers();
+                void store_buffers_to_disk();
+                void store_buffer_async(size_t index, size_t length);
+                void store_buffer_sync(size_t index, size_t length);
         };
 }
 

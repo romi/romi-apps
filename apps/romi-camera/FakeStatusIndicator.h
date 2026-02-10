@@ -32,8 +32,8 @@ namespace romi {
         class FakeStatusIndicator : public ICameraStatusIndicator
         {
         public:
-                FakeStatusIndicator();
-                virtual ~FakeStatusIndicator() override;
+                FakeStatusIndicator() {}
+                virtual ~FakeStatusIndicator() override = default;
                 void set(CameraStatus status) override {} // do nothing
         };
 }

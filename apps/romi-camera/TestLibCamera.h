@@ -35,27 +35,53 @@
 #include <iostream>
 #include <fstream>
 #include <libcamera/libcamera.h>
+#include <api/ICamera.h>
 #include <util/ImageIO.h>
+#include <util/ClockAccessor.h>
 #include <rcom/MemBuffer.h>
 
 namespace romi {
 
+        typedef struct FrameList_ FrameList;
+
+        struct FrameList_ {
+                FrameList *next;
+        };
+        
+	class FrameAllocator
+	{
+        protected:
+                void *memory_;
+		size_t total_length_;
+		size_t frame_length_;
+                FrameList *free_;
+		std::mutex mutex_;
+                
+                void compute_sizes(size_t count, size_t image_size);
+                void allocate_memory();
+                void chainlink_frames();
+                void clear();
+
+        public:
+		FrameAllocator();
+		~FrameAllocator();
+                
+		void init(size_t count, size_t image_size);
+                uint8_t *alloc();
+                void free(uint8_t * mem);
+	};
+
 	struct Frame
 	{
-		std::size_t index_;
-		std::vector<std::uint8_t> data_;
-		std::uint64_t timestamp_;
+		size_t index_;
+		uint8_t *data_;
+		double timestamp_;
 		
-
-		Frame(std::size_t index,
-		      std::uint64_t timestamp,
-		      const std::uint8_t* buffer,
-		      std::size_t length)
+		Frame(size_t index, double timestamp, uint8_t* buffer, size_t length)
 			: index_(index),
-			  data_(buffer, buffer + length),
-			  timestamp_(timestamp)
-			{
-			}
+			  data_(buffer),
+			  timestamp_(timestamp) {
+                }
 	};
 	
 	class FrameQueue
@@ -103,9 +129,9 @@ namespace romi {
 	struct Buffer
 	{
 		int index_;
-		std::size_t length_;
+		size_t length_;
 
-		Buffer(int index, std::size_t length)
+		Buffer(int index, size_t length)
 			: index_(index),
 			  length_(length)
 			{
@@ -144,6 +170,8 @@ namespace romi {
 		std::mutex mutex_;
 		std::condition_variable cond_;
 	};
+
+        ////
         
         struct MmapKey
         {
@@ -205,6 +233,7 @@ namespace romi {
 	protected:
                 bool recording_;
 		size_t frame_count_;
+		size_t frame_skipped_;
 		FrameQueue queue_;
 		BufferQueue buffer_queue_;
 		bool quitting_frame_thread_;
@@ -217,6 +246,7 @@ namespace romi {
                 size_t file_buffer_offset_;
 		std::ofstream file_;
                 size_t file_buffer_image_count_;
+                FrameAllocator frame_allocator_;
                 
                 void init_camera();
                 void release_camera();
@@ -240,19 +270,17 @@ namespace romi {
                 void send_request();
                 void request_complete(libcamera::Request *request);
                 void process_request_buffer(libcamera::Request *request);
+                void process_video_frame(const uint8_t *data);
+                void process_image_data(const uint8_t *data);
                 void convert_to_jpeg(const uint8_t *data);
-                void store_frames_to_disk();
+                void convert_frames_to_jpeg();
+		void convert_frame_to_jpeg(std::shared_ptr<Frame>& frame);
                 void buffer_image();
                 void buffer_append();
                 void swap_buffers();
                 void store_buffers_to_disk();
                 void store_buffer_async(size_t index, size_t length);
                 void store_buffer_sync(size_t index, size_t length);
-		void save_bgr_to_jpg(std::shared_ptr<Frame>& frame);
-		void save_bgr_to_jpg(size_t index, const uint8_t* buffer,
-				     size_t width, size_t height, size_t stride);
-		void save_bgr_to_jpg(const char* filename, const uint8_t* buffer,
-				     size_t width, size_t height, size_t stride);
         };
 }
 

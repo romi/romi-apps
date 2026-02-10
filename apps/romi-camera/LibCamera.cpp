@@ -22,16 +22,21 @@
 
  */
 
+#include <chrono>
 #include <sys/mman.h>
 #include <string.h>
 #include <stdexcept>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/mman.h>
+#include <string.h>
+#include <errno.h>
 #include <time.h>                                
 #include <stdlib.h>
 #include <jpeglib.h>
 #include <util/FileUtils.h>
 #include <util/Logger.h>
+#include <util/ClockAccessor.h>
 #include "LibCamera.h"
 
 namespace romi {
@@ -56,6 +61,99 @@ namespace romi {
                 }
         }
 
+        ////
+        
+        FrameAllocator::FrameAllocator()
+                : memory_(nullptr),
+                  total_length_(0),
+                  frame_length_(0),
+                  free_(nullptr),
+                  mutex_()
+        {
+        }
+
+        FrameAllocator::~FrameAllocator()
+        {
+                clear();
+        }
+
+        void FrameAllocator::init(size_t count, size_t image_size)
+        {
+                clear();
+                compute_sizes(count, image_size);
+                allocate_memory();
+                chainlink_frames();
+        }
+
+        void FrameAllocator::clear()
+        {
+                if (memory_) {
+                        ::munlock(memory_, total_length_);
+                        ::free(memory_);
+                        memory_ = nullptr;
+                        total_length_ = 0;
+                        frame_length_ = 0;
+                        free_ = nullptr;
+                }
+        }
+        
+        void FrameAllocator::compute_sizes(size_t count, size_t image_size)
+        {
+                size_t page_size = (size_t) sysconf(_SC_PAGESIZE);
+                frame_length_ = image_size;
+                total_length_ = count * frame_length_;
+                size_t num_pages = (total_length_ + page_size) / page_size;
+                total_length_ = num_pages * page_size;
+        }
+
+        void FrameAllocator::allocate_memory()
+        {
+                int r = ::posix_memalign(&memory_, (size_t) sysconf(_SC_PAGESIZE),
+                                       total_length_);
+                if (r != 0) {
+                        r_err("FrameAllocator: Out of memory: size=%d kB",
+                              (int) total_length_/1024);
+                        throw std::runtime_error("FrameAllocator: Out of memory");
+                }
+                
+                if (::mlock(memory_, total_length_) != 0) {
+                        r_err("FrameAllocator: mlock failed: %s", strerror(errno));
+                        throw std::runtime_error("FrameAllocator: mlock failed");
+                }
+        }
+
+        void FrameAllocator::chainlink_frames()
+        {
+                uint8_t *ptr = (uint8_t *) memory_;
+                uint8_t *end = (uint8_t *) memory_ + total_length_;
+                int count = 0;
+                while (ptr + frame_length_ < end) {
+                        FrameList *frame = (FrameList *) ptr;
+                        frame->next = free_;
+                        free_ = frame;
+                        ptr += frame_length_;
+                        count++;
+                }
+        }
+        
+        uint8_t *FrameAllocator::alloc()
+        {
+                SynchronizedCodeBlock sync(mutex_);
+                uint8_t *r = nullptr;
+                if (free_) {
+                        r = (uint8_t *) free_;
+                        free_ = free_->next;
+                }
+                return r;
+        }
+        
+        void FrameAllocator::free(uint8_t * mem)
+        {
+                SynchronizedCodeBlock sync(mutex_);
+                FrameList *p = (FrameList *) mem;
+                p->next = free_;
+                free_ = p;
+        }
 
         LibCamera::LibCamera(ICameraStatusIndicator& indicator, size_t width, size_t height)
                 : indicator_(indicator),
@@ -66,6 +164,7 @@ namespace romi {
                   requests_(),
                   //pixel_format_(libcamera::formats::RGB888),
                   pixel_format_(libcamera::formats::BGR888),
+		  stride_(0),
                   api_mutex_(),
                   cv_mutex_(),
                   cv_(),
@@ -77,17 +176,63 @@ namespace romi {
                   map_(),
                   buffer_(nullptr),
                   buffer_size_(0),
-                  image_size_(0)
+                  image_size_(0),
+		  recording_(false),
+		  frame_count_(0),
+                  frame_skipped_(0),
+		  queue_(),
+                  buffer_queue_(),
+		  quitting_frame_thread_(false),
+		  frame_thread_(),
+		  quitting_buffer_thread_(false),
+		  buffer_thread_(),
+                  file_buffer_size_(0),
+                  file_buffer_current_(0),
+                  file_buffer_offset_(0),
+                  file_("test.mjpeg", std::ios::binary),
+                  file_buffer_image_count_(0),
+                  frame_allocator_()
         {
                 width_ = width;
                 height_ = height;
 		stride_ = width_ * 3; // By default
                 indicator_.set(ICameraStatusIndicator::kPoweredDown);
+		frame_thread_ = std::make_unique<std::thread>([this]() {
+			this->convert_frames_to_jpeg();
+		});
+		buffer_thread_ = std::make_unique<std::thread>([this]() {
+			this->store_buffers_to_disk();
+		});
+                
+                file_buffer_size_ = 32 * 1024 * 1024; // 32 MB
+                file_buffer_[0] = (uint8_t *) malloc(file_buffer_size_);
+                file_buffer_[1] = (uint8_t *) malloc(file_buffer_size_);
+                if (file_buffer_[0] == nullptr || file_buffer_[1] == nullptr) {
+                        r_err("LibCamera: Not enough memory for file buffer: size=%d kB",
+                              (int) file_buffer_size_/1024);
+                        throw std::runtime_error("LibCamera: Not enough memory");
+                }
         }
 
         LibCamera::~LibCamera()
         {
+		quitting_frame_thread_ = true;
+		r_debug("~LibCamera: *** join thread1 ***");
+		if (frame_thread_) {
+			frame_thread_->join();
+		}
+		r_debug("~LibCamera: *** join thread1: done ***");
+		quitting_buffer_thread_ = true;
+		r_debug("~LibCamera: *** join thread2 ***");
+		if (buffer_thread_) {
+			buffer_thread_->join();
+		}
+		r_debug("~LibCamera: *** join thread2: done ***");
                 power_down();
+                if (buffer_) {
+                        free(buffer_);
+                        buffer_ = nullptr;
+                }
         }
 
         // API
@@ -255,6 +400,9 @@ namespace romi {
                 height_ = streamConfig.size.height;
                 stride_ = streamConfig.stride;
 
+                // Memory to store the frames coming from the camera
+                frame_allocator_.init(4, stride_ * height_);
+                
                 // Jpeg buffer
                 buffer_size_ = width_ * height_ * 3;
                 buffer_ = (uint8_t *) malloc(buffer_size_);
@@ -306,8 +454,17 @@ namespace romi {
 
                 camera_->requestCompleted.connect(this, &LibCamera::request_complete);
 
+		////
+		auto camcontrols = std::unique_ptr<libcamera::ControlList>(new libcamera::ControlList());
+                uint32_t fps = 10;
+                std::int64_t interval = 1000000 / (std::int64_t) fps;
+		camcontrols->set(libcamera::controls::FrameDurationLimits,
+				 libcamera::Span<const std::int64_t, 2>({ interval, interval }));
+		////
+		
                 r_info("camera_->start()");
-                if (camera_->start() != 0) {
+                if (camera_->start(camcontrols.get()) != 0) {
+			//if (camera_->start() != 0) {
                         release_camera();
                         throw std::runtime_error("LibCamera: camera->start failed");
                 }
@@ -365,15 +522,7 @@ namespace romi {
                         return;
                 }
                 
-                {
-                        std::unique_lock<std::mutex> lock(cv_mutex_);
-                        if (image_requested_) {
-                                process_request_buffer(request);
-                                request_completed_ = true;
-                                image_requested_ = false;
-                                cv_.notify_one();
-                        }
-                }
+                process_request_buffer(request);
 
                 if (running_) {
                         request->reuse(libcamera::Request::ReuseBuffers);
@@ -385,7 +534,27 @@ namespace romi {
 
         void LibCamera::process_request_buffer(libcamera::Request *request)
         {
-                // const libcamera::ControlList &requestMetadata = request->metadata();
+		/*
+		  GS Camera:
+		  
+		  ExposureTime = 66651
+		  ColourGains = [ 1.827997, 4.266054 ]
+		  AnalogueGain = 9.332543
+		  FrameDuration = 66725
+		  Lux = 9.230788
+		  AeState = 2
+		  DigitalGain = 1.006130
+		  ColourTemperature = 2445
+		  SensorBlackLevels = [ 3840, 3840, 3840, 3840 ]
+		  FocusFoM = 1575
+		  ColourCorrectionMatrix = [ 1.950781, -0.575667, -0.375113, -0.469078, 1.867868, -0.398791, 0.078772, -1.138487, 2.059715 ]
+		  ScalerCrop = (0, 0)/1456x1088
+		  FrameWallClock = 1764191123542183424
+		  SensorTimestamp = 10834765298000
+		*/
+	  
+		// const libcamera::ControlList &requestMetadata = request->metadata();
+		
                 // for (const auto &ctrl : requestMetadata) {
                 //         const libcamera::ControlId *id = libcamera::controls::controls.at(ctrl.first);
                 //         const libcamera::ControlValue &value = ctrl.second;
@@ -395,10 +564,14 @@ namespace romi {
                 // }
                 
                 auto buffers = request->buffers();
+                double timestamp = ClockAccessor::GetInstance()->time();
                 
                 for (auto bufferPair : buffers) {
                         libcamera::FrameBuffer *buffer = bufferPair.second;
-                
+
+			//const libcamera::FrameMetadata &metadata = buffer->metadata();
+			//uint64_t timestamp = metadata.timestamp;
+			
                         for (const libcamera::FrameBuffer::Plane &plane : buffer->planes()) {
 
                                 int mmapFlags = PROT_READ;
@@ -437,16 +610,165 @@ namespace romi {
                                         map_[key] = data;
                                 }
 
-                                convert_to_jpeg(data);
-
-                                jpeg_.clear();
-                                jpeg_.append(buffer_, image_size_);
-                                
-                                //munmap(map_address, mapLength);
+				if (recording_) {
+                                        process_video_frame(data, plane.length, timestamp);
+                                        
+				} else if (image_requested_) {
+                                        process_image_data(data, plane.length, timestamp);
+                                        
+                                } else {
+                                        // The image is not needed.
+                                }
                         }
                 }
         }
 
+	void LibCamera::process_video_frame(const uint8_t *data, size_t length,
+                                            double timestamp)
+	{
+                // Process the frame in a separate thread.
+                frame_count_++;
+                                        
+                uint8_t *p = frame_allocator_.alloc();
+                if (p == nullptr) {
+                        frame_skipped_++;
+                        r_debug("LibCamera: frame count %zu, "
+                                "skipped %zu frames",
+                                frame_count_, frame_skipped_);
+                } else {
+                        memcpy(p, data, length);
+                        auto frame = std::make_shared<Frame>(frame_count_,
+                                                             timestamp,
+                                                             p,
+                                                             length);
+                        queue_.push(frame);
+                }
+	}
+
+	void LibCamera::process_image_data(const uint8_t *data, size_t length,
+                                           double timestamp)
+	{
+                std::unique_lock<std::mutex> lock(cv_mutex_);
+                convert_to_jpeg(data, timestamp);
+                jpeg_.clear();
+                jpeg_.append(buffer_, image_size_);
+                request_completed_ = true;
+                image_requested_ = false;
+                cv_.notify_one();
+	}
+
+	void LibCamera::start_recording()
+	{
+		recording_ = true;
+	}
+	
+	void LibCamera::stop_recording()
+	{
+		recording_ = false;
+	}
+        
+	void LibCamera::store_buffers_to_disk()
+	{
+		while (true) {
+
+                        if (buffer_queue_.size() > 0)
+                                r_debug("store_buffers_to_disk: Queue size: %d",
+                                        (int) buffer_queue_.size());
+                        
+			if (quitting_buffer_thread_ && buffer_queue_.size() == 0)
+				break;
+			
+			if (buffer_queue_.size() > 0) {
+                                auto buffer = buffer_queue_.pop();
+                                store_buffer_sync(buffer.index_, buffer.length_);
+				
+			} else {
+				usleep(100000);
+			}
+		}
+                
+		r_debug("Quitting store_buffers_to_disk, offset=%d",
+                        (int) file_buffer_offset_);
+                
+                if (file_buffer_offset_ > 0) {
+                        store_buffer_sync(file_buffer_current_, file_buffer_offset_);
+                }
+	}
+	
+	void LibCamera::convert_frames_to_jpeg()
+	{
+		while (true) {
+			if (quitting_frame_thread_ && queue_.size() == 0)
+				break;
+			
+			auto frame = queue_.try_pop();
+			if (frame) {
+				convert_frame_to_jpeg(frame);
+                                frame_allocator_.free(frame->data_);
+                                
+			} else {
+				usleep(10000);
+			}
+		}                
+	}
+        
+	void LibCamera::convert_frame_to_jpeg(std::shared_ptr<Frame>& frame)
+	{
+		auto startTime = std::chrono::high_resolution_clock::now();
+		convert_to_jpeg(frame->data_, frame->timestamp_);
+		auto convertTime = std::chrono::high_resolution_clock::now();
+
+                buffer_image();
+		double t_convert = (double) std::chrono::duration_cast<std::chrono::microseconds>(convertTime - startTime).count();
+		r_debug("convert_frame_to_jpeg: %.0f µs", t_convert);
+	}
+
+        void LibCamera::buffer_image()
+	{
+                size_t length = file_buffer_offset_ + image_size_;
+                if (length < file_buffer_size_) {
+                        buffer_append();
+                } else {
+                        r_debug("buffer_image: Requesting writing %d kB to file, %d images",
+                                (int) file_buffer_offset_ / 1024,
+                                (int) file_buffer_image_count_);
+                        store_buffer_async(file_buffer_current_, file_buffer_offset_);
+                        swap_buffers();
+                        buffer_append();
+                }
+        }
+
+        void LibCamera::buffer_append()
+	{
+                uint8_t *dst = (file_buffer_[file_buffer_current_] + file_buffer_offset_);
+                memcpy(dst, buffer_, image_size_);
+                file_buffer_offset_ += image_size_;
+                file_buffer_image_count_++;
+        }
+        
+        void LibCamera::swap_buffers()
+	{
+                file_buffer_current_ = 1 - file_buffer_current_;
+                file_buffer_offset_ = 0;
+                file_buffer_image_count_ = 0;
+        }
+
+        void LibCamera::store_buffer_async(size_t index, size_t length)
+	{
+                buffer_queue_.push(index, length);
+        }
+        
+        void LibCamera::store_buffer_sync(size_t index, size_t length)
+	{
+                r_debug("store_buffer_sync: Writing %d kB to file", (int) length / 1024);
+		auto startTime = std::chrono::high_resolution_clock::now();
+		file_.write((const char*) file_buffer_[index], length);                
+		auto saveTime = std::chrono::high_resolution_clock::now();
+		double t_save = (double) std::chrono::duration_cast<std::chrono::microseconds>(saveTime - startTime).count();
+		r_debug("store_buffer_sync: Save: %f µs", t_save);
+        }
+	
+	
         typedef struct _jpeg_my_dest_mgr_t {
                 struct jpeg_destination_mgr mgr;
                 LibCamera *camera;
@@ -473,7 +795,7 @@ namespace romi {
                 camera->image_size_ = camera->buffer_size_ - cinfo->dest->free_in_buffer;
         }
 
-        void LibCamera::convert_to_jpeg(const uint8_t *data)
+        void LibCamera::convert_to_jpeg(const uint8_t *data, double)
         {
                 struct jpeg_compress_struct cinfo;
                 struct jpeg_error_mgr jerr;
