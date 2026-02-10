@@ -42,5 +42,5 @@ target_link_libraries(romi-camera romi rcom jpeg)
 add_executable(testlibcamera TestLibCamera.cpp ${CAMERA_SOURCES})
 target_link_libraries(testlibcamera romi rcom jpeg)
 
-add_executable(test_mjpeg test_mjpeg.cpp)
-target_link_libraries(test_mjpeg romi rcom jpeg)
+#add_executable(test_mjpeg test_mjpeg.cpp)
+#target_link_libraries(test_mjpeg romi rcom jpeg)
