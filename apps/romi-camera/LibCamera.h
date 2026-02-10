@@ -233,6 +233,7 @@ namespace romi {
                 size_t image_size_;
 	protected:
                 bool recording_;
+                std::string recording_id_;
 		size_t frame_count_;
 		size_t frame_skipped_;
 		FrameQueue queue_;
@@ -245,12 +246,13 @@ namespace romi {
                 size_t file_buffer_size_;
                 int file_buffer_current_;
                 size_t file_buffer_offset_;
-		std::ofstream file_;
+		std::ofstream *file_;
                 size_t file_buffer_image_count_;
                 FrameAllocator frame_allocator_;
                 
         public:
-                explicit LibCamera(ICameraStatusIndicator& indicator, size_t width, size_t height);
+                explicit LibCamera(ICameraStatusIndicator& indicator,
+                                   size_t width, size_t height);
                 ~LibCamera() override;
         
                 bool grab(Image &image) override;
@@ -267,8 +269,9 @@ namespace romi {
                 bool power_down() override;
                 bool is_powered_up() override;
 
-		void start_recording();
-                void stop_recording();
+		RecordingID start_recording() override;
+                void stop_recording(RecordingID id) override;
+                std::filesystem::path get_recording(RecordingID id) override;
                 
         protected:
                 void init_camera();
@@ -290,6 +293,10 @@ namespace romi {
                 void store_buffers_to_disk();
                 void store_buffer_async(size_t index, size_t length);
                 void store_buffer_sync(size_t index, size_t length);
+                std::string new_recording_id();
+                std::string get_mjpeg_filename(RecordingID id);
+                void open_mjpeg_file(RecordingID id);
+                void close_mjpeg_file();
         };
 }
 

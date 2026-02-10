@@ -101,6 +101,8 @@ namespace romi {
         
         std::filesystem::path FileCamera::get_recording(RecordingID id)
         {
+                std::filesystem::path path = filename_;
+                return path;
         }
 
         bool FileCamera::power_up()

@@ -33,9 +33,9 @@ int main()
         romi::LibCamera camera(indicator, 1456, 1088);
         camera.power_up();
 
-	camera.start_recording();
+        romi::RecordingID id = camera.start_recording();
 	usleep(10*1000*1000);
-	camera.stop_recording();
+	camera.stop_recording(id);
 	
         // rcom::MemBuffer& image = camera.grab_jpeg();
         // auto data = image.data();

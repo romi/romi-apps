@@ -37,6 +37,7 @@
 #include <util/FileUtils.h>
 #include <util/Logger.h>
 #include <util/ClockAccessor.h>
+#include <util/StringUtils.h>
 #include "LibCamera.h"
 
 namespace romi {
@@ -178,6 +179,7 @@ namespace romi {
                   buffer_size_(0),
                   image_size_(0),
 		  recording_(false),
+		  recording_id_(),
 		  frame_count_(0),
                   frame_skipped_(0),
 		  queue_(),
@@ -189,9 +191,9 @@ namespace romi {
                   file_buffer_size_(0),
                   file_buffer_current_(0),
                   file_buffer_offset_(0),
-                  file_("test.mjpeg", std::ios::binary),
+                  file_(nullptr),
                   file_buffer_image_count_(0),
-                  frame_allocator_()
+                  frame_allocator_()                  
         {
                 width_ = width;
                 height_ = height;
@@ -657,15 +659,56 @@ namespace romi {
                 cv_.notify_one();
 	}
 
-	void LibCamera::start_recording()
+	RecordingID LibCamera::start_recording()
 	{
+                SynchronizedCodeBlock sync(api_mutex_);
+                if (!running_) {
+                        r_info("LibCamera::start_recording: Not powered up");
+                        throw std::runtime_error("LibCamera::start_recording: "
+                                                 "Not powered up");
+                }
+                if (recording_) {
+                        r_warn("LibCamera::start_recording: already recording");
+                        std::runtime_error("LibCamera::start_recording: already recording");
+                }
+                recording_id_ = new_recording_id();
+                open_mjpeg_file(recording_id_);
 		recording_ = true;
+                return recording_id_;
 	}
+
+        std::string LibCamera::new_recording_id()
+        {
+                using clock = std::chrono::system_clock;
+                std::tm tm{};
+                std::ostringstream oss;
+                
+                const auto now = clock::now();
+                std::time_t tt = clock::to_time_t(now);
+                localtime_r(&tt, &tm);
+                oss << std::put_time(&tm, "%Y%m%d-%H%M%S");
+                return oss.str();
+        }
 	
-	void LibCamera::stop_recording()
+	void LibCamera::stop_recording(RecordingID id)
 	{
+                SynchronizedCodeBlock sync(api_mutex_);
+                if (!recording_) {
+                        r_warn("LibCamera::stop_recording: not recording");
+                        std::runtime_error("LibCamera::stop_recording: not recording");
+                }
+                if (id != recording_id_) {
+                        r_warn("LibCamera::stop_recording: Bad recording ID");
+                        std::runtime_error("LibCamera::stop_recording: Bad recording ID");
+                }
 		recording_ = false;
 	}
+        
+        std::filesystem::path LibCamera::get_recording(RecordingID id)
+        {
+                std::filesystem::path path = get_mjpeg_filename(id);
+                return path;
+        }
         
 	void LibCamera::store_buffers_to_disk()
 	{
@@ -685,6 +728,13 @@ namespace romi {
 			} else {
 				usleep(100000);
 			}
+
+                        {
+                                SynchronizedCodeBlock sync(api_mutex_);
+                                if (!recording_) {
+                                        close_mjpeg_file();
+                                }
+                        }
 		}
                 
 		r_debug("Quitting store_buffers_to_disk, offset=%d",
@@ -693,8 +743,36 @@ namespace romi {
                 if (file_buffer_offset_ > 0) {
                         store_buffer_sync(file_buffer_current_, file_buffer_offset_);
                 }
+                
+                close_mjpeg_file();
 	}
 	
+        std::string LibCamera::get_mjpeg_filename(RecordingID id)
+        {
+                return romi::StringUtils::string_format("recording-%s.mjpeg", id.c_str());
+        }
+        
+	void LibCamera::open_mjpeg_file(RecordingID id)
+	{
+                if (file_ != nullptr) {
+                        r_warn("LibCamera::open_mjpeg_file: already open");
+                        std::runtime_error("LibCamera::open_mjpeg_file: already open");
+                }
+                auto filename = get_mjpeg_filename(id);
+                file_ = new std::ofstream(filename, std::ios::binary);
+                r_info("LibCamera::open_mjpeg_file: %s → %s", id.c_str(), filename.c_str());
+        }
+	
+	void LibCamera::close_mjpeg_file()
+	{
+                if (file_ != nullptr) {
+                        r_info("LibCamera::close_mjpeg_file");
+                        file_->close();
+                        delete file_;
+                        file_ = nullptr;
+                }
+        }
+        
 	void LibCamera::convert_frames_to_jpeg()
 	{
 		while (true) {
@@ -761,8 +839,12 @@ namespace romi {
         void LibCamera::store_buffer_sync(size_t index, size_t length)
 	{
                 r_debug("store_buffer_sync: Writing %d kB to file", (int) length / 1024);
+                if (file_ == nullptr) {
+                        r_warn("store_buffer_sync: No file!");
+                        return;
+                }
 		auto startTime = std::chrono::high_resolution_clock::now();
-		file_.write((const char*) file_buffer_[index], length);                
+		file_->write((const char*) file_buffer_[index], length);                
 		auto saveTime = std::chrono::high_resolution_clock::now();
 		double t_save = (double) std::chrono::duration_cast<std::chrono::microseconds>(saveTime - startTime).count();
 		r_debug("store_buffer_sync: Save: %f µs", t_save);

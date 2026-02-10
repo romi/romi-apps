@@ -80,6 +80,22 @@ namespace romi {
                 load_jpeg();
                 return jpeg_;
         }
+        
+        RecordingID ExternalCamera::start_recording()
+        {
+                r_err("ExternalCamera::get_recording: not implemented");
+                throw std::runtime_error("ExternalCamera::get_recording: not implemented");
+        }
+        
+        void ExternalCamera::stop_recording(RecordingID id)
+        {
+        }
+        
+        std::filesystem::path ExternalCamera::get_recording(RecordingID id)
+        {
+                r_err("ExternalCamera::get_recording: not implemented");
+                throw std::runtime_error("ExternalCamera::get_recording: not implemented");
+        }
 
         void ExternalCamera::execute()
         {

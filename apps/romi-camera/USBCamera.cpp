@@ -154,6 +154,22 @@ namespace romi {
                 // r_err("USBCamera::grab_jpeg: Not implemented");
                 // throw std::runtime_error("USBCamera::grab_jpeg: Not implemented");
         }
+        
+        RecordingID USBCamera::start_recording()
+        {
+                r_err("USBCamera::get_recording: not implemented");
+                throw std::runtime_error("USBCamera::get_recording: not implemented");
+        }
+        
+        void USBCamera::stop_recording(RecordingID id)
+        {
+        }
+        
+        std::filesystem::path USBCamera::get_recording(RecordingID id)
+        {
+                r_err("USBCamera::get_recording: not implemented");
+                throw std::runtime_error("USBCamera::get_recording: not implemented");
+        }
 
         nlohmann::json USBCamera::get_camera_info()
         {
