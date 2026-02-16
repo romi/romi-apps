@@ -50,7 +50,7 @@ namespace romi {
                 if (!std::filesystem::exists(base_directory_)) {
                         std::filesystem::create_directories(base_directory_);
                 }
-                log_move(base_directory_);
+                //log_move(base_directory_);
         }
 
         void Session::start(const std::string &observation_id)
