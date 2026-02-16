@@ -85,6 +85,7 @@ class CNCBroadcast
 {
 protected:
         romi::CNC& cnc_;
+        romi::v3 position_;
         std::string& topic_;
         std::string& type_;
         romi::RcomLog& log_;
@@ -111,6 +112,7 @@ public:
 CNCBroadcast::CNCBroadcast(romi::CNC& cnc, std::string& topic, std::string& type,
                            romi::RcomLog& log, rcom::Linux& system)
         : cnc_(cnc),
+          position_(-1, -1, -1),
           topic_(topic),
           type_(type),
           log_(log),
@@ -152,11 +154,14 @@ void CNCBroadcast::send_position()
 {
         romi::v3 p;
         double t = romi::ClockAccessor::GetInstance()->time();
-        cnc_.get_position(p); 
-        message_.clear();
-        message_.printf("[%.6f,%.6f,%.6f,%.6f]", t, p.x(), p.y(), p.z());
-        //printf("[%.6f,%.6f,%.6f,%.6f]\n", t, p.x(), p.y(), p.z());
-        hub_->broadcast(message_, rcom::kTextMessage, nullptr);
+        cnc_.get_position(p);
+        if (p != position_) {
+                message_.clear();
+                message_.printf("[%.6f,%.6f,%.6f,%.6f]", t, p.x(), p.y(), p.z());
+                //printf("[%.6f,%.6f,%.6f,%.6f]\n", t, p.x(), p.y(), p.z());
+                hub_->broadcast(message_, rcom::kTextMessage, nullptr);
+                position_ = p;
+        }
 }
 
 void CNCBroadcast::handle_listeners()
