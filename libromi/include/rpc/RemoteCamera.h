@@ -45,6 +45,11 @@ namespace romi {
 
                 bool grab(Image &image) override;
                 rcom::MemBuffer& grab_jpeg() override;
+
+                RecordingID start_recording() override;
+                void stop_recording(RecordingID id) override;
+                std::filesystem::path get_recording(RecordingID id) override;
+
                 nlohmann::json get_camera_info() override;
                 
                 bool set_value(const std::string& name, double value) override;

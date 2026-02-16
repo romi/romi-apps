@@ -41,7 +41,8 @@ namespace romi {
                 static constexpr const char *kHelix = "cnc-helix";
                 static constexpr const char *kGetPosition = "cnc-get-position";
                 static constexpr const char *kSynchronize = "cnc-synchronize";
-                static constexpr const char *kSetRelay = "set-relay";
+                static constexpr const char *kSetRelay = "cnc-set-relay";
+                static constexpr const char *kIsIdle = "cnc-is-idle";
 
                 static constexpr const char *kSpeedParam = "speed";
                 static constexpr const char *kMoveXParam = "x";

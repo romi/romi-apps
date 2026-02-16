@@ -33,11 +33,16 @@ namespace romi {
                 static constexpr const char *kSetValue = "camera:set-value";
                 static constexpr const char *kSelectOption = "camera:select-option";
                 static constexpr const char *kGetCameraInfo = "camera:get-camera-info";
+                static constexpr const char *kStartRecording = "camera:start-recording";
+                static constexpr const char *kStopRecording = "camera:stop-recording";
+                static constexpr const char *kGetRecording = "camera:get-recording";
 
                 static constexpr const char *kSettingName = "name";
                 static constexpr const char *kSettingValue = "value";
                 static constexpr const char *kOptionName = "name";
                 static constexpr const char *kOptionValue = "value";
+                static constexpr const char *kRecordingID = "recording-id";
+                static constexpr const char *kRecordingPath = "recording-path";
         };
 }
 
