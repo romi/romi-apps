@@ -20,7 +20,7 @@ class RelayBoard():
         return self.client.execute('relay-board:get', {'index': index})
         
     def set(self, index, value):
-        return self.client.execute('relay-board:set', {'index': index})
+        return self.client.execute('relay-board:set', {'index': index, 'value': value})
 
         
 if __name__ == '__main__':

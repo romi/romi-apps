@@ -72,6 +72,7 @@ namespace romi {
                 bool homing() override;
                 bool get_range(CNCRange &range) override;
                 bool get_axes(std::vector<std::unique_ptr<IAxis>>& axes) override;
+                int is_idle() override;                
                 bool get_position(v3& position) override; 
                 bool synchronize(double timeout_seconds) override;
 

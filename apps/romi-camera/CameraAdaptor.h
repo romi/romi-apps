@@ -46,6 +46,10 @@ namespace romi {
                                            rcom::RPCError& error);
                 void execute_get_camera_info(nlohmann::json& result,
                                              rcom::RPCError& error);
+                void execute_start_recording(nlohmann::json& result);
+                void execute_stop_recording(nlohmann::json& params);
+                void execute_get_recording(nlohmann::json& params,
+                                           nlohmann::json& result);
                 
         public:
                 CameraAdaptor(ICamera& camera);

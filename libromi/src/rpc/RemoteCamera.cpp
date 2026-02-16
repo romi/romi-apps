@@ -79,6 +79,51 @@ namespace romi {
                 return output_;
         }
 
+        RecordingID RemoteCamera::start_recording()
+        {
+                r_debug("RemoteCamera::start_recording");
+                nlohmann::json result;
+                try {
+                        if (!execute_with_result(MethodsCamera::kStartRecording,
+                                                result)) {
+                                r_err("RemoteCamera::start_recording: failed");
+                                throw std::runtime_error("RemoteCamera::start_recording: "
+                                                         "failed");
+                        }
+                }  catch (nlohmann::json::exception& je) {
+                        r_err("RemoteCamera::start_recording: %s", je.what());
+                        throw;
+                }
+
+                std::string id = result[MethodsCamera::kRecordingID];
+                return id;
+        }
+        
+        void RemoteCamera::stop_recording(RecordingID id)
+        {
+                r_debug("RemoteCamera::stop_recording");
+                nlohmann::json params;
+                params[MethodsCamera::kRecordingID] = id;
+                execute_with_params(MethodsCamera::kStopRecording, params);
+        }
+        
+        std::filesystem::path RemoteCamera::get_recording(RecordingID id)
+        {
+                nlohmann::json result;
+                nlohmann::json params;
+                params[MethodsCamera::kRecordingID] = id;
+                
+                if (!execute(MethodsCamera::kGetRecording, params, result)) {
+                        r_err("RemoteCamera::get_recording: failed");
+                        throw std::runtime_error("RemoteCamera::get_recording: "
+                                                 "failed");
+                }
+
+                std::string s = result[MethodsCamera::kRecordingPath];
+                std::filesystem::path path = s;
+                return path;
+        }
+
         nlohmann::json RemoteCamera::get_camera_info()
         {
                 r_debug("RemoteCamera::get_camera_info");

@@ -77,12 +77,12 @@ namespace romi {
                 bool disable() override;
                 bool is_enabled() override;
 
+                int is_idle() override;                
                 bool stop() override;
 
         protected:
 
                 int send_command(const char *cmd);
-                int is_idle();                
                 bool response_ok(nlohmann::json& response);
                 bool send_command_without_interruption(const char *command);
                 bool check_response(const char *command, nlohmann::json& response);

@@ -104,6 +104,25 @@ namespace romi {
                 return success;
         }
 
+        int RemoteCNC::is_idle()
+        {
+                r_debug("RemoteCNC::is_idle");
+
+                int answer = -1;
+                nlohmann::json result;
+
+                try {
+                        if (execute_with_result(MethodsCNC::kIsIdle, result)) {
+                                answer = result[MethodsCNC::kValue];
+                        }
+                        
+                } catch (nlohmann::json::exception& je) {
+                        r_err("RemoteCNC::is_idle: %s", je.what());
+                }
+                
+                return answer;
+        }
+
         bool RemoteCNC::moveto(double x, double y, double z, double v, bool sync)
         {
                 r_debug("RemoteCNC::moveto");

@@ -32,6 +32,17 @@ class Camera():
         with open("tmp.jpg", "wb") as f:
             f.write(data)
         return Image.open(BytesIO(data))
+       
+    def start_recording(self):
+        result = self.client.execute('camera:start-recording')
+        return result['recording-id']
+        
+    def stop_recording(self, id):
+        self.client.execute('camera:stop-recording', {'recording-id': id})
+        
+    def get_recording(self, id):
+        result = self.client.execute('camera:get-recording', {'recording-id': id})
+        return result['recording-path']
 
     def set_value(self, name, value):
         params = {'name': name, 'value': value}

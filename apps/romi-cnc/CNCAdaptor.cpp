@@ -90,6 +90,9 @@ namespace romi {
                         } else if (method == MethodsCNC::kGetPosition) {
                                 execute_get_position(result, error);
                                 
+                        } else if (method == MethodsCNC::kIsIdle) {
+                                execute_is_idle(result);
+                                
                         } else if (method == MethodsCNC::kSynchronize) {
                                 execute_synchronize(params, error);
                                 
@@ -364,6 +367,12 @@ namespace romi {
         {
                 r_debug("CNCAdaptor::is_powered_up");
                 result = {{MethodsPowerDevice::kPoweredUp, cnc_.is_powered_up()}};
+        }
+
+        void CNCAdaptor::execute_is_idle(nlohmann::json& result)
+        {
+                r_debug("CNCAdaptor::is_idle");
+                result = {{MethodsCNC::kValue, cnc_.is_idle()}};
         }
 }
 

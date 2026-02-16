@@ -27,11 +27,32 @@
 
 #include <string>
 #include <stdexcept>
+#include <atomic>
+#include <thread>
+#include <mutex>
 #include <util/ImageIO.h>
 #include <api/ICamera.h>
 
 namespace romi {
 
+        class Character {
+        public:
+                static const uint32_t kColumns = 8;
+                static const uint32_t kLines = 8;
+                static const uint32_t kLineSize = 8 * 3;
+                static const uint32_t kLength = kLineSize * 8;
+                static const uint32_t kByteLength = kLineSize * sizeof(float);
+                
+                char c_;
+                float rgb_[kLength];
+
+                Character() {}
+                ~Character() = default;
+
+                void init(char c, char* bit_pattern);
+                void insert(Image& image, uint32_t x, uint32_t y);
+        };
+        
         class FakeCamera : public ICamera
         {
         public:
@@ -40,17 +61,31 @@ namespace romi {
         protected:
                 size_t width_;
                 size_t height_;
+                uint32_t framerate_;
                 Image image_;
                 rcom::MemBuffer jpeg_;
                 bool powered_up_;
-                
+                uint32_t count_;
+                bool recording_;
+                std::string recording_id_;
+                Character characters_[128];
+                std::ofstream *file_;
+                std::mutex mutex_;
+                std::unique_ptr<std::thread> thread_;
+
                 void make_image();
                 void make_jpeg();
+                void print(char* text, uint32_t x, uint32_t y);
+                std::string new_recording_id();
+                void open_mjpeg_file(RecordingID id);
+                std::string get_mjpeg_filename(RecordingID id);
+                void close_mjpeg_file();
+                void record();
                 
         public:
                 
-                explicit FakeCamera(size_t width, size_t height);
-                ~FakeCamera() override = default;
+                explicit FakeCamera(size_t width, size_t height, uint32_t framerate);
+                ~FakeCamera() override;
         
                 bool grab(Image &image) override;
                 rcom::MemBuffer& grab_jpeg() override;

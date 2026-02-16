@@ -50,7 +50,7 @@ namespace romi {
                 void execute_power_down(rcom::RPCError &error);
                 void execute_is_powered_up(nlohmann::json& result, rcom::RPCError &error);
                 void execute_set_relay(nlohmann::json& params);
-
+                void execute_is_idle(nlohmann::json& result);
 
         public:
                 explicit CNCAdaptor(ICNC &cnc);

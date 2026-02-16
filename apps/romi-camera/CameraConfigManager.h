@@ -45,7 +45,7 @@ namespace romi {
         public:
                 
                 explicit CameraConfigManager(std::shared_ptr<ICameraInfoIO>& io,
-                                          std::unique_ptr<ICamera>& camera);
+                                             std::unique_ptr<ICamera>& camera);
                 ~CameraConfigManager() override = default;
         
                 bool grab(Image &image) override;

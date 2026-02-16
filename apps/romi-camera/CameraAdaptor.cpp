@@ -95,6 +95,15 @@ namespace romi {
                         } else if (method == MethodsCamera::kGetCameraInfo) {
                                 execute_get_camera_info(result, error);
                                 
+                        } else if (method == MethodsCamera::kStartRecording) {
+                                execute_start_recording(result);
+                                
+                        } else if (method == MethodsCamera::kStopRecording) {
+                                execute_stop_recording(params);
+                                
+                        } else if (method == MethodsCamera::kGetRecording) {
+                                execute_get_recording(params, result);
+                                
                         } else {
                                 error.code = rcom::RPCError::kMethodNotFound;
                                 error.message = "Unknown method";
@@ -135,6 +144,7 @@ namespace romi {
                                               nlohmann::json& result,
                                               rcom::RPCError& error)
         {
+                r_debug("CameraAdaptor::execute_set_value");
                 (void) result;
                 if (!params.contains(MethodsCamera::kSettingName)
                     && !params.contains(MethodsCamera::kSettingValue)) {
@@ -157,6 +167,7 @@ namespace romi {
                                                   nlohmann::json& result,
                                                   rcom::RPCError& error)
         {
+                r_debug("CameraAdaptor::execute_select_option");
                 (void) result;
                 if (!params.contains(MethodsCamera::kOptionName)
                     && !params.contains(MethodsCamera::kOptionValue)) {
@@ -178,6 +189,30 @@ namespace romi {
         void CameraAdaptor::execute_get_camera_info(nlohmann::json& result,
                                                     rcom::RPCError& error)
         {
+                r_debug("CameraAdaptor::execute_get_camera_info");
                 result = camera_.get_camera_info();
+        }
+
+        void CameraAdaptor::execute_start_recording(nlohmann::json& result)
+        {
+                r_debug("CameraAdaptor::execute_start_recording");
+                RecordingID id = camera_.start_recording();
+                result[MethodsCamera::kRecordingID] = id;
+        }
+        
+        void CameraAdaptor::execute_stop_recording(nlohmann::json& params)
+        {
+                r_debug("CameraAdaptor::execute_stop_recording");
+                std::string id = params[MethodsCamera::kRecordingID];
+                camera_.stop_recording(id);
+        }
+        
+        void CameraAdaptor::execute_get_recording(nlohmann::json& params,
+                                                  nlohmann::json& result)
+        {
+                r_debug("CameraAdaptor::execute_get_recording");
+                std::string id = params[MethodsCamera::kRecordingID];
+                auto path = camera_.get_recording(id);
+                result[MethodsCamera::kRecordingPath] = path.string();;                
         }
 }

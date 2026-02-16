@@ -77,6 +77,9 @@ namespace romi {
                 virtual bool enable() = 0;
                 virtual bool disable() = 0;
                 virtual bool is_enabled() = 0;
+
+                /* Return 1 if idle, 0 if busy, and -1 if error. */
+                virtual int is_idle() = 0;                
                 virtual bool stop() = 0;
         };
 }

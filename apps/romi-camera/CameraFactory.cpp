@@ -80,9 +80,10 @@ namespace romi {
                 
                 size_t width = (size_t) settings.get_value(ICameraSettings::kWidth);
                 size_t height = (size_t) settings.get_value(ICameraSettings::kHeight);
+                uint32_t fps = (uint32_t) settings.get_value(ICameraSettings::kFramerate);
                 
                 std::unique_ptr<ICamera> camera
-                        = std::make_unique<FakeCamera>(width, height);
+                        = std::make_unique<FakeCamera>(width, height, fps);
                 return camera;
         }
         

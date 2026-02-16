@@ -48,7 +48,8 @@ namespace romi {
                 // of 1.0 means maximum speed. The actual speed will
                 // depend on the direction of the (x,y,z) vector and
                 // the allowed maximum speeds on each of the axes.
-                virtual bool moveto(double x, double y, double z, double relative_speed, bool sync) = 0;
+                virtual bool moveto(double x, double y, double z,
+                                    double relative_speed, bool sync) = 0;
                 // virtual bool moveat(double vx, double vy, double vz) = 0;
                 virtual bool spindle(double speed) = 0;
                 virtual uint8_t count_relays() = 0;
@@ -57,6 +58,8 @@ namespace romi {
                 virtual bool helix(double xc, double yc, double alpha, double z,
                                    double relative_speed, bool sync) = 0;
                 virtual bool homing() = 0;
+                /* Return 1 if idle, 0 if busy, and -1 if error. */
+                virtual int is_idle() = 0;                
                 virtual bool get_position(v3& position) = 0; 
                 virtual bool synchronize(double timeout_seconds) = 0; 
         };

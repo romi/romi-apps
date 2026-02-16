@@ -82,6 +82,11 @@ namespace romi {
                 return true;
         }
         
+        int CNC::is_idle() 
+        {
+                return controller_.is_idle();
+        }
+        
         bool CNC::get_position(int32_t *position) 
         {
                 return controller_.get_position(position);

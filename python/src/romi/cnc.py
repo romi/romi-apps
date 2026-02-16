@@ -17,7 +17,7 @@ class CNC():
        
     def set_relay(self, index, value):
         params = {'index': index, 'value': value }
-        self.client.execute('set-relay', params)
+        self.client.execute('cnc-set-relay', params)
        
     def power_up(self):
         self.client.execute('power-up')
@@ -55,6 +55,10 @@ class CNC():
     def get_position(self):
         return self.client.execute('cnc-get-position')
        
+    def is_idle(self):
+        answer = self.client.execute('cnc-is-idle')
+        return answer['value']
+    
     def synchronize(self, timeout_seconds):
         return self.client.execute('cnc-synchronize', {'timeout': timeout_seconds})
 
