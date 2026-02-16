@@ -11,6 +11,7 @@ set(SOURCES
   ATDC.h
   ATDC.cpp
   FakeCNCController.h
+  FakeCNCController.cpp
   Helix.h
   Helix.cpp
   ICNCController.h
