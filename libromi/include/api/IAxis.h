@@ -47,6 +47,7 @@ namespace romi {
         };
         
         typedef enum {
+                kUnusedAxis,
                 kLinearAxis,
                 kAngularAxis
         } AxisType;

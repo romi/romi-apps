@@ -84,6 +84,8 @@ namespace romi {
                         type_ = kLinearAxis;
                 } else if (type_s == "angular") {
                         type_ = kAngularAxis;
+                } else if (type_s == "unused") {
+                        type_ = kUnusedAxis;
                 } else {
                         r_err("Axis: invalid type: %s", type_s.c_str());
                         throw std::runtime_error("Axis: invalid type");
@@ -169,6 +171,9 @@ namespace romi {
         {
                 switch (type()) {
                 default:
+                case kUnusedAxis:
+                        s = "unused";
+                        break;
                 case kLinearAxis:
                         s = "linear";
                         break;
