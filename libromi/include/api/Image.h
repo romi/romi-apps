@@ -42,11 +42,11 @@ namespace romi {
                                    kBChannel = 2 };
                 
         protected:
-                size_t _width;
-                size_t _height;
-                ImageType _type;
-                size_t _channels;
-                std::vector<float> _data;
+                size_t width_;
+                size_t height_;
+                ImageType type_;
+                size_t channels_;
+                std::vector<float> data_;
 
                 void import_data(const uint8_t *data);
                 void do_init(ImageType type, size_t width, size_t height);
@@ -66,23 +66,23 @@ namespace romi {
 
                 // Accessors
                 ImageType type() {
-                        return _type;
+                        return type_;
                 }
                 
                 size_t width() const {
-                        return _width;
+                        return width_;
                 }
                 
                 size_t height() const {
-                        return _height;
+                        return height_;
                 }
                 
                 size_t channels() const {
-                        return _channels;
+                        return channels_;
                 }
                 
                 std::vector<float>& data() {
-                        return _data;
+                        return data_;
                 }
                 
                 bool contains(size_t x, size_t y) const {
@@ -96,14 +96,14 @@ namespace romi {
                 void set(size_t channel, size_t x, size_t y, float color) {
                         if (contains(x, y)) {
                                 // TBD: Not safe Offset not calculated in contains()
-                                _data[offset(channel, x, y)] = color;
+                                data_[offset(channel, x, y)] = color;
                         }
                 }
                 
                 float get(size_t channel, size_t x, size_t y) const {
                         float value = 0.0f;
                         if (contains(x, y)) {
-                                value = _data[offset(channel, x, y)];
+                                value = data_[offset(channel, x, y)];
                         }
                         return value;
                 }
@@ -114,6 +114,7 @@ namespace romi {
                 void init(ImageType type, size_t width, size_t height);
                 void import(ImageType type, const uint8_t *data,
                             size_t width, size_t height);
+                void clear();
                 void fill(size_t channel, float color);
                 void crop(size_t x, size_t y, size_t width, size_t height, Image &out);
                 void scale(size_t n, Image &out);

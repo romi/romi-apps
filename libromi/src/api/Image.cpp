@@ -45,18 +45,18 @@ namespace romi {
                 return r;
         }
         
-        Image::Image() : _width(0), _height(0), _type(RGB), _channels(3), _data(0)
+        Image::Image() : width_(0), height_(0), type_(RGB), channels_(3), data_(0)
         {
         }
 
         Image::Image(ImageType type, size_t width, size_t height)
-                : _width(width), _height(height), _type(type), _channels(3), _data()
+                : width_(width), height_(height), type_(type), channels_(3), data_()
         { 
                 do_init(type, width, height);
         }
         
         Image::Image(ImageType type, const uint8_t *data, size_t width, size_t height)
-                : _width(width), _height(height), _type(type), _channels(3),  _data()
+                : width_(width), height_(height), type_(type), channels_(3),  data_()
         {
                 do_init(type, width, height);
                 import_data(data);
@@ -64,21 +64,21 @@ namespace romi {
         
         Image::~Image()
         {
-                _data.clear();
+                data_.clear();
         }
 
         void Image::do_init(ImageType type, size_t width, size_t height)
         {
-                _type = type;
-                _channels = channels_per_type(type);
-                _width = width;
-                _height = height;
-                _data.resize(length(), 0.0);
+                type_ = type;
+                channels_ = channels_per_type(type);
+                width_ = width;
+                height_ = height;
+                data_.resize(length(), 0.0);
         }
 
         void Image::init(ImageType type, size_t width, size_t height)
         {
-                if (_type != type || _width != width || _height != height) {
+                if (type_ != type || width_ != width || height_ != height) {
                         do_init(type, width, height);
                 }
         }
@@ -93,40 +93,45 @@ namespace romi {
         void Image::import_data(const uint8_t *data)
         {
                 size_t len = length();
-                float *p = _data.data();
+                float *p = data_.data();
                 for (size_t i = 0; i < len; i++)
                         *p++ = (float) *data++ / 255.0f;
         }
         
+        void Image::clear()
+        {
+                std::fill(data_.begin(), data_.end(), 0.0f);
+        }
+        
         void Image::fill(size_t channel, float color)
         {
-                size_t stride = _channels;
+                size_t stride = channels_;
                 size_t len = length();
                 for (size_t i = channel; i < len; i += stride)
-                        _data[i] = color;
+                        data_[i] = color;
         }
         
         void Image::crop(size_t x, size_t y, size_t width, size_t height, Image &out)
         {
-                if (x >= _width) {
+                if (x >= width_) {
                         width = 0;
-                } else if (x + width > _width) {
-                        width = _width - x;
+                } else if (x + width > width_) {
+                        width = width_ - x;
                 }
                 
-                if (y >= _height) {
+                if (y >= height_) {
                         height = 0;
-                } else if (y + height > _height) {
-                        height = _height - y;
+                } else if (y + height > height_) {
+                        height = height_ - y;
                 }
                 
-                out.init(_type, width, height);
+                out.init(type_, width, height);
                 
                 for (size_t line = 0; line < height; line++) {
-                        size_t len = width * _channels * sizeof(float);
+                        size_t len = width * channels_ * sizeof(float);
                         size_t crop_offset = out.offset(0, 0, line);
                         size_t im_offset = offset(0, x, y + line);
-                        memcpy(&out._data[crop_offset], &_data[im_offset], len); 
+                        memcpy(&out.data_[crop_offset], &data_[im_offset], len); 
                 }
         }
 
@@ -135,19 +140,19 @@ namespace romi {
                 if (n == 0)
                         n = 1;
                 
-                size_t width = (_width + n - 1) / n;
-                size_t height = (_height + n - 1) / n;
+                size_t width = (width_ + n - 1) / n;
+                size_t height = (height_ + n - 1) / n;
                 // size_t offx = n / 2;
                 // size_t offy = n / 2;
                 
-                out.init(_type, width, height);
+                out.init(type_, width, height);
 
                 for (size_t y = 0; y < height; y++) {
                         for (size_t x = 0; x < width; x++) {
                                 size_t i0 = offset(0, n * x, n * y);
                                 size_t i1 = out.offset(0, x, y);
-                                for (size_t c = 0; c < _channels; c++) {
-                                        out._data[i1 + c] = _data[i0 + c];
+                                for (size_t c = 0; c < channels_; c++) {
+                                        out.data_[i1 + c] = data_[i0 + c];
                                 }
                         }
                 }
@@ -155,7 +160,7 @@ namespace romi {
 
         size_t Image::length()
         {
-                return _width * _height * _channels;
+                return width_ * height_ * channels_;
         }
         
         size_t Image::byte_length()
@@ -166,18 +171,18 @@ namespace romi {
         Image &Image::operator=(const Image &other)
         {
                 if (&other != this) {
-                    init(other._type, other._width, other._height);
-                    _data = other._data;
+                    init(other.type_, other.width_, other.height_);
+                    data_ = other.data_;
                 }
                 return *this;
         }
  
         std::vector<uint8_t> Image::export_byte_data()
         {
-                std::vector<uint8_t> normalised_byte_data(_data.size(), 0);
+                std::vector<uint8_t> normalised_byte_data(data_.size(), 0);
 
-                for (size_t datum = 0; datum < _data.size(); datum++) {
-                    normalised_byte_data[datum] = (uint8_t) (_data[datum] * 255.0f);
+                for (size_t datum = 0; datum < data_.size(); datum++) {
+                    normalised_byte_data[datum] = (uint8_t) (data_[datum] * 255.0f);
                 }
                 return normalised_byte_data;
         }
@@ -265,9 +270,9 @@ namespace romi {
         void Image::erode_slow(Image& out)
         {
                 Erode erode;
-                out.init(BW, _width, _height);
-                for (size_t y = 0; y < _height; y++) {
-                        for (size_t x = 0; x < _width; x++) {
+                out.init(BW, width_, height_);
+                for (size_t y = 0; y < height_; y++) {
+                        for (size_t x = 0; x < width_; x++) {
                                 float value = erode.apply(*this, x, y);
                                 out.set(0, x, y, value);
                         }
@@ -283,9 +288,9 @@ namespace romi {
         void Image::dilate_slow(Image& out)
         {
                 Dilate dilate;
-                out.init(BW, _width, _height);
-                for (size_t y = 0; y < _height; y++) {
-                        for (size_t x = 0; x < _width; x++) {
+                out.init(BW, width_, height_);
+                for (size_t y = 0; y < height_; y++) {
+                        for (size_t x = 0; x < width_; x++) {
                                 float value = dilate.apply(*this, x, y);
                                 out.set(0, x, y, value);
                         }
@@ -364,16 +369,16 @@ namespace romi {
         }
         
         void Image::dilate(size_t n, Image& out) {
-                if (_type != BW)
+                if (type_ != BW)
                         throw std::runtime_error("Dilate: not a BW image");
 
                 Image copy;
                 copy = *this;
-                out.init(BW, _width, _height);
+                out.init(BW, width_, height_);
                 
-                float* a = &copy._data[0];
-                float* b = &out._data[0];
-                dilate_n(n, a, b, _width, _height);
+                float* a = &copy.data_[0];
+                float* b = &out.data_[0];
+                dilate_n(n, a, b, width_, height_);
         }
 
 
@@ -421,15 +426,15 @@ namespace romi {
         }
         
         void Image::erode(size_t n, Image& out) {
-                if (_type != BW)
+                if (type_ != BW)
                         throw std::runtime_error("Erode: not a BW image");
 
                 Image copy;
                 copy = *this;
-                out.init(BW, _width, _height);
+                out.init(BW, width_, height_);
                 
-                float* a = copy._data.data();
-                float* b = out._data.data();
-                erode_n(n, a, b, _width, _height);
+                float* a = copy.data_.data();
+                float* b = out.data_.data();
+                erode_n(n, a, b, width_, height_);
         }
 }
