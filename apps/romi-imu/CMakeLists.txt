@@ -7,6 +7,9 @@ SET(romi-imu-sources
   quaternion.h
   quaternion.c
   IIMU.h
+  IMUFactory.h
+  IMUFactory.cpp
+  FakeIMU.h
   IMURT.h
   IMURT.cpp
   IMUAdaptor.h

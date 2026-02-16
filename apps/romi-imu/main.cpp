@@ -34,15 +34,16 @@
 #include <rcom/IMessageListener.h>
 #include <rcom/DummyListener.h>
 #include <rcom/util.h>
-
 #include <configuration/RomiOptions.h>
+#include <configuration/LocalConfig.h>
+#include <rpc/RemoteConfig.h>
 #include <rpc/RcomLog.h>
 #include <rpc/RemoteDataLog.h>
 #include <util/ClockAccessor.h>
 #include <util/Logger.h>
 
 #include "IMUAdaptor.h"
-#include "IMURT.h"
+#include "IMUFactory.h"
 
 static bool quit = false;
 static void set_quit(int sig, siginfo_t *info, void *ucontext);
@@ -89,10 +90,37 @@ int main(int argc, char **argv)
                 }
                 
                 log_set_application(topic);
-
+                
+                // Config
+                std::shared_ptr<romi::IConfigManager> config;
+                
+                if (options.is_set(romi::RomiOptions::kConfig)) {
+                        std::string config_value =
+                                options.get_value(romi::RomiOptions::kConfig);
+                        
+                        r_info("romi-camera: Using local configuration file: '%s'",
+                               config_value.c_str());
+                
+                        std::filesystem::path config_path = config_value;
+                        config = std::make_shared<romi::LocalConfig>(config_path);
+                } else {
+                        r_info("romi-camera: Using remote configuration");
+                        auto client = rcom::RcomClient::create("config", 10.0, log, system);
+                        config = std::make_shared<romi::RemoteConfig>(client);
+                }
+                
+                if (!config->has_section(topic)) {
+                        r_debug("main.cpp: The '%s' section (=topic name) is missing in "
+                                "the configuration file.", topic.c_str());
+                        throw std::runtime_error("Missing topic section in configuration");
+                }
+                
+                nlohmann::json imu_config = config->get_section(topic);
+                
                 // TODO: Get options from config file
-                romi::IMURT imu; 
-                romi::IMUAdaptor adaptor(imu);
+                romi::IMUFactory factory;
+                std::unique_ptr<romi::IIMU> imu = factory.create(imu_config); 
+                romi::IMUAdaptor adaptor(*imu);
                 rcom::RcomMessageHandler listener(adaptor);
                 auto server = rcom::RcomServer::create(topic, type, listener, log, system);
 
@@ -103,10 +131,10 @@ int main(int argc, char **argv)
                 
                 quit_on_control_c();
         
-                double interval = imu.get_preferred_update_interval() - 0.001;
+                double interval = imu->get_preferred_update_interval() - 0.001;
                 while (!quit) {
-                        imu.update();
-                        broadcast_orientation(*hub, imu);
+                        imu->update();
+                        broadcast_orientation(*hub, *imu);
                         hub->handle_events();
                         server->handle_events();
                         clock->sleep(interval);
