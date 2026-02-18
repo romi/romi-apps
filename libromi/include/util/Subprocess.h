@@ -41,7 +41,7 @@
 
 namespace romi {
 
-        class Subprocess  : publuc ISubprocess
+        class Subprocess  : public ISubprocess
         {
         public:
 
@@ -77,6 +77,10 @@ namespace romi {
                         if (pid_ > 0) {
                                 throw std::runtime_error("Subprocess already started");
                         }
+
+                        result_.status = 0;
+                        result_.exit_code = -1;
+                        result_.term_signal = 0;
 
                         pid_t p = ::fork();
                         if (p < 0) {
@@ -165,7 +169,7 @@ namespace romi {
                 // if available.
                 Result wait() override {
                         if (pid_ <= 0) {
-                                if (result_) {
+                                if (result_.exit_code >= 0) {
                                         return result_;
                                 }
                                 // Not running and no cached result: treat as "unknown".
@@ -201,7 +205,8 @@ namespace romi {
                         if (pid_ <= 0)
                                 return true;
 
-                        auto timeout = std::chrono::milliseconds(1000.0 * timeout_seconds)
+                        uint32_t ms = (uint32_t) (1000.0 * timeout_seconds);
+                        auto timeout = std::chrono::milliseconds(ms);
                                 
                         // Graceful
                         send_signal(gracefulSig, toProcessGroup);
