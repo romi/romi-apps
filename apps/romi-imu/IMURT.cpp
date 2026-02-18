@@ -33,7 +33,10 @@ namespace romi {
                   settings_(nullptr),
                   imu_(nullptr)
         {
+                r_debug("IMURT::IMURT: starting initialisation");
                 settings_ = new RTIMUSettings();
+                settings_->setDefaults();
+                
                 settings_->m_imuType = 6; // STM LSM9DS1
                 settings_->m_fusionType = 2; // RTQF
                 settings_->m_busIsI2C = 1;
@@ -41,7 +44,7 @@ namespace romi {
                 settings_->m_SPIBus = 0;
                 settings_->m_SPISelect = 0;
                 settings_->m_SPISpeed = 500000;
-                settings_->m_I2CSlaveAddress = 107;
+                settings_->m_I2CSlaveAddress = 107; // 0x6b
                 settings_->m_axisRotation = 0;
                 settings_->m_pressureType = 0;
                 settings_->m_I2CPressureAddress = 0;
@@ -86,14 +89,21 @@ namespace romi {
                 
                 //  set up IMU
 
+                r_debug("IMURT::IMURT: calling IMUInit");
+                
                 imu_->IMUInit();
 
+                r_debug("IMURT::IMURT: calling IMUInit: done");
+
                 //  this is a convenient place to change fusion parameters
+
                 
                 imu_->setSlerpPower(0.02f);
                 imu_->setGyroEnable(true);
                 imu_->setAccelEnable(true);
                 imu_->setCompassEnable(true);
+                
+                r_debug("IMURT::IMURT: initialisation done");
         }
 
         IMURT::~IMURT()
