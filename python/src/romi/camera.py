@@ -102,7 +102,16 @@ def show_image_in_window(image, window_name="Image Window", wait=1):
     cv2.imshow(window_name, img_to_show)
     cv2.waitKey(wait)
 
-        
+
+def blurriness(image):
+    # compute the Laplacian of the image and then return the focus
+    # measure, which is simply the variance of the Laplacian
+    cv_image = np.array(image)[:, :, ::-1].copy()
+    gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
+    result = cv2.Laplacian(gray, cv2.CV_64F).var()
+    return result
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--topic', type=str, nargs='?', default="camera",
@@ -117,6 +126,8 @@ if __name__ == '__main__':
                         help='The delay between images')
     parser.add_argument('--show', type=bool, nargs='?', default=False,
                         help='Show the images')
+    parser.add_argument('--blurriness', type=bool, nargs='?', default=False,
+                        help='Print the blurriness index of the images')
     args = parser.parse_args()
 
     if args.show:
@@ -137,6 +148,8 @@ if __name__ == '__main__':
                 image.save(f"{args.topic}-{n:05d}.jpg")
             if args.show:
                 show_image_in_window(image)
+            if args.blurriness:
+                print(f"blurriness: {blurriness(image)}")
         time.sleep(args.sleep)
         n = n + 1
         
