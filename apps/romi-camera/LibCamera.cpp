@@ -876,15 +876,102 @@ namespace romi {
                 LibCamera *camera = my_mgr->camera;
                 camera->image_size_ = camera->buffer_size_ - cinfo->dest->free_in_buffer;
         }
+        
+        static void append_le16(std::vector<uint8_t> &v, uint16_t x)
+        {
+                v.push_back((uint8_t) (x & 0xFF));
+                v.push_back((uint8_t) ((x >> 8) & 0xFF));
+        }
 
-        void LibCamera::convert_to_jpeg(const uint8_t *data, double)
+        static void append_le32(std::vector<uint8_t> &v, uint32_t x)
+        {
+                v.push_back((uint8_t) (x & 0xFF));
+                v.push_back((uint8_t) ((x >> 8) & 0xFF));
+                v.push_back((uint8_t) ((x >> 16) & 0xFF));
+                v.push_back((uint8_t) ((x >> 24) & 0xFF));
+        }
+
+        static std::vector<uint8_t> build_exif(double epoch_seconds)
+        {
+                // UserComment data:
+                //  - 8-byte EXIF prefix indicating encoding ("ASCII\0\0\0")
+                //  - decimal digits of epoch (no NUL terminator required)
+                auto digits = romi::StringUtils::string_format("%.6f", epoch_seconds);
+                const uint8_t prefix[8] = {'A', 'S', 'C', 'I', 'I', 0, 0, 0};
+
+                const uint32_t userCommentLen = 8u + (uint32_t) digits.size();
+
+                // TIFF offsets are relative to the start of the TIFF header (right after "Exif\0\0").
+                constexpr uint32_t ifd0Offset = 8; // typical
+                constexpr uint16_t ifd0Entries = 1; // only ExifIFDPointer
+
+                const uint32_t ifd0Len = 2 + ifd0Entries * 12 + 4;
+
+                constexpr uint16_t exifIfdEntries = 1; // only UserComment
+                const uint32_t exifIfdOffset = ifd0Offset + ifd0Len;
+                const uint32_t exifIfdLen = 2 + exifIfdEntries * 12 + 4;
+
+                const uint32_t dataOffset = exifIfdOffset + exifIfdLen;
+
+                std::vector<uint8_t> exif;
+                exif.reserve(6 + 8 + ifd0Len + exifIfdLen + userCommentLen);
+
+                // EXIF APP1 payload prefix
+                exif.insert(exif.end(), {'E','x','i','f', 0x00, 0x00});
+
+                // TIFF header (little endian)
+                exif.push_back('I');
+                exif.push_back('I');
+                append_le16(exif, 42);              // TIFF magic
+                append_le32(exif, ifd0Offset);      // offset to IFD0
+
+                // IFD0
+                append_le16(exif, ifd0Entries);
+
+                // ExifIFDPointer tag: 0x8769, type LONG(4), count=1,
+                // value=exifIfdOffset
+                append_le16(exif, 0x8769);
+                append_le16(exif, 4);               // LONG
+                append_le32(exif, 1);
+                append_le32(exif, exifIfdOffset);
+
+                // next IFD offset = 0
+                append_le32(exif, 0);
+
+                // Exif IFD
+                append_le16(exif, exifIfdEntries);
+
+                // UserComment tag: 0x9286, type UNDEFINED(7),
+                // count=userCommentLen, value=dataOffset
+                append_le16(exif, 0x9286);
+                append_le16(exif, 7);               // UNDEFINED
+                append_le32(exif, userCommentLen);
+
+                // If data <=4 bytes we could store inline; ours won't
+                // be, so store offset:
+                append_le32(exif, dataOffset);
+
+                // next IFD offset = 0
+                append_le32(exif, 0);
+
+                // Data block at dataOffset: prefix + digits
+                exif.insert(exif.end(), prefix, prefix + 8);
+                exif.insert(exif.end(), (uint8_t*) digits.data(),
+                            (uint8_t*) (digits.data() + digits.size()));
+
+                return exif;
+        }
+        
+        void LibCamera::convert_to_jpeg(const uint8_t *data, double timestamp)
         {
                 struct jpeg_compress_struct cinfo;
                 struct jpeg_error_mgr jerr;
                 jpeg_my_dest_mgr_t* my_mgr;
 
                 JSAMPROW row_pointer[1];
-
+                
+                const std::vector<uint8_t> exif = build_exif(timestamp);
+    
                 cinfo.err = jpeg_std_error(&jerr);
                 jpeg_create_compress(&cinfo);
 
@@ -907,6 +994,10 @@ namespace romi {
                 jpeg_set_quality(&cinfo, 95, TRUE);
 
                 jpeg_start_compress(&cinfo, TRUE);
+
+                jpeg_write_marker(&cinfo, JPEG_APP0 + 1,
+                                  (const JOCTET*) exif.data(),
+                                  (unsigned int) exif.size());
 
                 // feed data
                 while (cinfo.next_scanline < cinfo.image_height) {
