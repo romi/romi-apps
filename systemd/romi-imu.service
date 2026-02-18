@@ -1,0 +1,17 @@
+[Unit]
+Description=Romi IMU service
+ConditionPathExists=/home/romi/romi-apps/build/bin/romi-imu
+After=network.target
+After=systemd-user-sessions.service
+After=network-online.target
+
+[Service]
+User=romi
+Type=forking
+ExecStart=/home/romi/romi-apps/systemd/romi-imu-start.sh
+ExecStop=/home/romi/romi-apps/systemd/romi-imu-stop.sh
+
+[Install]
+WantedBy=multi-user.target
+
+
