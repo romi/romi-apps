@@ -60,6 +60,15 @@ void broadcast_orientation(rcom::IMessageHub& hub, romi::IIMU& imu)
         hub.broadcast(message, rcom::kTextMessage, nullptr);
 }
 
+void try_broadcast_orientation(rcom::IMessageHub& hub, romi::IIMU& imu)
+{
+        try {
+                broadcast_orientation(hub, imu);
+        } catch (std::exception& e) {
+                r_err("broadcast_orientation: caught exception: %s", e.what());
+        }
+}
+
 int main(int argc, char **argv)
 {
         try {
@@ -134,14 +143,14 @@ int main(int argc, char **argv)
                 double interval = imu->get_preferred_update_interval() - 0.001;
                 while (!quit) {
                         imu->update();
-                        broadcast_orientation(*hub, *imu);
+                        try_broadcast_orientation(*hub, *imu);
                         hub->handle_events();
                         server->handle_events();
                         clock->sleep(interval);
                 }
                 
         } catch (std::exception& e) {
-                r_err("RomiBattery: caught exception: %s", e.what());
+                r_err("romi-imu: caught exception: %s", e.what());
         }
         return 0;
 }
